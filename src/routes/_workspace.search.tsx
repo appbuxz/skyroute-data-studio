@@ -70,7 +70,7 @@ function SearchPage() {
       <PageHeader title="Flight search" description="Define a route to analyse. Enter IATA airport codes, e.g. ALA or NQZ." />
       <Card className="shadow-card">
         <CardContent className="pt-6">
-          <form onSubmit={onSubmit} noValidate className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <form onSubmit={onSubmit} noValidate className="grid items-start gap-5 md:grid-cols-2 lg:grid-cols-3">
             <Field id="origin" label="Origin" error={errors.origin}>
               <Input id="origin" list="kz-airports" placeholder="ALA" maxLength={3} value={values.origin}
                 onChange={(e) => set("origin", e.target.value.toUpperCase())} aria-invalid={!!errors.origin} />
@@ -123,7 +123,7 @@ function SearchPage() {
 
 function Field({ id, label, error, children }: { id: string; label: string; error?: string; children: ReactNode }) {
   return (
-    <div className="grid gap-1.5">
+    <div className="grid content-start gap-1.5">
       <Label htmlFor={id}>{label}</Label>
       {children}
       {error && <p className="text-xs text-destructive">{error}</p>}
