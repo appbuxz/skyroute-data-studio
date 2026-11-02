@@ -35,3 +35,7 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Cloudflare local secrets
+.dev.vars
+.dev.vars.*
