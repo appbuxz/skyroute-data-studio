@@ -10,33 +10,83 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WorkspaceRouteImport } from './routes/_workspace'
+import { Route as WorkspaceAnalysisRouteImport } from './routes/_workspace.analysis'
+import { Route as WorkspaceDashboardRouteImport } from './routes/_workspace.dashboard'
+import { Route as WorkspaceReportsRouteImport } from './routes/_workspace.reports'
+import { Route as WorkspaceSearchRouteImport } from './routes/_workspace.search'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkspaceRoute = WorkspaceRouteImport.update({
+  id: '/_workspace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceAnalysisRoute = WorkspaceAnalysisRouteImport.update({
+  id: '/analysis',
+  path: '/analysis',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceDashboardRoute = WorkspaceDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceReportsRoute = WorkspaceReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceSearchRoute = WorkspaceSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analysis': typeof WorkspaceAnalysisRoute
+  '/dashboard': typeof WorkspaceDashboardRoute
+  '/reports': typeof WorkspaceReportsRoute
+  '/search': typeof WorkspaceSearchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analysis': typeof WorkspaceAnalysisRoute
+  '/dashboard': typeof WorkspaceDashboardRoute
+  '/reports': typeof WorkspaceReportsRoute
+  '/search': typeof WorkspaceSearchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_workspace': typeof WorkspaceRouteWithChildren
+  '/_workspace/analysis': typeof WorkspaceAnalysisRoute
+  '/_workspace/dashboard': typeof WorkspaceDashboardRoute
+  '/_workspace/reports': typeof WorkspaceReportsRoute
+  '/_workspace/search': typeof WorkspaceSearchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/analysis' | '/dashboard' | '/reports' | '/search'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/analysis' | '/dashboard' | '/reports' | '/search'
+  id:
+    | '__root__'
+    | '/'
+    | '/_workspace'
+    | '/_workspace/analysis'
+    | '/_workspace/dashboard'
+    | '/_workspace/reports'
+    | '/_workspace/search'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  WorkspaceRoute: typeof WorkspaceRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +98,65 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_workspace': {
+      id: '/_workspace'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof WorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_workspace/analysis': {
+      id: '/_workspace/analysis'
+      path: '/analysis'
+      fullPath: '/analysis'
+      preLoaderRoute: typeof WorkspaceAnalysisRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/_workspace/dashboard': {
+      id: '/_workspace/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof WorkspaceDashboardRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/_workspace/reports': {
+      id: '/_workspace/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof WorkspaceReportsRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/_workspace/search': {
+      id: '/_workspace/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof WorkspaceSearchRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
   }
 }
 
+interface WorkspaceRouteChildren {
+  WorkspaceAnalysisRoute: typeof WorkspaceAnalysisRoute
+  WorkspaceDashboardRoute: typeof WorkspaceDashboardRoute
+  WorkspaceReportsRoute: typeof WorkspaceReportsRoute
+  WorkspaceSearchRoute: typeof WorkspaceSearchRoute
+}
+
+const WorkspaceRouteChildren: WorkspaceRouteChildren = {
+  WorkspaceAnalysisRoute: WorkspaceAnalysisRoute,
+  WorkspaceDashboardRoute: WorkspaceDashboardRoute,
+  WorkspaceReportsRoute: WorkspaceReportsRoute,
+  WorkspaceSearchRoute: WorkspaceSearchRoute,
+}
+
+const WorkspaceRouteWithChildren = WorkspaceRoute._addFileChildren(
+  WorkspaceRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  WorkspaceRoute: WorkspaceRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

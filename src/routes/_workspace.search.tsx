@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Info } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -121,7 +121,7 @@ function SearchPage() {
   );
 }
 
-function Field({ id, label, error, children }: { id: string; label: string; error?: string; children: React.ReactNode }) {
+function Field({ id, label, error, children }: { id: string; label: string; error?: string; children: ReactNode }) {
   return (
     <div className="grid gap-1.5">
       <Label htmlFor={id}>{label}</Label>
