@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/common/page-header";
 import { flightSearchSchema, type FlightSearchInput } from "@/lib/flights/search-schema";
-import { flightData } from "@/lib/flights/provider";
+import { searchFlightsServer } from "@/lib/flights/search.server";
 import { KZ_AIRPORTS } from "@/lib/flights/airports";
 import { CABIN_CLASSES, CABIN_LABELS, type FlightSearchParams } from "@/lib/flights/types";
 
@@ -61,10 +61,19 @@ function SearchPage() {
     setErrors({});
     setPending(true);
     const params: FlightSearchParams = { ...parsed.data, returnDate: parsed.data.returnDate || undefined };
-    const result = await flightData.searchFlights(params, {});
-    setPending(false);
-    if (result.status !== "ok") setNotice(result.message);
-  }
+    try {
+      const result = await searchFlightsServer({ data: params });
+
+      if (result.status !== "ok") {
+         setNotice(result.message);
+      }
+    } catch (error) {
+      console.error("Flight search request failed:", error);
+      setNotice("Unable to complete the flight search request.");
+    } finally {
+      setPending(false);
+    }
+    }
 
   return (
     <>
