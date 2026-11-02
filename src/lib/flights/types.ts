@@ -27,6 +27,32 @@ export interface FlightSearchParams {
   cabinClass: CabinClass;
 }
 
+export interface FlightSegment {
+  carrier: string;
+  flightNumber: string;
+  origin: string; // IATA airport code
+  destination: string; // IATA airport code
+  departureAt: string; // ISO datetime with timezone
+  arrivalAt: string; // ISO datetime with timezone
+  durationMinutes?: number;
+}
+
+export interface FlightItinerary {
+  segments: FlightSegment[];
+  durationMinutes?: number;
+}
+
+export interface FlightBaggage {
+  checked?: {
+    pieces?: number;
+    weightKg?: number;
+  };
+  cabin?: {
+    pieces?: number;
+    weightKg?: number;
+  };
+}
+
 export interface FlightOffer {
   id: string;
   carrier: string;
@@ -37,7 +63,20 @@ export interface FlightOffer {
   arrivalAt: string;
   stops: number;
   cabinClass: CabinClass;
-  price: { amount: number; currency: "KZT" | "USD" | "EUR" };
+  price: {
+    amount: number;
+    currency: string;
+  };
+
+  // Provider-independent details.
+  outbound?: FlightItinerary;
+  inbound?: FlightItinerary;
+  baggage?: FlightBaggage;
+  fareBrand?: string;
+  refundable?: boolean;
+  changeable?: boolean;
+  expiresAt?: string;
+  provider?: string;
 }
 
 export type FlightSearchResult =
