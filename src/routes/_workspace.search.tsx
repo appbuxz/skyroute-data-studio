@@ -24,9 +24,10 @@ export const Route = createFileRoute("/_workspace/search")({
   component: SearchPage,
 });
 
-type Errors = Partial<Record<keyof FlightSearchInput, string>>;
+type FormValues = Omit<FlightSearchInput, "passengers"> & { passengers: string | number };
+type Errors = Partial<Record<keyof FormValues, string>>;
 
-const initial: FlightSearchInput = {
+const initial: FormValues = {
   origin: "",
   destination: "",
   departureDate: "",
@@ -36,12 +37,12 @@ const initial: FlightSearchInput = {
 };
 
 function SearchPage() {
-  const [values, setValues] = useState<FlightSearchInput>(initial);
+  const [values, setValues] = useState<FormValues>(initial);
   const [errors, setErrors] = useState<Errors>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const set = <K extends keyof FlightSearchInput>(k: K, v: FlightSearchInput[K]) =>
+  const set = <K extends keyof FormValues>(k: K, v: FormValues[K]) =>
     setValues((s) => ({ ...s, [k]: v }));
 
   async function onSubmit(e: FormEvent) {
@@ -51,7 +52,7 @@ function SearchPage() {
     if (!parsed.success) {
       const next: Errors = {};
       for (const issue of parsed.error.issues) {
-        const key = issue.path[0] as keyof FlightSearchInput;
+        const key = issue.path[0] as keyof FormValues;
         if (!next[key]) next[key] = issue.message;
       }
       setErrors(next);
@@ -121,7 +122,7 @@ function SearchPage() {
   );
 }
 
-function Field({ id, label, error, children }: { id: string; label: string; error?: string; children: ReactNode }) {
+function Field({ id, label, error, children }: { id: string; label: string; error?: string | undefined; children: ReactNode }) {
   return (
     <div className="grid content-start gap-1.5">
       <Label htmlFor={id}>{label}</Label>

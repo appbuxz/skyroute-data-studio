@@ -22,7 +22,7 @@ export interface FlightSearchParams {
   origin: string;
   destination: string;
   departureDate: string; // ISO yyyy-mm-dd
-  returnDate?: string;
+  returnDate?: string | undefined;
   passengers: number;
   cabinClass: CabinClass;
 }
