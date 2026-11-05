@@ -8,6 +8,34 @@ describe("flight search validation", () => {
   it("accepts a complete search", () => {
     expect(flightSearchSchema.safeParse(valid).success).toBe(true);
   });
+  it("rejects a past departure date", () => {
+    expect(flightSearchSchema.safeParse({
+      ...valid,
+      departureDate: "2020-01-01",
+    }).success).toBe(false);
+  });
+
+  it("accepts today in Kazakhstan", () => {
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Almaty",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+
+    expect(flightSearchSchema.safeParse({
+      ...valid,
+      departureDate: today,
+    }).success).toBe(true);
+  });
+
+  it("accepts a future departure date", () => {
+    expect(flightSearchSchema.safeParse({
+      ...valid,
+      departureDate: "2099-12-01",
+    }).success).toBe(true);
+  });
+
   it("requires origin", () => {
     expect(flightSearchSchema.safeParse({ ...valid, origin: "" }).success).toBe(false);
   });
