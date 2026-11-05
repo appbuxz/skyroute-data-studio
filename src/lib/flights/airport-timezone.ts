@@ -10,6 +10,15 @@ const AIRPORT_TIMEZONES: Record<string, string> = {
   KGF: "Asia/Almaty",
   UKK: "Asia/Almaty",
 
+  // Turkey
+  IST: "Europe/Istanbul",
+
+  // Azerbaijan
+  GYD: "Asia/Baku",
+
+  // China
+  PKX: "Asia/Shanghai",
+
   // United States — Travelport test route
   JFK: "America/New_York",
   LAX: "America/Los_Angeles",

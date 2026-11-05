@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { flightSearchSchema, type FlightSearchInput } from "@/lib/flights/search-schema";
 import { searchFlightsServer } from "@/lib/flights/search.server";
 import { KZ_AIRPORTS } from "@/lib/flights/airports";
-import { CABIN_CLASSES, CABIN_LABELS, type FlightSearchParams } from "@/lib/flights/types";
+import { CABIN_CLASSES, CABIN_LABELS, type FlightOffer, type FlightSearchParams } from "@/lib/flights/types";
 
 export const Route = createFileRoute("/_workspace/search")({
   head: () => ({
@@ -41,12 +41,16 @@ function SearchPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [offers, setOffers] = useState<FlightOffer[]>([]);
+  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
 
   const set = <K extends keyof FormValues>(k: K, v: FormValues[K]) =>
     setValues((s) => ({ ...s, [k]: v }));
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    setOffers([]);
+    setFetchedAt(null);
     setNotice(null);
     const parsed = flightSearchSchema.safeParse(values);
     if (!parsed.success) {
@@ -64,9 +68,13 @@ function SearchPage() {
     try {
       const result = await searchFlightsServer({ data: params });
 
-      if (result.status !== "ok") {
-         setNotice(result.message);
-      }
+    if (result.status === "ok") {
+      setOffers(result.offers);
+      setFetchedAt(result.fetchedAt);
+    } else {
+      setNotice(result.message);
+    }
+
     } catch (error) {
       console.error("Flight search request failed:", error);
       setNotice("Unable to complete the flight search request.");
@@ -127,7 +135,58 @@ function SearchPage() {
           </div>
         </div>
       )}
-    </>
+  {fetchedAt && (
+  <section className="mt-6 space-y-4">
+    <div>
+      <h2 className="text-xl font-semibold">
+        Flight offers ({offers.length})
+      </h2>
+      <p className="text-sm text-muted-foreground">
+        Retrieved: {new Date(fetchedAt).toLocaleString()}
+      </p>
+    </div>
+
+    {offers.length === 0 ? (
+      <p className="text-sm text-muted-foreground">
+        No flights found for the selected route and date.
+      </p>
+    ) : (
+      <div className="grid gap-3">
+        {offers.map((offer) => (
+          <Card key={offer.id}>
+            <CardContent className="space-y-2 pt-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold">
+                    {offer.origin} → {offer.destination}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {offer.carrier} · {offer.flightNumber}
+                  </p>
+                </div>
+                <p className="text-lg font-bold">
+                  {offer.price.amount.toLocaleString()} {offer.price.currency}
+                </p>
+              </div>
+              <p className="text-sm">
+                {offer.stops === 0
+                  ? "Direct flight"
+                  : `${offer.stops} stop${offer.stops === 1 ? "" : "s"}`}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Departure: {offer.departureAt}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Arrival: {offer.arrivalAt}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+        </div>
+      )}
+    </section>
+  )}
+  </>
   );
 }
 
