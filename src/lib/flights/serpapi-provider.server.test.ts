@@ -98,12 +98,19 @@ describe("SerpApi server provider", () => {
   it("handles provider HTTP errors", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({ ok: false, status: 429 }),
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        json: async () => ({ error: "Rate limit exceeded" }),
+      }),
     );
 
     const result = await serpApiProvider.searchFlights(params, {});
 
-    expect(result.status).toBe("error");
+    expect(result).toEqual({
+      status: "error",
+      message: "Flight data provider is unavailable.",
+    });
   });
 
   it("handles provider API errors", async () => {

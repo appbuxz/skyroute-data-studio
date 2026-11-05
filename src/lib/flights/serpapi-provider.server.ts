@@ -35,7 +35,6 @@ const apiKey = process.env["SERPAPI_API_KEY"];
       };
     }
 
-    console.log("Flight search outbound date:", params.departureDate);
     const query = new URLSearchParams({
       engine: "google_flights",
       departure_id: params.origin,
@@ -100,7 +99,6 @@ const apiKey = process.env["SERPAPI_API_KEY"];
         params.cabinClass,
       );
 
-      console.log("SerpApi normalized offers:", offers.length);
       return {
         status: "ok",
         offers,
