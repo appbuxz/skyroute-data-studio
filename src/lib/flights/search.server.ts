@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireAuth } from "../supabase/auth.server";
 import { flightSearchSchema } from "./search-schema";
 import { serpApiProvider } from "./serpapi-provider.server";
 import type { FlightSearchResult } from "./types";
@@ -6,8 +7,10 @@ import type { FlightSearchResult } from "./types";
 export const searchFlightsServer = createServerFn({ method: "POST" })
   .validator(flightSearchSchema)
   .handler(async ({ data }): Promise<FlightSearchResult> => {
+    await requireAuth();
+
     try {
-	return await serpApiProvider.searchFlights(
+      return await serpApiProvider.searchFlights(
         {
           ...data,
           returnDate: data.returnDate || undefined,
