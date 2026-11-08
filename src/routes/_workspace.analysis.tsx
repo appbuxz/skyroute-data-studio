@@ -1,53 +1,316 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { BarChart3, CalendarRange, Clock, Plane } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DemoBadge, PageHeader } from "@/components/common/page-header";
+
+import { useEffect, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { BarChart3, Plane, Clock } from "lucide-react";
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { PageHeader } from "@/components/common/page-header";
+import { analyzeFlightPrices } from "@/lib/flights/analytics";
+import {
+  loadFlightSearch,
+  type SavedFlightSearch,
+} from "@/lib/flights/search-session";
+import { getAuthenticatedUser } from "@/lib/supabase/session.server";
 
 export const Route = createFileRoute("/_workspace/analysis")({
   head: () => ({
     meta: [
       { title: "Flight Analysis — Flight Analytics" },
-      { name: "description", content: "Compare fares, carriers and schedules for a selected route." },
-      { property: "og:title", content: "Flight Analysis — Flight Analytics" },
-      { property: "og:description", content: "Compare fares, carriers and schedules for a selected route." },
+      {
+        name: "description",
+        content: "Analyse flight offers from the latest search.",
+      },
     ],
   }),
   component: Analysis,
 });
 
-const PANELS = [
-  { title: "Price distribution", desc: "Spread of fares across carriers and departure times.", icon: BarChart3 },
-  { title: "Carrier comparison", desc: "Fares, stops and durations side by side.", icon: Plane },
-  { title: "Date flexibility", desc: "How fares shift on nearby departure dates.", icon: CalendarRange },
-  { title: "Schedule overview", desc: "Departure and arrival windows for the route.", icon: Clock },
-];
-
 function Analysis() {
+  const [search, setSearch] = useState<SavedFlightSearch | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      try {
+        const user = await getAuthenticatedUser();
+
+        if (!active) return;
+
+        if (user?.id) {
+          setSearch(loadFlightSearch(user.id));
+        }
+      } catch (error) {
+        console.error("Unable to load flight analysis:", error);
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void load();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <>
+        <PageHeader
+          title="Flight analysis"
+          description="Loading the latest search results."
+        />
+        <p className="text-sm text-muted-foreground">
+          Loading analysis…
+        </p>
+      </>
+    );
+  }
+
+  if (!search) {
+    return (
+      <>
+        <PageHeader
+          title="Flight analysis"
+          description="Analyse flight offers from your latest search."
+        />
+
+        <Card>
+          <CardContent className="space-y-3 pt-6">
+            <p className="text-sm text-muted-foreground">
+              No saved search results found for this session.
+            </p>
+
+            <Link
+              to="/search"
+              className="inline-block text-sm font-medium text-primary underline"
+            >
+              Go to flight search
+            </Link>
+          </CardContent>
+        </Card>
+      </>
+    );
+  }
+
+  const analysis = analyzeFlightPrices(search.offers);
+
+  const carriers = Array.from(
+    search.offers.reduce((map, offer) => {
+      const current = map.get(offer.carrier);
+
+      if (!current || offer.price.amount < current.price) {
+        map.set(offer.carrier, {
+          price: offer.price.amount,
+          currency: offer.price.currency,
+          count: (current?.count ?? 0) + 1,
+        });
+      } else {
+        current.count += 1;
+      }
+
+      return map;
+    }, new Map<string, {
+      price: number;
+      currency: string;
+      count: number;
+    }>()),
+  ).sort((a, b) => a[1].price - b[1].price);
+
   return (
     <>
       <PageHeader
         title="Flight analysis"
-        description="Results of a flight search will be analysed here once live data is connected."
-        badge={<DemoBadge>Awaiting data source</DemoBadge>}
+        description={`${search.params.origin} → ${search.params.destination} · ${search.params.departureDate}`}
       />
-      <div className="grid gap-4 md:grid-cols-2">
-        {PANELS.map(({ title, desc, icon: Icon }) => (
-          <Card key={title} className="shadow-card">
-            <CardHeader className="flex flex-row items-center gap-3 space-y-0">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-accent text-accent-foreground">
-                <Icon className="h-4 w-4" />
-              </div>
-              <CardTitle className="text-base">{title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">{desc}</p>
-              <div className="mt-4 flex h-32 items-center justify-center rounded-md border border-dashed bg-muted text-xs text-muted-foreground">
-                No results to analyse
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+
+      <p className="mb-5 text-sm text-muted-foreground">
+        {search.offers.length} offers · Retrieved:{" "}
+        {new Date(search.fetchedAt).toLocaleString()}
+      </p>
+
+      {!analysis ? (
+        <Card>
+          <CardContent className="pt-6 text-sm text-muted-foreground">
+            Price analysis is unavailable. Offers may be empty,
+            invalid, or use different currencies.
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <div className="mb-5 grid gap-4 md:grid-cols-3">
+            <Metric
+              title="Lowest price"
+              value={`${analysis.cheapest.price.amount.toLocaleString()} ${analysis.currency}`}
+            />
+
+            <Metric
+              title="Average price"
+              value={`${Math.round(analysis.averagePrice).toLocaleString()} ${analysis.currency}`}
+            />
+
+            <Metric
+              title="Price spread"
+              value={`${analysis.priceSpread.toLocaleString()} ${analysis.currency}`}
+              description={`${analysis.priceSpreadPercent.toFixed(1)}% between highest and lowest fares`}
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <BarChart3 className="h-4 w-4" />
+                  Price distribution
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-3">
+                {[...search.offers]
+                  .sort((a, b) => a.price.amount - b.price.amount)
+                  .map((offer) => (
+                    <div key={offer.id}>
+                      <div className="mb-1 flex justify-between gap-2 text-xs">
+                        <span>{offer.carrier}</span>
+                        <span>
+                          {offer.price.amount.toLocaleString()}{" "}
+                          {offer.price.currency}
+                        </span>
+                      </div>
+
+                      <div className="h-2 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{
+                            width: `${
+                              analysis.mostExpensive.price.amount > 0
+                                ? (offer.price.amount /
+                                    analysis.mostExpensive.price.amount) * 100
+                                : 0
+                            }%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Plane className="h-4 w-4" />
+                  Carrier comparison
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-3">
+                {carriers.map(([carrier, data]) => (
+                  <div
+                    key={carrier}
+                    className="flex items-center justify-between gap-3 border-b pb-2 text-sm last:border-0"
+                  >
+                    <span>{carrier}</span>
+
+                    <span className="font-semibold">
+                      From {data.price.toLocaleString()}{" "}
+                      {data.currency}
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Clock className="h-4 w-4" />
+                  Flight schedules
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-3">
+                {search.offers.map((offer) => (
+                  <div
+                    key={offer.id}
+                    className="grid gap-2 border-b pb-3 text-sm last:border-0 md:grid-cols-3"
+                  >
+                    <div>
+                      <p className="font-medium">
+                        {offer.carrier} · {offer.flightNumber}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {offer.stops === 0
+                          ? "Direct"
+                          : `${offer.stops} stop(s)`}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        Departure
+                      </p>
+                      <p>{offer.departureAt}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        Arrival
+                      </p>
+                      <p>{offer.arrivalAt}</p>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          <p className="mt-5 text-xs text-muted-foreground">
+            Price spread is not guaranteed savings. Fare conditions,
+            baggage, transfers and availability may differ.
+            Prices reflect the search snapshot, not a live booking quote.
+          </p>
+        </>
+      )}
     </>
+  );
+}
+
+function Metric({
+  title,
+  value,
+  description,
+}: {
+  title: string;
+  value: string;
+  description?: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="pt-5">
+        <p className="text-sm text-muted-foreground">
+          {title}
+        </p>
+
+        <p className="mt-2 text-2xl font-bold">
+          {value}
+        </p>
+
+        {description && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {description}
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }

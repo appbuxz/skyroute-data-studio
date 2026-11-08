@@ -7,6 +7,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { clearFlightSearch } from "@/lib/flights/search-session";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -31,11 +32,14 @@ async function handleSignOut() {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
-      setSignOutError("Unable to sign out. Please try again.");
-      return;
-    }
+  setSignOutError("Unable to sign out. Please try again.");
+  return;
+}
 
-    await navigate({ to: "/login", replace: true });
+// Clear flight data only after successful sign-out.
+clearFlightSearch();
+
+await navigate({ to: "/login", replace: true });
   } catch {
     setSignOutError("Unable to sign out. Please try again.");
   } finally {
