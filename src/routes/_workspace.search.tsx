@@ -11,6 +11,8 @@ import { flightSearchSchema, type FlightSearchInput } from "@/lib/flights/search
 import { searchFlightsServer } from "@/lib/flights/search.server";
 import { KZ_AIRPORTS } from "@/lib/flights/airports";
 import { CABIN_CLASSES, CABIN_LABELS, type FlightOffer, type FlightSearchParams } from "@/lib/flights/types";
+import { analyzeFlightPrices } from "@/lib/flights/analytics";
+
 
 export const Route = createFileRoute("/_workspace/search")({
   head: () => ({
@@ -43,6 +45,7 @@ function SearchPage() {
   const [pending, setPending] = useState(false);
   const [offers, setOffers] = useState<FlightOffer[]>([]);
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
+  const priceAnalysis = analyzeFlightPrices(offers);
 
   const set = <K extends keyof FormValues>(k: K, v: FormValues[K]) =>
     setValues((s) => ({ ...s, [k]: v }));
@@ -138,6 +141,49 @@ function SearchPage() {
   {fetchedAt && (
   <section className="mt-6 space-y-4">
     <div>
+      {priceAnalysis && (
+  <div className="grid gap-4 md:grid-cols-3">
+    <Card>
+      <CardContent className="pt-5">
+        <p className="text-sm text-muted-foreground">
+          Lowest price
+        </p>
+        <p className="mt-2 text-2xl font-bold">
+          {priceAnalysis.cheapest.price.amount.toLocaleString()}{" "}
+          {priceAnalysis.currency}
+        </p>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardContent className="pt-5">
+        <p className="text-sm text-muted-foreground">
+          Average price
+        </p>
+        <p className="mt-2 text-2xl font-bold">
+          {Math.round(priceAnalysis.averagePrice).toLocaleString()}{" "}
+          {priceAnalysis.currency}
+        </p>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardContent className="pt-5">
+        <p className="text-sm text-muted-foreground">
+          Price spread
+        </p>
+        <p className="mt-2 text-2xl font-bold">
+          {priceAnalysis.priceSpread.toLocaleString()}{" "}
+          {priceAnalysis.currency}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {priceAnalysis.priceSpreadPercent.toFixed(1)}%
+          between highest and lowest fares
+        </p>
+      </CardContent>
+    </Card>
+  </div>
+)}
       <h2 className="text-xl font-semibold">
         Flight offers ({offers.length})
       </h2>
