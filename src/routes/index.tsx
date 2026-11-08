@@ -6,6 +6,8 @@ import { Brand } from "@/components/layout/brand";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Flight Analytics — Fare intelligence for Kazakhstan travel agencies" },
       { name: "description", content: "Analyse routes, fares and carriers in one workspace built for travel agencies in Kazakhstan." },
       { property: "og:title", content: "Flight Analytics — Fare intelligence for travel agencies" },
