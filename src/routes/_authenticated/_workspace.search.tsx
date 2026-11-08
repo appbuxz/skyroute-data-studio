@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { Info } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -8,13 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/common/page-header";
 import { flightSearchSchema, type FlightSearchInput } from "@/lib/flights/search-schema";
-import { searchFlightsServer } from "@/lib/flights/search.server";
+import { searchFlightsServer } from "@/lib/flights/search.functions";
 import { KZ_AIRPORTS } from "@/lib/flights/airports";
 import { CABIN_CLASSES, CABIN_LABELS, type FlightSearchParams } from "@/lib/flights/types";
 
-export const Route = createFileRoute("/_workspace/search")({
+export const Route = createFileRoute("/_authenticated/_workspace/search")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Flight Search — Flight Analytics" },
       { name: "description", content: "Search routes by origin, destination, dates, passengers and cabin class." },
       { property: "og:title", content: "Flight Search — Flight Analytics" },
@@ -37,6 +40,7 @@ const initial: FormValues = {
 };
 
 function SearchPage() {
+  const searchFlights = useServerFn(searchFlightsServer);
   const [values, setValues] = useState<FormValues>(initial);
   const [errors, setErrors] = useState<Errors>({});
   const [notice, setNotice] = useState<string | null>(null);
@@ -62,7 +66,7 @@ function SearchPage() {
     setPending(true);
     const params: FlightSearchParams = { ...parsed.data, returnDate: parsed.data.returnDate || undefined };
     try {
-      const result = await searchFlightsServer({ data: params });
+      const result = await searchFlights({ data: params });
 
       if (result.status !== "ok") {
          setNotice(result.message);

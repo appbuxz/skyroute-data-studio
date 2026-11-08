@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DemoBadge, EmptyState, PageHeader } from "@/components/common/page-header";
 
-export const Route = createFileRoute("/_workspace/dashboard")({
+export const Route = createFileRoute("/_authenticated/_workspace/dashboard")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Dashboard — Flight Analytics" },
       { name: "description", content: "Overview of fare trends and search activity for your agency." },
       { property: "og:title", content: "Dashboard — Flight Analytics" },

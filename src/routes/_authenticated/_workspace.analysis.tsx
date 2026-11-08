@@ -3,9 +3,11 @@ import { BarChart3, CalendarRange, Clock, Plane } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DemoBadge, PageHeader } from "@/components/common/page-header";
 
-export const Route = createFileRoute("/_workspace/analysis")({
+export const Route = createFileRoute("/_authenticated/_workspace/analysis")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Flight Analysis — Flight Analytics" },
       { name: "description", content: "Compare fares, carriers and schedules for a selected route." },
       { property: "og:title", content: "Flight Analysis — Flight Analytics" },
