@@ -1,7 +1,6 @@
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { serpApiProvider } from "./serpapi-provider.server";
-import type { FlightSearchParams } from "./types";
+import type { FlightSearchParams, OrganizationId } from "./types";
 
 const params: FlightSearchParams = {
   origin: "ALA",
@@ -43,16 +42,13 @@ describe("SerpApi server provider", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await serpApiProvider.searchFlights(
-      { ...params, returnDate: "2026-12-20" },
-      {},
-    );
+    const result = await serpApiProvider.searchFlights({ ...params, returnDate: "2026-12-20" }, {});
 
     expect(result.status).toBe("error");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("sends the correct search parameters", async () => {
+  it("sends the correct search parameters without internal organization context", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -64,7 +60,8 @@ describe("SerpApi server provider", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await serpApiProvider.searchFlights(params, {});
+    const organizationId = "f2000000-0000-4000-8000-000000000001" as OrganizationId;
+    const result = await serpApiProvider.searchFlights(params, { organizationId });
 
     expect(result.status).toBe("ok");
 
@@ -93,6 +90,19 @@ describe("SerpApi server provider", () => {
     expect(url.searchParams.get("adults")).toBe("1");
     expect(url.searchParams.get("travel_class")).toBe("1");
     expect(url.searchParams.get("api_key")).toBe("test-key-not-real");
+    expect([...url.searchParams.keys()].sort()).toEqual([
+      "adults",
+      "api_key",
+      "arrival_id",
+      "currency",
+      "departure_id",
+      "engine",
+      "hl",
+      "outbound_date",
+      "travel_class",
+      "type",
+    ]);
+    expect(JSON.stringify(firstCall)).not.toContain(organizationId);
   });
 
   it("handles provider HTTP errors", async () => {
@@ -128,10 +138,7 @@ describe("SerpApi server provider", () => {
   });
 
   it("handles network failures", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockRejectedValue(new Error("Network unavailable")),
-    );
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network unavailable")));
 
     const result = await serpApiProvider.searchFlights(params, {});
 

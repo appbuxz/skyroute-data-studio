@@ -1,57 +1,178 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { FlightSearchParams, FlightSearchResult, OrganizationId } from "./types";
 
 const mocks = vi.hoisted(() => ({
-  requireAuth: vi.fn(),
+  requireOrganization: vi.fn(),
   searchFlights: vi.fn(),
 }));
 
-vi.mock("../supabase/auth.server", () => ({
-  requireAuth: mocks.requireAuth,
+vi.mock("../organizations/authorization.server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../organizations/authorization.server")>()),
+  requireOrganization: mocks.requireOrganization,
 }));
 
 vi.mock("./serpapi-provider.server", () => ({
-  serpApiProvider: {
-    searchFlights: mocks.searchFlights,
-  },
+  serpApiProvider: { searchFlights: mocks.searchFlights },
 }));
 
+// Run the actual configured validator and handler. HTTP serialization still
+// requires a separate TanStack Start integration check.
 vi.mock("@tanstack/react-start", () => ({
   createServerFn: () => ({
-    validator() {
+    validator(schema: { parse(input: unknown): unknown }) {
       return {
-        handler(fn: unknown) {
-          return fn;
+        handler(fn: (args: { data: unknown }) => Promise<unknown>) {
+          return async ({ data }: { data: unknown }) => fn({ data: schema.parse(data) });
         },
       };
     },
   }),
 }));
 
+import { OrganizationAuthorizationError } from "../organizations/authorization.server";
+import { UnauthorizedError } from "../supabase/auth.server";
 import { searchFlightsServer } from "./search.server";
 
-const params = {
+const organizationId = "f2000000-0000-4000-8000-000000000001" as OrganizationId;
+const params: FlightSearchParams = {
   origin: "ALA",
   destination: "IST",
   departureDate: "2026-12-10",
   passengers: 1,
-  cabinClass: "ECONOMY",
+  cabinClass: "economy",
+};
+const success: FlightSearchResult = {
+  status: "ok",
+  offers: [],
+  fetchedAt: "2026-11-10T10:00:00Z",
 };
 
+beforeEach(() => {
+  vi.resetAllMocks();
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-11-10T10:00:00Z"));
+  mocks.requireOrganization.mockResolvedValue({
+    userId: "verified-user",
+    organizationId,
+    role: "member",
+  });
+  mocks.searchFlights.mockResolvedValue(success);
+  vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.useRealTimers();
+});
+
 describe("searchFlightsServer authorization", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  it.each([
+    ["unauthenticated user", new UnauthorizedError()],
+    ["user without memberships", new OrganizationAuthorizationError("ORGANIZATION_ACCESS_DENIED")],
+    [
+      "user with multiple organizations",
+      new OrganizationAuthorizationError("ORGANIZATION_SELECTION_REQUIRED"),
+    ],
+    [
+      "authorization database failure",
+      new OrganizationAuthorizationError("AUTHORIZATION_UNAVAILABLE"),
+    ],
+    ["invalid organization", new OrganizationAuthorizationError("INVALID_ORGANIZATION_ID")],
+  ])("does not execute the provider for %s", async (_label, error) => {
+    mocks.requireOrganization.mockRejectedValue(error);
+
+    // Preserve the exact error and statusCode outside the provider catch block.
+    await expect(searchFlightsServer({ data: params })).rejects.toBe(error);
+    expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith();
+    expect(mocks.searchFlights).not.toHaveBeenCalled();
+    expect(console.error).not.toHaveBeenCalled();
   });
 
-  it("does not call SerpApi when authentication fails", async () => {
-    mocks.requireAuth.mockRejectedValue(
-      new Error("Authentication required"),
+  it("waits for authorization before executing the provider", async () => {
+    let authorize!: (context: { organizationId: OrganizationId }) => void;
+    mocks.requireOrganization.mockReturnValue(
+      new Promise((resolve) => {
+        authorize = resolve;
+      }),
     );
 
-    await expect(
-      (searchFlightsServer as Function)({ data: params }),
-    ).rejects.toThrow("Authentication required");
-
-    expect(mocks.requireAuth).toHaveBeenCalledOnce();
+    const pending = searchFlightsServer({ data: params });
+    expect(mocks.requireOrganization).toHaveBeenCalledOnce();
     expect(mocks.searchFlights).not.toHaveBeenCalled();
+    authorize({ organizationId });
+    await expect(pending).resolves.toEqual(success);
+    expect(mocks.searchFlights).toHaveBeenCalledOnce();
+  });
+
+  it.each(["owner", "admin", "member"])(
+    "passes verified context for an authorized %s",
+    async (role) => {
+      mocks.requireOrganization.mockResolvedValue({
+        userId: "verified-user",
+        organizationId,
+        role,
+      });
+
+      await expect(searchFlightsServer({ data: params })).resolves.toBe(success);
+      expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith();
+      expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
+        { ...params, returnDate: undefined },
+        { organizationId },
+      );
+    },
+  );
+
+  it("ignores organization identity or roles supplied outside the search schema", async () => {
+    const forgedInput = {
+      ...params,
+      organizationId: "forged-organization",
+      userId: "forged-user",
+      role: "owner",
+    };
+    await searchFlightsServer({ data: forgedInput });
+    expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith();
+    expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
+      { ...params, returnDate: undefined },
+      { organizationId },
+    );
+  });
+
+  it("preserves validation and avoids authorization/provider work for invalid input", async () => {
+    await expect(
+      searchFlightsServer({ data: { ...params, destination: params.origin } }),
+    ).rejects.toThrow();
+    expect(mocks.requireOrganization).not.toHaveBeenCalled();
+    expect(mocks.searchFlights).not.toHaveBeenCalled();
+  });
+
+  it("preserves empty return-date normalization", async () => {
+    await searchFlightsServer({ data: { ...params, returnDate: "" } });
+    expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
+      { ...params, returnDate: undefined },
+      { organizationId },
+    );
+  });
+
+  it("preserves nonempty return dates for provider handling", async () => {
+    const roundTrip = { ...params, returnDate: "2026-12-20" };
+    await searchFlightsServer({ data: roundTrip });
+    expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(roundTrip, { organizationId });
+  });
+
+  it.each([
+    { status: "not_connected", message: "Flight search API is not configured." },
+    { status: "error", message: "Flight data provider is unavailable." },
+  ] satisfies FlightSearchResult[])("preserves provider result $status", async (result) => {
+    mocks.searchFlights.mockResolvedValue(result);
+    await expect(searchFlightsServer({ data: params })).resolves.toBe(result);
+  });
+
+  it("preserves generic handling for unexpected provider failures", async () => {
+    mocks.searchFlights.mockRejectedValue(new Error("Provider unavailable"));
+    await expect(searchFlightsServer({ data: params })).resolves.toEqual({
+      status: "error",
+      message: "Flight search is temporarily unavailable.",
+    });
+    expect(console.error).toHaveBeenCalledOnce();
   });
 });
