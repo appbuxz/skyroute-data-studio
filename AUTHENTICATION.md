@@ -21,4 +21,6 @@ Create the first existing-user account under **More → Users → Add user → C
 - Cloud generated integration files/dependencies/configuration; `AGENTS.md` and `roadmap.md` document architecture and status.
 
 ## Verification limitations
+All 18 focused automated tests pass. Browser checks confirm every workspace URL redirects to `/login` when signed out, invalid credentials show a clear error, and login fits desktop/mobile with no page errors or mobile overflow. The latest automatic build/type checks report success.
+
 No account existed when session minting was attempted. Successful real-user login, server-recognized search, signed-in refresh, profile ownership and live sign-out must be checked after the first account is created. Unit tests cannot establish hosted session revocation. Live flight data remains unconnected, as before.
