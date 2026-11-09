@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { OrganizationId } from "../flights/types";
-import { clearFlightSearch } from "../flights/search-session";
+import { clearLegacyFlightSearch } from "../flights/search-session";
 import { supabase } from "../supabase/client";
 import { getOrganizationMemberships, type OrganizationMembership } from "./session.server";
 import {
@@ -88,7 +88,7 @@ export function OrganizationWorkspaceProvider({
   useEffect(() => {
     mounted.current = true;
     // Legacy user-only snapshots are deliberately never loaded or written.
-    clearFlightSearch();
+    clearLegacyFlightSearch();
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {

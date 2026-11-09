@@ -392,6 +392,7 @@ describe("organization workspace", () => {
     );
     render(<Workspace initialPage="analysis" />);
     await ready();
+    expect(window.sessionStorage.getItem(LEGACY_KEY)).toBeNull();
     select(A);
     expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
     window.sessionStorage.setItem(

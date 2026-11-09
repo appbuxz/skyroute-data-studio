@@ -7,7 +7,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { clearFlightSearch } from "@/lib/flights/search-session";
+import { clearLegacyFlightSearch } from "@/lib/flights/search-session";
 import { OrganizationSelector } from "./organization-selector";
 
 const NAV = [
@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
 
       // Clear flight data only after successful sign-out.
-      clearFlightSearch();
+      clearLegacyFlightSearch();
 
       await navigate({ to: "/login", replace: true });
     } catch {
