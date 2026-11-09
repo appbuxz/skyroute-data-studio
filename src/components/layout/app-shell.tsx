@@ -8,6 +8,7 @@ import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { clearFlightSearch } from "@/lib/flights/search-session";
+import { OrganizationSelector } from "./organization-selector";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -19,33 +20,33 @@ const NAV = [
 export function AppShell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-const [signingOut, setSigningOut] = useState(false);
-const [signOutError, setSignOutError] = useState("");
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState("");
 
-async function handleSignOut() {
-  if (signingOut) return;
+  async function handleSignOut() {
+    if (signingOut) return;
 
-  setSigningOut(true);
-  setSignOutError("");
+    setSigningOut(true);
+    setSignOutError("");
 
-  try {
-    const { error } = await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut();
 
-    if (error) {
-  setSignOutError("Unable to sign out. Please try again.");
-  return;
-}
+      if (error) {
+        setSignOutError("Unable to sign out. Please try again.");
+        return;
+      }
 
-// Clear flight data only after successful sign-out.
-clearFlightSearch();
+      // Clear flight data only after successful sign-out.
+      clearFlightSearch();
 
-await navigate({ to: "/login", replace: true });
-  } catch {
-    setSignOutError("Unable to sign out. Please try again.");
-  } finally {
-    setSigningOut(false);
+      await navigate({ to: "/login", replace: true });
+    } catch {
+      setSignOutError("Unable to sign out. Please try again.");
+    } finally {
+      setSigningOut(false);
+    }
   }
-}
   return (
     <div className="flex min-h-screen w-full flex-col bg-background md:flex-row">
       <aside className="flex shrink-0 flex-col bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-screen md:w-60">
@@ -73,29 +74,24 @@ await navigate({ to: "/login", replace: true });
           })}
         </nav>
         <div className="mt-auto border-t border-sidebar-border px-5 py-4">
-  <p className="text-xs font-medium text-sidebar-accent-foreground">
-    Workspace
-  </p>
-  <p className="mt-0.5 text-xs opacity-70">
-    No organization connected
-  </p>
+          <OrganizationSelector />
 
-  <button
-    type="button"
-    onClick={handleSignOut}
-    disabled={signingOut}
-    className="mt-4 flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-sidebar-accent disabled:opacity-50"
-  >
-    <LogOut className="h-4 w-4" />
-    {signingOut ? "Signing out..." : "Sign out"}
-  </button>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="mt-4 flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-sidebar-accent disabled:opacity-50"
+          >
+            <LogOut className="h-4 w-4" />
+            {signingOut ? "Signing out..." : "Sign out"}
+          </button>
 
-  {signOutError && (
-    <p role="alert" className="mt-2 text-xs text-destructive">
-      {signOutError}
-    </p>
-  )}
-</div>
+          {signOutError && (
+            <p role="alert" className="mt-2 text-xs text-destructive">
+              {signOutError}
+            </p>
+          )}
+        </div>
       </aside>
       <main className="flex-1 px-4 py-8 md:px-10">
         <div className="mx-auto max-w-6xl">{children}</div>

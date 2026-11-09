@@ -1,21 +1,10 @@
-
-import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BarChart3, Plane, Clock } from "lucide-react";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/common/page-header";
 import { analyzeFlightPrices } from "@/lib/flights/analytics";
-import {
-  loadFlightSearch,
-  type SavedFlightSearch,
-} from "@/lib/flights/search-session";
-import { getAuthenticatedUser } from "@/lib/supabase/session.server";
+import { useOrganizationWorkspace } from "@/lib/organizations/workspace-context";
 
 export const Route = createFileRoute("/_workspace/analysis")({
   head: () => ({
@@ -31,47 +20,15 @@ export const Route = createFileRoute("/_workspace/analysis")({
 });
 
 function Analysis() {
-  const [search, setSearch] = useState<SavedFlightSearch | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      try {
-        const user = await getAuthenticatedUser();
-
-        if (!active) return;
-
-        if (user?.id) {
-          setSearch(loadFlightSearch(user.id));
-        }
-      } catch (error) {
-        console.error("Unable to load flight analysis:", error);
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void load();
-
-    return () => {
-      active = false;
-    };
-  }, []);
+  const workspace = useOrganizationWorkspace();
+  const search = workspace.search;
+  const loading = workspace.status === "loading";
 
   if (loading) {
     return (
       <>
-        <PageHeader
-          title="Flight analysis"
-          description="Loading the latest search results."
-        />
-        <p className="text-sm text-muted-foreground">
-          Loading analysis…
-        </p>
+        <PageHeader title="Flight analysis" description="Loading the latest search results." />
+        <p className="text-sm text-muted-foreground">Loading analysis…</p>
       </>
     );
   }
@@ -87,13 +44,14 @@ function Analysis() {
         <Card>
           <CardContent className="space-y-3 pt-6">
             <p className="text-sm text-muted-foreground">
-              No saved search results found for this session.
+              {workspace.error ??
+                workspace.authorizationError ??
+                (!workspace.selectedOrganizationId
+                  ? "Select an organization before viewing flight analysis."
+                  : "No flight results for the selected organization. Run a search to analyze offers.")}
             </p>
 
-            <Link
-              to="/search"
-              className="inline-block text-sm font-medium text-primary underline"
-            >
+            <Link to="/search" className="inline-block text-sm font-medium text-primary underline">
               Go to flight search
             </Link>
           </CardContent>
@@ -105,25 +63,31 @@ function Analysis() {
   const analysis = analyzeFlightPrices(search.offers);
 
   const carriers = Array.from(
-    search.offers.reduce((map, offer) => {
-      const current = map.get(offer.carrier);
+    search.offers.reduce(
+      (map, offer) => {
+        const current = map.get(offer.carrier);
 
-      if (!current || offer.price.amount < current.price) {
-        map.set(offer.carrier, {
-          price: offer.price.amount,
-          currency: offer.price.currency,
-          count: (current?.count ?? 0) + 1,
-        });
-      } else {
-        current.count += 1;
-      }
+        if (!current || offer.price.amount < current.price) {
+          map.set(offer.carrier, {
+            price: offer.price.amount,
+            currency: offer.price.currency,
+            count: (current?.count ?? 0) + 1,
+          });
+        } else {
+          current.count += 1;
+        }
 
-      return map;
-    }, new Map<string, {
-      price: number;
-      currency: string;
-      count: number;
-    }>()),
+        return map;
+      },
+      new Map<
+        string,
+        {
+          price: number;
+          currency: string;
+          count: number;
+        }
+      >(),
+    ),
   ).sort((a, b) => a[1].price - b[1].price);
 
   return (
@@ -134,15 +98,14 @@ function Analysis() {
       />
 
       <p className="mb-5 text-sm text-muted-foreground">
-        {search.offers.length} offers · Retrieved:{" "}
-        {new Date(search.fetchedAt).toLocaleString()}
+        {search.offers.length} offers · Retrieved: {new Date(search.fetchedAt).toLocaleString()}
       </p>
 
       {!analysis ? (
         <Card>
           <CardContent className="pt-6 text-sm text-muted-foreground">
-            Price analysis is unavailable. Offers may be empty,
-            invalid, or use different currencies.
+            Price analysis is unavailable. Offers may be empty, invalid, or use different
+            currencies.
           </CardContent>
         </Card>
       ) : (
@@ -182,8 +145,7 @@ function Analysis() {
                       <div className="mb-1 flex justify-between gap-2 text-xs">
                         <span>{offer.carrier}</span>
                         <span>
-                          {offer.price.amount.toLocaleString()}{" "}
-                          {offer.price.currency}
+                          {offer.price.amount.toLocaleString()} {offer.price.currency}
                         </span>
                       </div>
 
@@ -193,8 +155,7 @@ function Analysis() {
                           style={{
                             width: `${
                               analysis.mostExpensive.price.amount > 0
-                                ? (offer.price.amount /
-                                    analysis.mostExpensive.price.amount) * 100
+                                ? (offer.price.amount / analysis.mostExpensive.price.amount) * 100
                                 : 0
                             }%`,
                           }}
@@ -222,8 +183,7 @@ function Analysis() {
                     <span>{carrier}</span>
 
                     <span className="font-semibold">
-                      From {data.price.toLocaleString()}{" "}
-                      {data.currency}
+                      From {data.price.toLocaleString()} {data.currency}
                     </span>
                   </div>
                 ))}
@@ -249,23 +209,17 @@ function Analysis() {
                         {offer.carrier} · {offer.flightNumber}
                       </p>
                       <p className="text-muted-foreground">
-                        {offer.stops === 0
-                          ? "Direct"
-                          : `${offer.stops} stop(s)`}
+                        {offer.stops === 0 ? "Direct" : `${offer.stops} stop(s)`}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-xs text-muted-foreground">
-                        Departure
-                      </p>
+                      <p className="text-xs text-muted-foreground">Departure</p>
                       <p>{offer.departureAt}</p>
                     </div>
 
                     <div>
-                      <p className="text-xs text-muted-foreground">
-                        Arrival
-                      </p>
+                      <p className="text-xs text-muted-foreground">Arrival</p>
                       <p>{offer.arrivalAt}</p>
                     </div>
                   </div>
@@ -275,9 +229,8 @@ function Analysis() {
           </div>
 
           <p className="mt-5 text-xs text-muted-foreground">
-            Price spread is not guaranteed savings. Fare conditions,
-            baggage, transfers and availability may differ.
-            Prices reflect the search snapshot, not a live booking quote.
+            Price spread is not guaranteed savings. Fare conditions, baggage, transfers and
+            availability may differ. Prices reflect the search snapshot, not a live booking quote.
           </p>
         </>
       )}
@@ -297,19 +250,11 @@ function Metric({
   return (
     <Card>
       <CardContent className="pt-5">
-        <p className="text-sm text-muted-foreground">
-          {title}
-        </p>
+        <p className="text-sm text-muted-foreground">{title}</p>
 
-        <p className="mt-2 text-2xl font-bold">
-          {value}
-        </p>
+        <p className="mt-2 text-2xl font-bold">{value}</p>
 
-        {description && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            {description}
-          </p>
-        )}
+        {description && <p className="mt-1 text-xs text-muted-foreground">{description}</p>}
       </CardContent>
     </Card>
   );
