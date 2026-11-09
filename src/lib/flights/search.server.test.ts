@@ -83,7 +83,7 @@ describe("searchFlightsServer authorization", () => {
 
     // Preserve the exact error and statusCode outside the provider catch block.
     await expect(searchFlightsServer({ data: params })).rejects.toBe(error);
-    expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith();
+    expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith(undefined);
     expect(mocks.searchFlights).not.toHaveBeenCalled();
     expect(console.error).not.toHaveBeenCalled();
   });
@@ -114,7 +114,7 @@ describe("searchFlightsServer authorization", () => {
       });
 
       await expect(searchFlightsServer({ data: params })).resolves.toBe(success);
-      expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith();
+      expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith(undefined);
       expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
         { ...params, returnDate: undefined },
         { organizationId },
@@ -122,20 +122,53 @@ describe("searchFlightsServer authorization", () => {
     },
   );
 
-  it("ignores organization identity or roles supplied outside the search schema", async () => {
+  it("ignores client-supplied user identity and role", async () => {
     const forgedInput = {
       ...params,
-      organizationId: "forged-organization",
       userId: "forged-user",
       role: "owner",
     };
     await searchFlightsServer({ data: forgedInput });
-    expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith();
+    expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith(undefined);
     expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
       { ...params, returnDate: undefined },
       { organizationId },
     );
   });
+
+  it("passes an explicit selection to authorization and only verified context to the provider", async () => {
+    const requestedOrganizationId = organizationId.toUpperCase();
+    await expect(
+      searchFlightsServer({ data: { ...params, organizationId: requestedOrganizationId } }),
+    ).resolves.toBe(success);
+    expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith(requestedOrganizationId);
+    expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
+      { ...params, returnDate: undefined },
+      { organizationId },
+    );
+  });
+
+  it("never falls back after an unauthorized explicit selection", async () => {
+    const selected = "f2000000-0000-4000-8000-000000000002";
+    const error = new OrganizationAuthorizationError("ORGANIZATION_ACCESS_DENIED");
+    mocks.requireOrganization.mockRejectedValue(error);
+    await expect(
+      searchFlightsServer({ data: { ...params, organizationId: selected } }),
+    ).rejects.toBe(error);
+    expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith(selected);
+    expect(mocks.searchFlights).not.toHaveBeenCalled();
+  });
+
+  it.each(["", "forged-id"])(
+    "rejects invalid selection %j without authorization or provider execution",
+    async (selected) => {
+      await expect(
+        searchFlightsServer({ data: { ...params, organizationId: selected } }),
+      ).rejects.toThrow();
+      expect(mocks.requireOrganization).not.toHaveBeenCalled();
+      expect(mocks.searchFlights).not.toHaveBeenCalled();
+    },
+  );
 
   it("preserves validation and avoids authorization/provider work for invalid input", async () => {
     await expect(
