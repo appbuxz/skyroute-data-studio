@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixture from "./fixtures/travelport-core.json";
+import mixedFixture from "./fixtures/travelport-mixed-cabins.json";
+import { normalizeTravelportFlights } from "./travelport-normalizer";
 import { travelportProvider } from "./travelport-provider.server";
 import type { FlightSearchParams } from "./types";
 
@@ -21,8 +23,46 @@ beforeEach(() => {
   fetchMock.mockReset();
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+});
+
+it("keeps accurately normalized offers when the captured response also contains mixed cabins", async () => {
+  const expected = normalizeTravelportFlights(fixture).offers;
+  const normalized = normalizeTravelportFlights(mixedFixture);
+  expect(normalized.skipped).toHaveLength(1);
+  expect(normalized.skipped[0]?.reason).toBe("UNSUPPORTED_CABIN");
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  fetchMock
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ access_token: "test-token", expires_in: 0 })),
+    )
+    .mockResolvedValueOnce(new Response(JSON.stringify(mixedFixture)));
+  const result = await travelportProvider.searchFlights(params, {});
+  expect(result).toEqual({ status: "ok", offers: expected, fetchedAt: expect.any(String) });
+  expect(warn).toHaveBeenCalledWith("Travelport offers skipped", {
+    count: 1,
+    reasons: "UNSUPPORTED_CABIN",
+  });
+});
+
+it("reports a clear reason when every variant is unsupported", async () => {
+  const unsupported = structuredClone(mixedFixture);
+  unsupported.CatalogProductOfferingsResponse.CatalogProductOfferings.CatalogProductOffering =
+    unsupported.CatalogProductOfferingsResponse.CatalogProductOfferings.CatalogProductOffering.slice(
+      -1,
+    );
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  fetchMock
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ access_token: "test-token", expires_in: 0 })),
+    )
+    .mockResolvedValueOnce(new Response(JSON.stringify(unsupported)));
+  expect(await travelportProvider.searchFlights(params, {})).toEqual({
+    status: "error",
+    message: "Travelport returned no supported flight offers (UNSUPPORTED_CABIN).",
+  });
 });
 
 it("recognizes complete server configuration and maps form input through existing OAuth/search", async () => {

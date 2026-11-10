@@ -1,0 +1,368 @@
+{
+  "CatalogProductOfferingsResponse": {
+    "CatalogProductOfferings": {
+      "CatalogProductOffering": [
+        {
+          "id": "o4",
+          "ProductBrandOptions": [
+            {
+              "flightRefs": [
+                "s1"
+              ],
+              "ProductBrandOffering": [
+                {
+                  "Product": [
+                    {
+                      "@type": "ProductID",
+                      "productRef": "p25"
+                    }
+                  ],
+                  "BestCombinablePrice": {
+                    "TotalPrice": 209.4,
+                    "CurrencyCode": {
+                      "decimalPlace": 2,
+                      "value": "GBP"
+                    }
+                  }
+                },
+                {
+                  "Product": [
+                    {
+                      "@type": "ProductID",
+                      "productRef": "p29"
+                    }
+                  ],
+                  "BestCombinablePrice": {
+                    "TotalPrice": 280.4,
+                    "CurrencyCode": {
+                      "decimalPlace": 2,
+                      "value": "GBP"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "o1",
+          "ProductBrandOptions": [
+            {
+              "flightRefs": [
+                "s26",
+                "s27"
+              ],
+              "ProductBrandOffering": [
+                {
+                  "Product": [
+                    {
+                      "@type": "ProductID",
+                      "productRef": "p0"
+                    }
+                  ],
+                  "BestCombinablePrice": {
+                    "TotalPrice": 178.1,
+                    "CurrencyCode": {
+                      "decimalPlace": 2,
+                      "value": "GBP"
+                    }
+                  }
+                },
+                {
+                  "Product": [
+                    {
+                      "@type": "ProductID",
+                      "productRef": "p1"
+                    }
+                  ],
+                  "BestCombinablePrice": {
+                    "TotalPrice": 251.2,
+                    "CurrencyCode": {
+                      "decimalPlace": 2,
+                      "value": "GBP"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "mixed-catalog",
+          "ProductBrandOptions": [
+            {
+              "flightRefs": [
+                "mixed-s44",
+                "mixed-s45"
+              ],
+              "ProductBrandOffering": [
+                {
+                  "Product": [
+                    {
+                      "productRef": "mixed-p126"
+                    }
+                  ],
+                  "BestCombinablePrice": {
+                    "TotalPrice": 1240.2,
+                    "CurrencyCode": {
+                      "value": "GBP"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "ReferenceList": [
+      {
+        "Product": [
+          {
+            "id": "p25",
+            "totalDuration": "PT6H10M",
+            "FlightSegment": [
+              {
+                "sequence": 1,
+                "Flight": {
+                  "FlightRef": "s1"
+                }
+              }
+            ],
+            "PassengerFlight": [
+              {
+                "passengerQuantity": 1,
+                "FlightProduct": [
+                  {
+                    "cabin": "Economy",
+                    "segmentSequence": [
+                      1
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "p29",
+            "totalDuration": "PT6H10M",
+            "FlightSegment": [
+              {
+                "sequence": 1,
+                "Flight": {
+                  "FlightRef": "s1"
+                }
+              }
+            ],
+            "PassengerFlight": [
+              {
+                "passengerQuantity": 1,
+                "FlightProduct": [
+                  {
+                    "cabin": "Economy",
+                    "segmentSequence": [
+                      1
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "p0",
+            "totalDuration": "PT8H39M",
+            "FlightSegment": [
+              {
+                "sequence": 1,
+                "Flight": {
+                  "FlightRef": "s26"
+                }
+              },
+              {
+                "sequence": 2,
+                "Flight": {
+                  "FlightRef": "s27"
+                }
+              }
+            ],
+            "PassengerFlight": [
+              {
+                "passengerQuantity": 1,
+                "FlightProduct": [
+                  {
+                    "cabin": "Economy",
+                    "segmentSequence": [
+                      1,
+                      2
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "p1",
+            "totalDuration": "PT8H39M",
+            "FlightSegment": [
+              {
+                "sequence": 1,
+                "Flight": {
+                  "FlightRef": "s26"
+                }
+              },
+              {
+                "sequence": 2,
+                "Flight": {
+                  "FlightRef": "s27"
+                }
+              }
+            ],
+            "PassengerFlight": [
+              {
+                "passengerQuantity": 1,
+                "FlightProduct": [
+                  {
+                    "cabin": "Economy",
+                    "segmentSequence": [
+                      1,
+                      2
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Flight": [
+          {
+            "id": "s1",
+            "carrier": "AA",
+            "number": "171",
+            "Departure": {
+              "location": "JFK",
+              "date": "2026-12-03",
+              "time": "06:05:00"
+            },
+            "Arrival": {
+              "location": "LAX",
+              "date": "2026-12-03",
+              "time": "09:15:00"
+            },
+            "duration": "PT6H10M"
+          },
+          {
+            "id": "s26",
+            "carrier": "AA",
+            "number": "1487",
+            "Departure": {
+              "location": "JFK",
+              "date": "2026-12-03",
+              "time": "07:00:00"
+            },
+            "Arrival": {
+              "location": "PHX",
+              "date": "2026-12-03",
+              "time": "10:53:00"
+            },
+            "duration": "PT5H53M"
+          },
+          {
+            "id": "s27",
+            "carrier": "AA",
+            "number": "3016",
+            "Departure": {
+              "location": "PHX",
+              "date": "2026-12-03",
+              "time": "12:22:00"
+            },
+            "Arrival": {
+              "location": "ONT",
+              "date": "2026-12-03",
+              "time": "12:39:00"
+            },
+            "duration": "PT1H17M"
+          }
+        ]
+      },
+      {
+        "Product": [
+          {
+            "id": "mixed-p126",
+            "totalDuration": "PT11H26M",
+            "FlightSegment": [
+              {
+                "sequence": 1,
+                "Flight": {
+                  "FlightRef": "mixed-s44"
+                }
+              },
+              {
+                "sequence": 2,
+                "Flight": {
+                  "FlightRef": "mixed-s45"
+                }
+              }
+            ],
+            "PassengerFlight": [
+              {
+                "passengerQuantity": 1,
+                "FlightProduct": [
+                  {
+                    "cabin": "First",
+                    "segmentSequence": [
+                      1
+                    ]
+                  },
+                  {
+                    "cabin": "Business",
+                    "segmentSequence": [
+                      2
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Flight": [
+          {
+            "id": "mixed-s44",
+            "carrier": "AA",
+            "number": "4707",
+            "duration": "PT1H20M",
+            "Departure": {
+              "location": "JFK",
+              "date": "2026-12-03",
+              "time": "09:30:00"
+            },
+            "Arrival": {
+              "location": "BOS",
+              "date": "2026-12-03",
+              "time": "10:50:00"
+            }
+          },
+          {
+            "id": "mixed-s45",
+            "carrier": "AA",
+            "number": "1060",
+            "duration": "PT6H36M",
+            "Departure": {
+              "location": "BOS",
+              "date": "2026-12-03",
+              "time": "14:20:00"
+            },
+            "Arrival": {
+              "location": "LAX",
+              "date": "2026-12-03",
+              "time": "17:56:00"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

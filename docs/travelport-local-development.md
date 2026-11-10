@@ -50,8 +50,10 @@ Opening `/search` does not send a Travelport search; submitting the form does.
 Only submit after approval for a real provider request.
 One-way searches map the actual route, date, adult passenger count and cabin.
 Round trips are explicitly rejected before OAuth/search: the existing normalizer
-supports one-way, single-product variants only. Unsupported variants return an
-error rather than incomplete results. Airport timezone coverage is also limited
+supports one-way, single-product variants only. Unsupported variants are skipped
+with fixed reason codes in server diagnostics; supported offers are returned. If
+all variants are skipped, the provider returns an error with those reason codes.
+Airport timezone coverage is also limited
 to the existing airport map. No fake offers or fixture fallback is used.
 
 

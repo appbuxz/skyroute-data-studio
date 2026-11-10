@@ -44,3 +44,30 @@ only internal references, public schedules, cabin, passenger count, durations an
 prices remain. No credentials, sessions, trace IDs, customer data, terms or URLs
 are included. It is fixture-backed coverage; mutations in unit tests are synthetic
 negative cases. The original local fixture remains ignored and unchanged.
+
+
+## Provider mixed-response regression
+
+The provider used to reject any response with `skipped.length > 0`, discarding
+all supported offers. An offline run of the existing local captured response
+produced 130 supported offers and 2 `UNSUPPORTED_CABIN` skips, reproducing that
+failure without a network request. The provider now returns supported offers and
+logs only skipped counts and fixed reason codes. A response with skips and zero
+supported offers remains an error; an explicitly empty catalog remains valid.
+No normalization validation was relaxed.
+
+`travelport-mixed-cabins.json` combines the existing whitelisted core subset with
+one mixed-cabin variant extracted from that same local captured response. Its
+additional fields are whitelisted schedules, prices, cabin/segment assignments,
+durations and internal references (prefixed to avoid collisions). No credentials,
+headers, trace IDs, session identifiers or customer data are included. Regression
+tests assert exact equality of all surviving offers with the core subset, so
+prices, currency, segment order, connections and timezone-aware timestamps remain
+unchanged. The fixture is test input only, never an application fallback.
+
+The development helper `testTravelportSearch()` and UI both call `searchTravelport`.
+The helper supplies JFK–LAX, 2026-12-03, one adult, economy; the UI supplies the
+validated form values after organization authorization. The helper returns the
+raw API envelope and bypasses normalization, so success there alone does not
+verify `FlightOffer` conversion. The current live UI response was not fetched as
+part of this offline regression.
