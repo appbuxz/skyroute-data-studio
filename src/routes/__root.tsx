@@ -80,9 +80,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Flight Analytics" },
-      { name: "description", content: "Flight analytics platform for travel agencies in Kazakhstan." },
+      {
+        name: "description",
+        content: "Flight analytics platform for travel agencies in Kazakhstan.",
+      },
       { property: "og:title", content: "Flight Analytics" },
-      { property: "og:description", content: "Flight analytics platform for travel agencies in Kazakhstan." },
+      {
+        property: "og:description",
+        content: "Flight analytics platform for travel agencies in Kazakhstan.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
@@ -126,8 +132,14 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      if (event === "SIGNED_OUT" || event === "SIGNED_IN") {
+        void queryClient.cancelQueries();
+        queryClient.clear();
+      }
       void router.invalidate();
       if (event !== "SIGNED_OUT") void queryClient.invalidateQueries();
     });

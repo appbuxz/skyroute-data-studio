@@ -11,6 +11,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
+    "provision:organization": "node scripts/provision-organization.ts",
+    "test:provisioning": "node scripts/provision-organization.test.ts",
     "test:watch": "vitest"
   },
   "overrides": {

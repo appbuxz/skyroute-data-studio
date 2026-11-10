@@ -1,26 +1,41 @@
-# Flight Analytics authentication
+# Unified authentication after branch integration
 
-## Setup
-The supplied brief described existing SSR authentication clients and `requireAuth`, but neither existed in this repository. Lovable Cloud was connected and email/password authentication enabled. The generated persistent browser session and bearer middleware are preserved; no parallel SSR-cookie implementation was introduced. Workspace rendering is client-gated, and the flight-search function independently verifies the caller on the server. Refresh restores the managed session.
+The managed browser client in `src/integrations/supabase/client.ts` owns persistent
+sessions and Lovable preview storage. `src/lib/supabase/client.ts` is only a compatibility
+export of that same instance. No SSR cookie session remains.
 
-Create the first existing-user account under **More → Users → Add user → Create new user**. This flow does not add public signup, password reset, subscriptions, roles or organizations. Private profiles are automatically created with display name, avatar URL and preferences; only the owner can read/update their profile. No profile-editing screen is added.
+`src/start.ts` attaches the managed bearer token to callable RPCs while preserving
+request error handling and CSRF middleware. The `_authenticated` route calls
+`getAuthenticatedUser` on the server, then mounts the organization workspace keyed
+by verified user ID. `/auth` redirects to `/login`.
 
-## Files
-- `src/routes/login.tsx`: email/password form, pending/error states, successful navigation to `/search`.
-- `src/routes/auth.tsx`: public compatibility redirect to `/login`.
-- `src/routes/_authenticated/route.tsx`: verified identity gate; session-aware signed-out redirect.
-- `src/routes/_authenticated/_workspace*.tsx`: original workspace layout/pages moved beneath the gate without changing URLs. Search calls the protected function through `useServerFn`.
-- `src/routes/__root.tsx`: one identity-change subscription.
-- `src/components/layout/app-shell.tsx`: functional sign-out and failure state.
-- `src/lib/auth/session.ts` and `.test.ts`: identity verification and ordered cache/session teardown.
-- `src/lib/flights/search.functions.ts`: renamed from `search.server.ts`, preserving provider integration and adding server authentication.
-- `src/start.ts`: Cloud-generated bearer attacher, preserving error and CSRF middleware.
-- `src/test/app-routing.test.tsx`: protected workspace and public login routing checks.
-- `src/routes/index.tsx` and workspace pages: complete leaf metadata.
-- `drizzle/migrations/0000_private_user_profiles.sql`: profile schema, grants, owner policies, signup trigger and existing-user backfill.
-- Cloud generated integration files/dependencies/configuration; `AGENTS.md` and `roadmap.md` document architecture and status.
+The request-scoped server factory accepts only a bearer header and public
+publishable/anon configuration. It does not read cookies or use the admin client.
+`requireAuth` verifies identity using Auth `getUser`; missing/invalid identity gives
+401 and unavailable Auth gives a sanitized 503.
 
-## Verification limitations
-All 18 focused automated tests pass. Browser checks confirm every workspace URL redirects to `/login` when signed out, invalid credentials show a clear error, and login fits desktop/mobile with no page errors or mobile overflow. The latest automatic build/type checks report success.
+`getOrganizationMemberships` and the single search callable in `search.functions.ts`
+verify identity server-side. `requireOrganization` checks current membership with
+user-scoped RLS on every search, including explicit browser selections. SerpApi is
+called only after successful authorization. The provider interface, analytics and
+Travelport normalizer remain unchanged.
 
-No account existed when session minting was attempted. Successful real-user login, server-recognized search, signed-in refresh, profile ownership and live sign-out must be checked after the first account is created. Unit tests cannot establish hosted session revocation. Live flight data remains unconnected, as before.
+Logout cancels and clears private query cache; successful sign-out also clears
+legacy search storage. Sign-in/sign-out events clear private query caches; auth events invalidate the router, and the workspace drops
+selection/results and invalidates pending requests on user/session changes.
+Preview replies require the expected request ID, trusted editor origin and parent
+window source. Logout tombstones remove local session copies; blocked local storage
+does not prevent broker notification.
+
+Organization migrations remain in `supabase/migrations`; the independent main
+profile migration remains in `drizzle/migrations`. It creates only profiles and an
+Auth signup trigger/backfill; it does not replace or weaken membership policies.
+The Drizzle schema stub is not a declaration of the full database: do not generate
+a replacement schema from that empty file. No migrations were run during integration.
+The local Supabase config is retained for repeatable integration tests; hosted
+configuration is managed separately. Bun is the canonical lockfile used in CI;
+the obsolete npm lockfile for the cookie-based dependency graph was removed.
+
+Local unit/integration checks cannot verify the actual Lovable iframe/editor broker,
+hosted profile migration state, deployed RPC proxy/CSRF behavior or real provider
+availability. These require a separate hosted/browser acceptance check.

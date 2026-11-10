@@ -1,12 +1,16 @@
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { BarChart3, FileText, LayoutDashboard, Search, LogOut } from "lucide-react";
-import { useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { terminateSession } from "@/lib/auth/session";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { BarChart3, FileText, LayoutDashboard, Search } from "lucide-react";
+import type { ReactNode } from "react";
 import { Brand } from "./brand";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { clearLegacyFlightSearch } from "@/lib/flights/search-session";
+import { OrganizationSelector } from "./organization-selector";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -20,15 +24,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [signingOut, setSigningOut] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  async function signOut() {
+  const [signOutError, setSignOutError] = useState("");
+
+  async function handleSignOut() {
+    if (signingOut) return;
+
     setSigningOut(true);
-    setError(null);
+    setSignOutError("");
+
     try {
       await terminateSession(supabase, queryClient);
-      await navigate({ to: "/auth", replace: true });
+
+      // Clear flight data only after successful sign-out.
+      clearLegacyFlightSearch();
+
+      await navigate({ to: "/login", replace: true });
     } catch {
-      setError("Could not sign out. Please try again.");
+      setSignOutError("Unable to sign out. Please try again.");
     } finally {
       setSigningOut(false);
     }
@@ -59,11 +71,24 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="mt-auto border-t border-sidebar-border px-5 py-4 text-xs">
-          <p className="font-medium text-sidebar-accent-foreground">Workspace</p>
-          <p className="mt-0.5 opacity-70">No organization connected</p>
-          <Button variant="ghost" className="mt-3 w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" onClick={signOut} disabled={signingOut}><LogOut />{signingOut ? "Signing out…" : "Sign out"}</Button>
-          {error && <p role="alert" className="mt-2">{error}</p>}
+        <div className="mt-auto border-t border-sidebar-border px-5 py-4">
+          <OrganizationSelector />
+
+          <button
+            type="button"
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="mt-4 flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-sidebar-accent disabled:opacity-50"
+          >
+            <LogOut className="h-4 w-4" />
+            {signingOut ? "Signing out..." : "Sign out"}
+          </button>
+
+          {signOutError && (
+            <p role="alert" className="mt-2 text-xs text-destructive">
+              {signOutError}
+            </p>
+          )}
         </div>
       </aside>
       <main className="flex-1 px-4 py-8 md:px-10">

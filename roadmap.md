@@ -1,7 +1,8 @@
-# Authentication
-- [x] Connect account service and enable email login.
-- [x] Add private profiles and secure workspace/session checks.
-- [x] Add login and workspace sign-out without changing flight provider.
-- [x] Test invalid credentials and signed-out redirects on all workspace pages; 18 automated tests pass.
-- [ ] Verify real-user login, authenticated search, refresh, profile ownership and sign-out. Blocker: no auth users exist; create the first account in More → Users → Add user, then sign in through the preview.
-- [x] Document configuration, modified files and verification limitations in AUTHENTICATION.md.
+# Authentication integration
+- [x] One managed browser session and bearer RPC transport.
+- [x] Server-verified identity and organization membership before flight search.
+- [x] Preserve SerpApi, analytics, organization selection and Travelport normalizer.
+- [x] Local unit tests and real Supabase bearer/RLS integration with cleanup verification.
+- [ ] Browser acceptance in Lovable preview: login, refresh, organization switching,
+  search/analysis, logout and cross-tab session behavior.
+- [ ] Verify hosted profile and organization migration state separately before release.

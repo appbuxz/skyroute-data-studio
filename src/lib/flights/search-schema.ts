@@ -9,6 +9,15 @@ const iata = z
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Select a date" });
 
+function todayInKazakhstan(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Almaty",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 export const flightSearchSchema = z
   .object({
     origin: iata,
@@ -21,6 +30,10 @@ export const flightSearchSchema = z
       .min(1, { message: "At least 1 passenger" })
       .max(9, { message: "Maximum 9 passengers" }),
     cabinClass: z.enum(CABIN_CLASSES, { errorMap: () => ({ message: "Select a cabin class" }) }),
+  })
+  .refine((v) => v.departureDate >= todayInKazakhstan(), {
+    path: ["departureDate"],
+    message: "Departure date cannot be in the past",
   })
   .refine((v) => v.origin !== v.destination, {
     path: ["destination"],
