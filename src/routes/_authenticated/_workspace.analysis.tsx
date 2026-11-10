@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/common/page-header";
 import { analyzeFlightPrices } from "@/lib/flights/analytics";
 import { useOrganizationWorkspace } from "@/lib/organizations/workspace-context";
+import { ComparablePrices } from "@/components/flights/comparable-prices";
 
 export const Route = createFileRoute("/_authenticated/_workspace/analysis")({
   head: () => ({
@@ -102,6 +103,8 @@ function Analysis() {
       <p className="mb-5 text-sm text-muted-foreground">
         {search.offers.length} offers · Retrieved: {new Date(search.fetchedAt).toLocaleString()}
       </p>
+
+      <div className="mb-5"><ComparablePrices search={search} /></div>
 
       {!analysis ? (
         <Card>

@@ -17,6 +17,7 @@ import {
 import { PageHeader } from "@/components/common/page-header";
 import { FlightItinerary } from "@/components/flights/flight-itinerary";
 import { FlightDateTime } from "@/components/flights/flight-date-time";
+import { ComparablePrices } from "@/components/flights/comparable-prices";
 
 import { flightSearchSchema, type FlightSearchInput } from "@/lib/flights/search-schema";
 import { searchFlightsServer } from "@/lib/flights/search.functions";
@@ -352,6 +353,8 @@ function SearchPage() {
               </Card>
             </div>
           )}
+
+          {workspace.search && <ComparablePrices search={workspace.search} />}
 
           <div>
             <h2 className="text-xl font-semibold">Flight offers ({offers.length})</h2>
