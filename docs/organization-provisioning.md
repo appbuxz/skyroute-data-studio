@@ -174,7 +174,9 @@ commit;
 
 Membership removal affects subsequent RLS queries immediately after commit. It
 does not retract previously downloaded data or cancel an already authorized
-request. In Phase 1, the running flight-search endpoint still checks identity only.
+request. The current flight-search endpoint verifies identity and organization
+membership on the server before calling the flight provider; client selection
+alone does not authorize access.
 
 ## Safely delete an Auth user
 

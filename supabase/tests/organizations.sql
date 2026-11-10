@@ -295,6 +295,38 @@ select pg_temp.expect_sqlstate('delete from auth.users where id = ''f1000000-000
 select pg_temp.expect_sqlstate('delete from auth.users where id = ''f1000000-0000-4000-8000-000000000003''', '23503', 'nonowner Auth deletion restricted');
 select pg_temp.expect_sqlstate('delete from public.organizations where id = ''f2000000-0000-4000-8000-000000000001''', '23503', 'organization deletion restricted');
 select pg_temp.expect_sqlstate('insert into public.organizations (name) values (''   '')', '23514', 'blank organization name');
+
+-- Match JavaScript trim(), including ASCII controls, NBSP and Unicode spaces.
+-- Roll back accepted names so later tenant visibility counts stay unchanged.
+savepoint organization_name_validation;
+do $$
+declare
+  whitespace text := U&'\0009\000A\000B\000C\000D\0020\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF';
+  candidate text;
+  i integer;
+begin
+  foreach candidate in array array['', E' \t\n\r', whitespace, repeat('A', 121)] loop
+    perform pg_temp.expect_sqlstate(
+      format('insert into public.organizations (name) values (%L)', candidate),
+      '23514', 'invalid organization name');
+  end loop;
+  for i in 1..char_length(whitespace) loop
+    perform pg_temp.expect_sqlstate(
+      format('insert into public.organizations (name) values (%L)', repeat(substr(whitespace, i, 1), 3)),
+      '23514', 'whitespace-only organization name');
+  end loop;
+  foreach candidate in array array[
+    'Agency A', 'Агентство Алматы', E'Agency\tA',
+    repeat('A', 120), whitespace || repeat('A', 120) || whitespace,
+    U&'\200B' -- ZERO WIDTH SPACE is not removed by JavaScript trim().
+  ] loop
+    insert into public.organizations (name) values (candidate);
+  end loop;
+end;
+$$;
+rollback to savepoint organization_name_validation;
+release savepoint organization_name_validation;
+
 select pg_temp.expect_sqlstate('insert into public.organization_members (organization_id, user_id, role) values (''f2000000-0000-4000-8000-000000000001'', ''f1000000-0000-4000-8000-000000000004'', null)', '23502', 'null role');
 select pg_temp.expect_sqlstate('update public.organization_members set organization_id = ''f2000000-0000-4000-8000-000000000099'' where user_id = ''f1000000-0000-4000-8000-000000000003'' and organization_id = ''f2000000-0000-4000-8000-000000000001''', '23503', 'membership cannot move to unknown organization');
 
