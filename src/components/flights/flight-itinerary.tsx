@@ -1,4 +1,5 @@
 import type { FlightItinerary as Itinerary } from "@/lib/flights/types";
+import { FlightDateTime } from "./flight-date-time";
 
 function duration(minutes: number) {
   const hours = Math.floor(minutes / 60);
@@ -27,10 +28,10 @@ export function FlightItinerary({ itinerary, label }: { itinerary: Itinerary; la
                 {segment.carrier} · {segment.flightNumber}
               </p>
               <p className="text-muted-foreground">
-                Departure: <time dateTime={segment.departureAt}>{segment.departureAt}</time>
+                Departure: <FlightDateTime value={segment.departureAt} />
               </p>
               <p className="text-muted-foreground">
-                Arrival: <time dateTime={segment.arrivalAt}>{segment.arrivalAt}</time>
+                Arrival: <FlightDateTime value={segment.arrivalAt} />
               </p>
               {segment.durationMinutes !== undefined && (
                 <p className="text-muted-foreground">

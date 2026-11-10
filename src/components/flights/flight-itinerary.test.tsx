@@ -33,8 +33,14 @@ it("shows the direct flight with exact airports, carrier, flight number and offs
   expect(screen.getAllByRole("listitem")).toHaveLength(1);
   expect(screen.getByText("1. JFK → DFW")).toBeInTheDocument();
   expect(screen.getByText("AA · 101")).toBeInTheDocument();
-  expect(screen.getByText(first.departureAt)).toHaveAttribute("datetime", first.departureAt);
-  expect(screen.getByText(first.arrivalAt)).toHaveAttribute("datetime", first.arrivalAt);
+  expect(screen.getByText("3 Dec 2026 · 08:00 (UTC-05:00)")).toHaveAttribute(
+    "datetime",
+    first.departureAt,
+  );
+  expect(screen.getByText("3 Dec 2026 · 11:00 (UTC-06:00)")).toHaveAttribute(
+    "datetime",
+    first.arrivalAt,
+  );
   expect(screen.getByText("Total journey duration: 4h")).toBeInTheDocument();
   expect(screen.queryByText(/Connection at/)).not.toBeInTheDocument();
 });
@@ -55,8 +61,33 @@ it("shows all connecting segments in normalized order and the supplied total inc
   expect(screen.getByText("Connection at DFW")).toBeInTheDocument();
   expect(screen.getByText("Total journey duration: 9h")).toBeInTheDocument();
   for (const value of [first.departureAt, first.arrivalAt, second.departureAt, second.arrivalAt]) {
-    expect(screen.getByText(value)).toHaveAttribute("datetime", value);
+    expect(document.querySelector(`time[datetime="${value}"]`)).not.toBeNull();
   }
+});
+
+it("keeps overnight arrival dates and durations unchanged across offsets", () => {
+  const overnight = {
+    ...first,
+    departureAt: "2026-12-11T23:15:00+05:30",
+    arrivalAt: "2026-12-12T02:45:00+03:00",
+    durationMinutes: 360,
+  };
+  render(
+    <FlightItinerary
+      label="Outbound itinerary"
+      itinerary={{ segments: [overnight], durationMinutes: 360 }}
+    />,
+  );
+  expect(screen.getByText("11 Dec 2026 · 23:15 (UTC+05:30)")).toHaveAttribute(
+    "datetime",
+    overnight.departureAt,
+  );
+  expect(screen.getByText("12 Dec 2026 · 02:45 (UTC+03:00)")).toHaveAttribute(
+    "datetime",
+    overnight.arrivalAt,
+  );
+  expect(screen.getByText("Total journey duration: 6h")).toBeInTheDocument();
+  expect(screen.getByText("Flight duration: 6h")).toBeInTheDocument();
 });
 
 it("does not invent missing durations", () => {
