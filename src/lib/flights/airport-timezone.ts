@@ -1,4 +1,3 @@
-
 const AIRPORT_TIMEZONES: Record<string, string> = {
   // Kazakhstan
   ALA: "Asia/Almaty",
@@ -22,6 +21,17 @@ const AIRPORT_TIMEZONES: Record<string, string> = {
   // United States — Travelport test route
   JFK: "America/New_York",
   LAX: "America/Los_Angeles",
+  // Verified locations and IANA rules: docs/airport-timezone-sources.md
+  ONT: "America/Los_Angeles",
+  PHX: "America/Phoenix",
+  LGA: "America/New_York",
+  DFW: "America/Chicago",
+  BUR: "America/Los_Angeles",
+  CLT: "America/New_York",
+  EWR: "America/New_York",
+  SNA: "America/Los_Angeles",
+  ORD: "America/Chicago",
+  BOS: "America/New_York",
 };
 
 export function getAirportTimeZone(iata: string): string {
