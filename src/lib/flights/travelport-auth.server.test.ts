@@ -30,7 +30,7 @@ describe("Travelport OAuth", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("requests and returns an access token", async () => {
+  it("uses the account onboarding endpoint, JSON content type and exact password-grant body", async () => {
     setupCredentials();
 
     fetchMock.mockResolvedValue({
@@ -43,17 +43,17 @@ describe("Travelport OAuth", () => {
     await expect(getTravelportAccessToken()).resolves.toBe("test-jwt");
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://auth.pp.travelport.net/oauth/token",
+      "https://auth.pp.travelport.com/oauth/token",
       expect.objectContaining({
         method: "POST",
-        body: new URLSearchParams({
+        body: JSON.stringify({
           client_id: "test-client",
           client_secret: "test-secret",
           username: "test-user",
           password: "test-password",
           grant_type: "password",
-        }).toString(),
-        headers: expect.objectContaining({ "Content-Type": "application/x-www-form-urlencoded" }),
+        }),
+        headers: expect.objectContaining({ "Content-Type": "application/json" }),
       }),
     );
   });

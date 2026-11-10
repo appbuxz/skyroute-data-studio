@@ -22,7 +22,7 @@ TRAVELPORT_ACCESS_GROUP=<assigned pre-production Access Group>
 Never prefix these names with `VITE_`, commit real values, or put them in browser
 storage. Restart Vite after changing configuration. The four OAuth values and a valid routing selector are required; configuration
 validation does not prove credentials or Travelport entitlement.
-The adapter uses the existing `auth.pp.travelport.net` and `api.pp.travelport.net`
+The adapter uses the existing `auth.pp.travelport.com` and `api.pp.travelport.net`
 pre-production services. Do not substitute production credentials.
 
 Check presence without printing values or sending any network requests:
@@ -57,10 +57,19 @@ to the existing airport map. No fake offers or fixture fallback is used.
 
 ## Exact authentication and routing contract
 
-OAuth uses `POST https://auth.pp.travelport.net/oauth/token`, with
-`Content-Type: application/x-www-form-urlencoded`, `Accept: application/json`,
-and form fields `grant_type=password`, `client_id`, `client_secret`, `username`,
-`password`. PCC and Access Group are not sent to the token endpoint. The server
+This project follows the account-specific TripServices onboarding example supplied
+by the project operator. General public documentation currently describes a
+different post-migration flow (`auth.pp.travelport.net` with form-urlencoded).
+That generic contract is not evidence that this account has migrated; do not
+automatically switch hosts, retry on a second host, or mix the two body formats.
+The supplied account-specific flow takes precedence here. Account applicability
+has not been independently verified by a live request. Confirm changes with
+Travelport account support before adopting the generic flow.
+
+OAuth uses `POST https://auth.pp.travelport.com/oauth/token`, with
+`Content-Type: application/json`, `Accept: application/json`,
+and a JSON body containing `client_id`, `client_secret`, `username`, `password`,
+and `grant_type: "password"`. PCC and Access Group are not sent to the token endpoint. The server
 keeps the token only in memory, reusing it until expiry minus 60 seconds (24 hours
 if no lifetime is supplied); changing OAuth credentials invalidates that cache.
 
@@ -106,6 +115,6 @@ explicitly approved.
 
 Official references:
 - [Authentication and credential provisioning](https://developer.travelport.com/docs/getting-started/authentication)
-- [OAuth form request](https://developer.travelport.com/apis/flights/authentication)
+- [Generic OAuth reference (different from this account onboarding)](https://developer.travelport.com/apis/flights/authentication)
 - [v11 common headers and routing alternatives](https://support.travelport.com/webhelp/JSONAPIs/Airv11/Content/Air11/General/CommonAirHeaders.htm)
 - [AirSearch endpoint and routing header schema](https://developer.travelport.com/apis/flights/searches/createairsearch)

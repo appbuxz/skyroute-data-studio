@@ -34,7 +34,7 @@ it("recognizes complete server configuration and maps form input through existin
   const result = await travelportProvider.searchFlights(params, {});
   expect(result.status).toBe("ok");
   expect(fetchMock).toHaveBeenCalledTimes(2);
-  expect(fetchMock.mock.calls[0]![0]).toBe("https://auth.pp.travelport.net/oauth/token");
+  expect(fetchMock.mock.calls[0]![0]).toBe("https://auth.pp.travelport.com/oauth/token");
   const [url, request] = fetchMock.mock.calls[1]!;
   expect(url).toBe("https://api.pp.travelport.net/11/air/catalog/search/catalogproductofferings");
   const body = JSON.parse(request.body).CatalogProductOfferingsRequest;

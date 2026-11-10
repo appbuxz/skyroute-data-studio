@@ -1,6 +1,7 @@
 import { getTravelportCredentials, type TravelportCredentials } from "./travelport-config.server";
 
-const AUTH_URL = "https://auth.pp.travelport.net/oauth/token";
+// Account-specific TripServices onboarding contract; see docs/travelport-local-development.md.
+const AUTH_URL = "https://auth.pp.travelport.com/oauth/token";
 
 interface TravelportTokenResponse {
   access_token: string;
@@ -29,16 +30,16 @@ export async function getTravelportAccessToken(): Promise<string> {
     method: "POST",
     signal: AbortSignal.timeout(15_000),
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+      "Content-Type": "application/json",
       Accept: "application/json",
     },
-    body: new URLSearchParams({
+    body: JSON.stringify({
       client_id: credentials.clientId,
       client_secret: credentials.clientSecret,
       username: credentials.username,
       password: credentials.password,
       grant_type: "password",
-    }).toString(),
+    }),
   });
 
   if (!response.ok) {
