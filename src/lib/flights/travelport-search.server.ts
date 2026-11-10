@@ -21,7 +21,14 @@ export async function searchTravelport(params: FlightSearchParams) {
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
-      "TVP-PCC-Core": credentials.pcc,
+      Accept: "application/json",
+      "Accept-Encoding": "gzip, deflate",
+      "Cache-Control": "no-cache",
+      "Accept-Version": "11",
+      "Content-Version": "11",
+      ...(credentials.accessGroup
+        ? { XAUTH_TRAVELPORT_ACCESSGROUP: credentials.accessGroup }
+        : { "TVP-PCC-CORE": credentials.pcc! }),
       TraceId: crypto.randomUUID(),
     },
     body: JSON.stringify({
