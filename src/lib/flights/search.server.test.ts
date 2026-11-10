@@ -11,8 +11,8 @@ vi.mock("../organizations/authorization.server", async (importOriginal) => ({
   requireOrganization: mocks.requireOrganization,
 }));
 
-vi.mock("./serpapi-provider.server", () => ({
-  serpApiProvider: { searchFlights: mocks.searchFlights },
+vi.mock("./travelport-provider.server", () => ({
+  travelportProvider: { searchFlights: mocks.searchFlights },
 }));
 
 // Run the actual configured validator and handler. HTTP serialization still

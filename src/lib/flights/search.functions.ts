@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireOrganization } from "../organizations/authorization.server";
 import { flightSearchSchema } from "./search-schema";
-import { serpApiProvider } from "./serpapi-provider.server";
+import { travelportProvider } from "./travelport-provider.server";
 import type { FlightSearchResult } from "./types";
 
 // Retain the existing flat search contract and every flight-field refinement.
@@ -18,7 +18,7 @@ export const searchFlightsServer = createServerFn({ method: "POST" })
     const { organizationId } = await requireOrganization(requestedOrganizationId);
 
     try {
-      return await serpApiProvider.searchFlights(
+      return await travelportProvider.searchFlights(
         {
           ...params,
           returnDate: params.returnDate || undefined,

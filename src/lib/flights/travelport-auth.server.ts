@@ -1,4 +1,3 @@
-
 import { getTravelportCredentials } from "./travelport-config.server";
 
 const AUTH_URL = "https://auth.pp.travelport.com/oauth/token";
@@ -18,6 +17,7 @@ export async function getTravelportAccessToken(): Promise<string> {
 
   const response = await fetch(AUTH_URL, {
     method: "POST",
+    signal: AbortSignal.timeout(15_000),
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
@@ -32,9 +32,7 @@ export async function getTravelportAccessToken(): Promise<string> {
   });
 
   if (!response.ok) {
-    throw new Error(
-      `Travelport authentication failed (HTTP ${response.status})`,
-    );
+    throw new Error(`Travelport authentication failed (HTTP ${response.status})`);
   }
 
   const data: unknown = await response.json();

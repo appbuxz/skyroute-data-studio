@@ -1,11 +1,12 @@
+import type { FlightSearchParams } from "./types";
 
 import { getTravelportAccessToken } from "./travelport-auth.server";
 import { getTravelportCredentials } from "./travelport-config.server";
 
-const SEARCH_URL =
-  "https://api.pp.travelport.net/11/air/catalog/search/catalogproductofferings";
+const SEARCH_URL = "https://api.pp.travelport.net/11/air/catalog/search/catalogproductofferings";
 
-export async function testTravelportSearch() {
+export async function searchTravelport(params: FlightSearchParams) {
+  if (params.returnDate) throw new Error("Round-trip search is not supported yet");
   const credentials = getTravelportCredentials();
 
   if (!credentials) {
@@ -16,6 +17,7 @@ export async function testTravelportSearch() {
 
   const response = await fetch(SEARCH_URL, {
     method: "POST",
+    signal: AbortSignal.timeout(30_000),
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
@@ -31,25 +33,32 @@ export async function testTravelportSearch() {
         PassengerCriteria: [
           {
             "@type": "PassengerCriteria",
-            number: 1,
+            number: params.passengers,
             passengerTypeCode: "ADT",
           },
         ],
         SearchCriteriaFlight: [
           {
             "@type": "SearchCriteriaFlight",
-            departureDate: "2026-12-03",
-            From: { value: "JFK" },
-            To: { value: "LAX" },
+            departureDate: params.departureDate,
+            From: { value: params.origin },
+            To: { value: params.destination },
           },
         ],
         SearchModifiersAir: {
           "@type": "SearchModifiersAir",
-          CarrierPreference: [
+          CabinPreference: [
             {
-              "@type": "CarrierPreference",
-              preferenceType: "Preferred",
-              carriers: ["AA"],
+              "@type": "CabinPreference",
+              preferenceType: "Permitted",
+              cabins: [
+                {
+                  economy: "Economy",
+                  premium_economy: "PremiumEconomy",
+                  business: "Business",
+                  first: "First",
+                }[params.cabinClass],
+              ],
             },
           ],
         },
@@ -57,33 +66,9 @@ export async function testTravelportSearch() {
     }),
   });
 
-if (!response.ok) {
-  const errorText = await response.text();
-
-  let errorCode = "unknown";
-  let errorMessage = "No error details";
-
-  try {
-    const error = JSON.parse(errorText) as {
-      error?: string;
-      error_description?: string;
-      message?: string;
-    };
-
-    errorCode = error.error ?? "unknown";
-    errorMessage =
-      error.error_description ??
-      error.message ??
-      "No error details";
-  } catch {
-    // Do not print unstructured responses or sensitive headers.
+  if (!response.ok) {
+    throw new Error(`Travelport search failed (HTTP ${response.status})`);
   }
-
-  throw new Error(
-    `Travelport search HTTP ${response.status}; ` +
-    `code: ${errorCode}; message: ${errorMessage.slice(0, 200)}`,
-  );
-}
   const data: unknown = await response.json();
 
   if (typeof data !== "object" || data === null) {
@@ -91,4 +76,15 @@ if (!response.ok) {
   }
 
   return data;
+}
+
+// Retain the existing development helper; the application uses searchTravelport.
+export function testTravelportSearch() {
+  return searchTravelport({
+    origin: "JFK",
+    destination: "LAX",
+    departureDate: "2026-12-03",
+    passengers: 1,
+    cabinClass: "economy",
+  });
 }
