@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/common/page-header";
+import { FlightItinerary } from "@/components/flights/flight-itinerary";
 
 import { flightSearchSchema, type FlightSearchInput } from "@/lib/flights/search-schema";
 import { searchFlightsServer } from "@/lib/flights/search.functions";
@@ -390,9 +391,18 @@ function SearchPage() {
                         : `${offer.stops} stop${offer.stops === 1 ? "" : "s"}`}
                     </p>
 
-                    <p className="text-sm text-muted-foreground">Departure: {offer.departureAt}</p>
-
-                    <p className="text-sm text-muted-foreground">Arrival: {offer.arrivalAt}</p>
+                    {offer.outbound?.segments.length ? (
+                      <FlightItinerary itinerary={offer.outbound} label="Outbound itinerary" />
+                    ) : (
+                      <>
+                        <p className="text-sm text-muted-foreground">Departure: {offer.departureAt}</p>
+                        <p className="text-sm text-muted-foreground">Arrival: {offer.arrivalAt}</p>
+                        <p className="text-sm text-muted-foreground">Segment details unavailable</p>
+                      </>
+                    )}
+                    {offer.inbound?.segments.length ? (
+                      <FlightItinerary itinerary={offer.inbound} label="Return itinerary" />
+                    ) : null}
                   </CardContent>
                 </Card>
               ))}

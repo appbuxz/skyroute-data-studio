@@ -122,6 +122,50 @@ afterEach(() => {
 });
 
 describe("organization workspace", () => {
+  it("renders complete connecting itineraries in search results without changing the fare", async () => {
+    const response = result();
+    if (response.status !== "ok") throw new Error("Expected test offers");
+    const offer = response.offers[0]!;
+    offer.stops = 1;
+    offer.outbound = {
+      durationMinutes: 360,
+      segments: [
+        {
+          carrier: "KC",
+          flightNumber: "100",
+          origin: "ALA",
+          destination: "NQZ",
+          departureAt: "2099-12-10T10:00:00+05:00",
+          arrivalAt: "2099-12-10T11:30:00+05:00",
+        },
+        {
+          carrier: "TK",
+          flightNumber: "200",
+          origin: "NQZ",
+          destination: "IST",
+          departureAt: "2099-12-10T12:00:00+05:00",
+          arrivalAt: "2099-12-10T14:00:00+03:00",
+        },
+      ],
+    };
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    mocks.search.mockResolvedValue(response);
+    render(<Workspace />);
+    await ready();
+    submitSearch();
+    await screen.findByRole("region", { name: "Outbound itinerary" });
+    expect(screen.getByText("1. ALA → NQZ")).toBeInTheDocument();
+    expect(screen.getByText("2. NQZ → IST")).toBeInTheDocument();
+    expect(screen.getByText("KC · 100")).toBeInTheDocument();
+    expect(screen.getByText("TK · 200")).toBeInTheDocument();
+    expect(screen.getByText("Connection at NQZ")).toBeInTheDocument();
+    expect(screen.getByText("Total journey duration: 6h")).toBeInTheDocument();
+    expect(
+      screen.getAllByText(`${offer.price.amount.toLocaleString()} KZT`).length,
+    ).toBeGreaterThan(0);
+    expect(mocks.search).toHaveBeenCalledOnce();
+  });
+
   it("disables search during membership loading", async () => {
     const loading = deferred<OrganizationMembership[]>();
     mocks.memberships.mockReturnValue(loading.promise);
