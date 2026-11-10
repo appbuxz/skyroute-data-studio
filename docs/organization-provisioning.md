@@ -30,36 +30,74 @@ either table. Role-specific management interfaces are deferred.
 
 ## Create an organization and its first owner
 
-The owner must already exist in Supabase Auth. Creation is atomic: the organization
-cannot remain behind if the owner insertion fails. The operator receives the new
-organization UUID as a notice.
+Use the operator-only CLI from the repository root. Requires Node.js 22.18+ (native
+TypeScript execution) and `psql` on PATH; no new package is required. This command
+is not imported by the application and exposes no HTTP endpoint or elevated RPC.
+It uses a direct administrative database connection, never a browser service key.
+An `anon`, `authenticated`, or other non-`postgres` session is rejected inside the
+transaction before reading Auth or tenant tables. Existing RLS remains unchanged.
 
-```sql
-begin;
-do $$
-declare
-  owner_id uuid := '00000000-0000-0000-0000-000000000000'; -- replace
-  agency_name text := 'REPLACE WITH VERIFIED AGENCY NAME';
-  organization_id uuid;
-begin
-  if not exists (select 1 from auth.users where id = owner_id) then
-    raise exception 'Owner must be an existing Auth user';
-  end if;
+Verify the target project and the owner's existing Auth UUID in the dashboard.
+Choose a new organization UUID once (for example, `node -e
+"console.log(require('node:crypto').randomUUID())"`) and retain it in the operator
+record. It is the idempotency key: every retry MUST use the same UUID, trimmed
+name, and owner. A new UUID represents a new organization, even with the same name.
+Names intentionally are not globally unique.
 
-  insert into public.organizations (name)
-  values (btrim(agency_name)) returning id into organization_id;
+Configure libpq credentials outside the application. Use an owner-readable
+`PGPASSFILE` (mode 0600), or another approved libpq credential mechanism; never put
+passwords in command arguments, repository files, or `VITE_*` variables. The CLI
+does not load `.env` files. For a hosted database, use certificate-verified TLS
+with the CA supplied for the project; use a direct or session-pool connection.
 
-  insert into public.organization_members (organization_id, user_id, role)
-  values (organization_id, owner_id, 'owner');
+```sh
+export PGHOST='<verified database host for gohqrdacaaedieigvixl>'
+export PGPORT='<verified database port>'
+export PGDATABASE='postgres'
+export PGUSER='<postgres or session-pool postgres.gohqrdacaaedieigvixl>'
+export PGPASSFILE='/absolute/path/to/protected/pgpass'
+export PGSSLMODE='verify-full'
+export PGSSLROOTCERT='/absolute/path/to/trusted/project-ca.crt'
 
-  raise notice 'Created organization %', organization_id;
-end;
-$$;
-commit;
+npm run provision:organization -- \
+  --name 'Flight Analytics Test Agency' \
+  --owner-id '<existing-disposable-auth-user-uuid>' \
+  --organization-id '<new-uuid-retained-for-all-retries>'
 ```
 
-Do not rerun creation blindly after an uncertain response. Inspect existing
-organizations and memberships first: names are intentionally not globally unique.
+Names are JavaScript-trimmed and must have 1–120 UTF-16 code units, matching the
+application validator; NUL is forbidden. Both IDs must be UUIDs. SQL inputs are
+escaped, never interpolated as executable SQL. The transaction checks the real
+session/current role, locks the retry key and Auth user, then creates the
+organization and its owner membership atomically. Existing matching provisioning
+returns success without inserting or changing anything. An ID with a different
+name or owner fails; the CLI never repairs or takes over an existing organization.
+Concurrent invocations of this CLI with the same ID serialize. Other privileged
+manual writers must still follow the locking rules above.
+
+Success prints only the organization UUID and confirmation of commit. Errors are
+sanitized and exit nonzero; raw server diagnostics and connection secrets are not
+printed. A timeout/network failure can leave the commit outcome unknown: retry
+with exactly the same inputs, never generate a replacement ID. Lock and statement
+timeouts bound blocking. Do not run this command automatically on application
+startup. Do not provision against the cloud as part of automated tests.
+
+Verify afterward through the authorized application: sign in as the owner, open
+`/search`, confirm the agency is selectable and membership loading succeeds.
+Privileged operators may also inspect that UUID in both tables and confirm the
+owner role. This CLI does not perform a flight search or call a flight provider.
+
+Tests (no database access):
+
+```sh
+npm run test:provisioning
+```
+
+These tests cover validation, SQL construction, role guards, retry guards and CLI
+execution/error handling using a fake executor. They do not prove live transaction
+or role enforcement; the existing disposable PostgreSQL/RLS suite complements
+them. A future local database smoke test should include same-ID concurrent retry,
+conflicting inputs, nonexistent owner rollback and rejection under `authenticated`.
 
 ## Add a member or admin
 
