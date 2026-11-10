@@ -3,7 +3,6 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { getResponseStatus, requestHandler } from "@tanstack/react-start/server";
 import { runWithStartContext } from "@tanstack/start-storage-context";
@@ -32,6 +31,7 @@ type CompiledServerFunction = (options: {
 }) => Promise<{ result?: unknown; error?: unknown }>;
 let listMemberships: CompiledServerFunction;
 let searchFlights: CompiledServerFunction;
+let authenticatedUser: CompiledServerFunction;
 let alice: Awaited<ReturnType<typeof register>>;
 let bob: Awaited<ReturnType<typeof register>>;
 let carol: Awaited<ReturnType<typeof register>>;
@@ -121,15 +121,8 @@ async function register(label: string) {
   // Track the user before any subsequent assertion so partial setup is cleaned.
   if (registered.data.user) createdUsers.push(registered.data.user.id);
   if (registered.error || !registered.data.user) throw new Error("Local Auth signup failed");
-  const cookies = new Map<string, string>();
-  const client = createServerClient(API, key, {
-    auth: { autoRefreshToken: false },
-    cookies: {
-      getAll: () => [...cookies].map(([name, value]) => ({ name, value })),
-      setAll: (values) => {
-        for (const { name, value } of values) cookies.set(name, value);
-      },
-    },
+  const client = createClient(API, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
   });
   const signedIn = await client.auth.signInWithPassword({ email, password });
   if (signedIn.error || !signedIn.data.session)
@@ -137,8 +130,7 @@ async function register(label: string) {
   return {
     id: registered.data.user.id,
     client,
-    cookieHeader: () =>
-      [...cookies].map(([name, value]) => `${name}=${encodeURIComponent(value)}`).join("; "),
+    bearerToken: () => signedIn.data.session!.access_token,
   };
 }
 
@@ -158,13 +150,13 @@ async function builtHandler(exportName: string): Promise<CompiledServerFunction>
 }
 
 async function requestAs(
-  session: { cookieHeader: () => string } | null,
+  session: { bearerToken: () => string } | null,
   action: () => Promise<unknown>,
 ) {
   const request = new Request("http://127.0.0.1/integration", {
-    headers: session ? { cookie: session.cookieHeader() } : {},
+    headers: session ? { authorization: `Bearer ${session.bearerToken()}` } : {},
   });
-  // Real TanStack request/cookie/response storage; Supabase clients are untouched.
+  // Real TanStack request/bearer/response storage; Supabase clients are untouched.
   const handler = requestHandler(async (currentRequest) =>
     runWithStartContext(
       {
@@ -209,11 +201,12 @@ beforeAll(async () => {
   globalThis.fetch = guardedFetch;
   const builtAt = statSync(".output/server/_ssr/ssr.mjs").mtimeMs;
   for (const source of [
-    "src/lib/organizations/session.server.ts",
+    "src/lib/organizations/session.functions.ts",
     "src/lib/organizations/authorization.server.ts",
     "src/lib/supabase/auth.server.ts",
     "src/lib/supabase/server.ts",
-    "src/lib/flights/search.server.ts",
+    "src/lib/supabase/session.functions.ts",
+    "src/lib/flights/search.functions.ts",
     "src/lib/flights/search-schema.ts",
     "src/lib/flights/types.ts",
   ]) {
@@ -221,6 +214,7 @@ beforeAll(async () => {
       throw new Error("Build is stale; rebuild before integration testing");
   }
   listMemberships = await builtHandler("getOrganizationMemberships_createServerFn_handler");
+  authenticatedUser = await builtHandler("getAuthenticatedUser_createServerFn_handler");
   searchFlights = await builtHandler("searchFlightsServer_createServerFn_handler");
   for (const label of ["alice", "bob", "carol", "dave"]) sessions.push(await register(label));
   [alice, bob, carol, dave] = sessions as [typeof alice, typeof bob, typeof carol, typeof dave];
@@ -269,6 +263,15 @@ afterAll(async () => {
 });
 
 describe.sequential("local Supabase organization isolation", () => {
+  it("verifies route identity server-side through the bearer transport", async () => {
+    const response = await requestAs(alice, () => execute(authenticatedUser));
+    expect(response.status).toBe(200);
+    expect(response.body.result).toEqual({ id: alice.id });
+    const anonymous = await requestAs(null, () => execute(authenticatedUser));
+    expect(anonymous.status).toBe(200);
+    expect(anonymous.body.result).toBeNull();
+  });
+
   it("genuinely authenticates disposable users through local Auth", async () => {
     const { data, error } = await alice.client.auth.getUser();
     expect(error).toBeNull();
@@ -324,7 +327,7 @@ describe.sequential("local Supabase organization isolation", () => {
     expect(forbidden.data).toEqual([]);
   });
 
-  it("automatically resolves a sole membership with real request cookies and getUser", async () => {
+  it("automatically resolves a sole membership with real request bearer token and getUser", async () => {
     const response = await requestAs(alice, () => requireOrganization());
     expect(response.status).toBe(200);
     expect(response.body.result).toEqual({
@@ -399,7 +402,7 @@ describe.sequential("local Supabase organization isolation", () => {
   );
 
   it("enforces membership revocation on subsequent queries using the same session", async () => {
-    const beforeCookies = carol.cookieHeader();
+    const beforeToken = carol.bearerToken();
     expect((await requestAs(carol, () => requireOrganization(agencyB))).status).toBe(200);
     fixtureSql(`delete from public.organization_members
       where organization_id = ${uuidLiteral(agencyB)} and user_id = ${uuidLiteral(carol.id)};`);
@@ -412,8 +415,8 @@ describe.sequential("local Supabase organization isolation", () => {
     expect(listed.body.result).toEqual([
       { organizationId: agencyA, organizationName: agencyNames.a, role: "admin" },
     ]);
-    // Compare booleans so assertion diagnostics cannot print token-bearing cookies.
-    expect(beforeCookies === carol.cookieHeader()).toBe(true);
+    // Compare booleans so assertion diagnostics cannot print token-bearing bearer token.
+    expect(beforeToken === carol.bearerToken()).toBe(true);
     expect(traffic.postgrest).toBeGreaterThan(0);
   });
 });

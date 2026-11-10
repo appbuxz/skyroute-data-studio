@@ -32,6 +32,7 @@ export default defineConfig({
     "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(key),
   },
   test: {
+    env: { SUPABASE_URL: localUrl.origin, SUPABASE_PUBLISHABLE_KEY: key },
     environment: "node",
     include: ["tests/integration/**/*.integration.test.ts"],
     fileParallelism: false,

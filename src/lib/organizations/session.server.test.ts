@@ -26,7 +26,7 @@ vi.mock("@tanstack/react-start", () => ({
 
 import { UnauthorizedError } from "../supabase/auth.server";
 import { OrganizationAuthorizationError } from "./authorization.server";
-import { getOrganizationMemberships } from "./session.server";
+import { getOrganizationMemberships } from "./session.functions";
 
 const USER = "f1000000-0000-4000-8000-000000000001";
 const OTHER_USER = "f1000000-0000-4000-8000-000000000002";

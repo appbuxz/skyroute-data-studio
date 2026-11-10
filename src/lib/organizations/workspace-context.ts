@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 import type { FlightOffer, FlightSearchParams, OrganizationId } from "../flights/types";
-import type { OrganizationMembership } from "./session.server";
+import type { OrganizationMembership } from "./session.functions";
 
 export interface WorkspaceSearch {
   organizationId: OrganizationId;

@@ -14,4 +14,16 @@ describe("App routing", () => {
 
     expect(matches.at(-1)?.routeId).not.toBe(rootRouteId);
   });
+  it.each(["/search", "/dashboard", "/analysis", "/reports"])("keeps %s under the authenticated workspace", (path) => {
+    const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
+    const matches = router.matchRoutes(path);
+    expect(matches.map((match) => match.routeId)).toContain("/_authenticated");
+    expect(matches.map((match) => match.routeId)).toContain("/_authenticated/_workspace");
+  });
+  it("keeps login outside the protected layout", () => {
+    const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
+    const matches = router.matchRoutes("/login");
+    expect(matches.at(-1)?.routeId).toBe("/login");
+    expect(matches.map((match) => match.routeId)).not.toContain("/_authenticated");
+  });
 });

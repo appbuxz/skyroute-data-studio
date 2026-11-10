@@ -1,3 +1,5 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { terminateSession } from "@/lib/auth/session";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { BarChart3, FileText, LayoutDashboard, Search } from "lucide-react";
 import type { ReactNode } from "react";
@@ -6,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { LogOut } from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { clearLegacyFlightSearch } from "@/lib/flights/search-session";
 import { OrganizationSelector } from "./organization-selector";
 
@@ -20,6 +22,7 @@ const NAV = [
 export function AppShell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState("");
 
@@ -30,12 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     setSignOutError("");
 
     try {
-      const { error } = await supabase.auth.signOut();
-
-      if (error) {
-        setSignOutError("Unable to sign out. Please try again.");
-        return;
-      }
+      await terminateSession(supabase, queryClient);
 
       // Clear flight data only after successful sign-out.
       clearLegacyFlightSearch();

@@ -10,20 +10,27 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as WorkspaceRouteImport } from './routes/_workspace'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as WorkspaceAnalysisRouteImport } from './routes/_workspace.analysis'
-import { Route as WorkspaceDashboardRouteImport } from './routes/_workspace.dashboard'
-import { Route as WorkspaceReportsRouteImport } from './routes/_workspace.reports'
-import { Route as WorkspaceSearchRouteImport } from './routes/_workspace.search'
+import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated/_workspace'
+import { Route as AuthenticatedWorkspaceAnalysisRouteImport } from './routes/_authenticated/_workspace.analysis'
+import { Route as AuthenticatedWorkspaceDashboardRouteImport } from './routes/_authenticated/_workspace.dashboard'
+import { Route as AuthenticatedWorkspaceReportsRouteImport } from './routes/_authenticated/_workspace.reports'
+import { Route as AuthenticatedWorkspaceSearchRouteImport } from './routes/_authenticated/_workspace.search'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WorkspaceRoute = WorkspaceRouteImport.update({
-  id: '/_workspace',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -31,73 +38,101 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WorkspaceAnalysisRoute = WorkspaceAnalysisRouteImport.update({
-  id: '/analysis',
-  path: '/analysis',
-  getParentRoute: () => WorkspaceRoute,
+const AuthenticatedWorkspaceRoute = AuthenticatedWorkspaceRouteImport.update({
+  id: '/_workspace',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const WorkspaceDashboardRoute = WorkspaceDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => WorkspaceRoute,
-} as any)
-const WorkspaceReportsRoute = WorkspaceReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => WorkspaceRoute,
-} as any)
-const WorkspaceSearchRoute = WorkspaceSearchRouteImport.update({
-  id: '/search',
-  path: '/search',
-  getParentRoute: () => WorkspaceRoute,
-} as any)
+const AuthenticatedWorkspaceAnalysisRoute =
+  AuthenticatedWorkspaceAnalysisRouteImport.update({
+    id: '/analysis',
+    path: '/analysis',
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any)
+const AuthenticatedWorkspaceDashboardRoute =
+  AuthenticatedWorkspaceDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any)
+const AuthenticatedWorkspaceReportsRoute =
+  AuthenticatedWorkspaceReportsRouteImport.update({
+    id: '/reports',
+    path: '/reports',
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any)
+const AuthenticatedWorkspaceSearchRoute =
+  AuthenticatedWorkspaceSearchRouteImport.update({
+    id: '/search',
+    path: '/search',
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
-  '/analysis': typeof WorkspaceAnalysisRoute
-  '/dashboard': typeof WorkspaceDashboardRoute
-  '/reports': typeof WorkspaceReportsRoute
-  '/search': typeof WorkspaceSearchRoute
+  '/analysis': typeof AuthenticatedWorkspaceAnalysisRoute
+  '/dashboard': typeof AuthenticatedWorkspaceDashboardRoute
+  '/reports': typeof AuthenticatedWorkspaceReportsRoute
+  '/search': typeof AuthenticatedWorkspaceSearchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
-  '/analysis': typeof WorkspaceAnalysisRoute
-  '/dashboard': typeof WorkspaceDashboardRoute
-  '/reports': typeof WorkspaceReportsRoute
-  '/search': typeof WorkspaceSearchRoute
+  '/analysis': typeof AuthenticatedWorkspaceAnalysisRoute
+  '/dashboard': typeof AuthenticatedWorkspaceDashboardRoute
+  '/reports': typeof AuthenticatedWorkspaceReportsRoute
+  '/search': typeof AuthenticatedWorkspaceSearchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_workspace': typeof WorkspaceRouteWithChildren
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
-  '/_workspace/analysis': typeof WorkspaceAnalysisRoute
-  '/_workspace/dashboard': typeof WorkspaceDashboardRoute
-  '/_workspace/reports': typeof WorkspaceReportsRoute
-  '/_workspace/search': typeof WorkspaceSearchRoute
+  '/_authenticated/_workspace': typeof AuthenticatedWorkspaceRouteWithChildren
+  '/_authenticated/_workspace/analysis': typeof AuthenticatedWorkspaceAnalysisRoute
+  '/_authenticated/_workspace/dashboard': typeof AuthenticatedWorkspaceDashboardRoute
+  '/_authenticated/_workspace/reports': typeof AuthenticatedWorkspaceReportsRoute
+  '/_authenticated/_workspace/search': typeof AuthenticatedWorkspaceSearchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/login' | '/analysis' | '/dashboard' | '/reports' | '/search'
+    | '/'
+    | '/auth'
+    | '/login'
+    | '/analysis'
+    | '/dashboard'
+    | '/reports'
+    | '/search'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/analysis' | '/dashboard' | '/reports' | '/search'
+  to:
+    | '/'
+    | '/auth'
+    | '/login'
+    | '/analysis'
+    | '/dashboard'
+    | '/reports'
+    | '/search'
   id:
     | '__root__'
     | '/'
-    | '/_workspace'
+    | '/_authenticated'
+    | '/auth'
     | '/login'
-    | '/_workspace/analysis'
-    | '/_workspace/dashboard'
-    | '/_workspace/reports'
-    | '/_workspace/search'
+    | '/_authenticated/_workspace'
+    | '/_authenticated/_workspace/analysis'
+    | '/_authenticated/_workspace/dashboard'
+    | '/_authenticated/_workspace/reports'
+    | '/_authenticated/_workspace/search'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  WorkspaceRoute: typeof WorkspaceRouteWithChildren
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
   LoginRoute: typeof LoginRoute
 }
 
@@ -110,11 +145,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_workspace': {
-      id: '/_workspace'
+    '/_authenticated': {
+      id: '/_authenticated'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof WorkspaceRouteImport
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -124,58 +166,79 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_workspace/analysis': {
-      id: '/_workspace/analysis'
+    '/_authenticated/_workspace': {
+      id: '/_authenticated/_workspace'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedWorkspaceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/_workspace/analysis': {
+      id: '/_authenticated/_workspace/analysis'
       path: '/analysis'
       fullPath: '/analysis'
-      preLoaderRoute: typeof WorkspaceAnalysisRouteImport
-      parentRoute: typeof WorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedWorkspaceAnalysisRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
     }
-    '/_workspace/dashboard': {
-      id: '/_workspace/dashboard'
+    '/_authenticated/_workspace/dashboard': {
+      id: '/_authenticated/_workspace/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
-      preLoaderRoute: typeof WorkspaceDashboardRouteImport
-      parentRoute: typeof WorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedWorkspaceDashboardRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
     }
-    '/_workspace/reports': {
-      id: '/_workspace/reports'
+    '/_authenticated/_workspace/reports': {
+      id: '/_authenticated/_workspace/reports'
       path: '/reports'
       fullPath: '/reports'
-      preLoaderRoute: typeof WorkspaceReportsRouteImport
-      parentRoute: typeof WorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedWorkspaceReportsRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
     }
-    '/_workspace/search': {
-      id: '/_workspace/search'
+    '/_authenticated/_workspace/search': {
+      id: '/_authenticated/_workspace/search'
       path: '/search'
       fullPath: '/search'
-      preLoaderRoute: typeof WorkspaceSearchRouteImport
-      parentRoute: typeof WorkspaceRoute
+      preLoaderRoute: typeof AuthenticatedWorkspaceSearchRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
     }
   }
 }
 
-interface WorkspaceRouteChildren {
-  WorkspaceAnalysisRoute: typeof WorkspaceAnalysisRoute
-  WorkspaceDashboardRoute: typeof WorkspaceDashboardRoute
-  WorkspaceReportsRoute: typeof WorkspaceReportsRoute
-  WorkspaceSearchRoute: typeof WorkspaceSearchRoute
+interface AuthenticatedWorkspaceRouteChildren {
+  AuthenticatedWorkspaceAnalysisRoute: typeof AuthenticatedWorkspaceAnalysisRoute
+  AuthenticatedWorkspaceDashboardRoute: typeof AuthenticatedWorkspaceDashboardRoute
+  AuthenticatedWorkspaceReportsRoute: typeof AuthenticatedWorkspaceReportsRoute
+  AuthenticatedWorkspaceSearchRoute: typeof AuthenticatedWorkspaceSearchRoute
 }
 
-const WorkspaceRouteChildren: WorkspaceRouteChildren = {
-  WorkspaceAnalysisRoute: WorkspaceAnalysisRoute,
-  WorkspaceDashboardRoute: WorkspaceDashboardRoute,
-  WorkspaceReportsRoute: WorkspaceReportsRoute,
-  WorkspaceSearchRoute: WorkspaceSearchRoute,
+const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
+  {
+    AuthenticatedWorkspaceAnalysisRoute: AuthenticatedWorkspaceAnalysisRoute,
+    AuthenticatedWorkspaceDashboardRoute: AuthenticatedWorkspaceDashboardRoute,
+    AuthenticatedWorkspaceReportsRoute: AuthenticatedWorkspaceReportsRoute,
+    AuthenticatedWorkspaceSearchRoute: AuthenticatedWorkspaceSearchRoute,
+  }
+
+const AuthenticatedWorkspaceRouteWithChildren =
+  AuthenticatedWorkspaceRoute._addFileChildren(
+    AuthenticatedWorkspaceRouteChildren,
+  )
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRouteWithChildren
 }
 
-const WorkspaceRouteWithChildren = WorkspaceRoute._addFileChildren(
-  WorkspaceRouteChildren,
-)
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRouteWithChildren,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  WorkspaceRoute: WorkspaceRouteWithChildren,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport

@@ -31,7 +31,7 @@ vi.mock("@tanstack/react-start", () => ({
 
 import { OrganizationAuthorizationError } from "../organizations/authorization.server";
 import { UnauthorizedError } from "../supabase/auth.server";
-import { searchFlightsServer } from "./search.server";
+import { searchFlightsServer } from "./search.functions";
 
 const organizationId = "f2000000-0000-4000-8000-000000000001" as OrganizationId;
 const params: FlightSearchParams = {

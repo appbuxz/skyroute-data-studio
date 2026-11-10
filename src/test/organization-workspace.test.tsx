@@ -1,8 +1,9 @@
+vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 import { StrictMode, useState, type ReactNode } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FlightOffer, FlightSearchResult, OrganizationId } from "@/lib/flights/types";
-import type { OrganizationMembership } from "@/lib/organizations/session.server";
+import type { OrganizationMembership } from "@/lib/organizations/session.functions";
 
 const mocks = vi.hoisted(() => ({
   memberships: vi.fn(),
@@ -11,10 +12,10 @@ const mocks = vi.hoisted(() => ({
   unsubscribe: vi.fn(),
 }));
 
-vi.mock("@/lib/organizations/session.server", () => ({
+vi.mock("@/lib/organizations/session.functions", () => ({
   getOrganizationMemberships: mocks.memberships,
 }));
-vi.mock("@/lib/flights/search.server", () => ({ searchFlightsServer: mocks.search }));
+vi.mock("@/lib/flights/search.functions", () => ({ searchFlightsServer: mocks.search }));
 vi.mock("@/lib/supabase/client", () => ({
   supabase: { auth: { onAuthStateChange: mocks.onAuthStateChange } },
 }));
@@ -30,8 +31,8 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
 import { OrganizationWorkspaceProvider } from "@/lib/organizations/workspace-provider";
 import { useOrganizationWorkspace } from "@/lib/organizations/workspace-context";
 import { OrganizationSelector } from "@/components/layout/organization-selector";
-import { Route as SearchRoute } from "@/routes/_workspace.search";
-import { Route as AnalysisRoute } from "@/routes/_workspace.analysis";
+import { Route as SearchRoute } from "@/routes/_authenticated/_workspace.search";
+import { Route as AnalysisRoute } from "@/routes/_authenticated/_workspace.analysis";
 
 const USER = "f1000000-0000-4000-8000-000000000001";
 const A = "f2000000-0000-4000-8000-000000000001" as OrganizationId;

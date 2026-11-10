@@ -1,8 +1,9 @@
+import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { OrganizationId } from "../flights/types";
 import { clearLegacyFlightSearch } from "../flights/search-session";
 import { supabase } from "../supabase/client";
-import { getOrganizationMemberships, type OrganizationMembership } from "./session.server";
+import { getOrganizationMemberships, type OrganizationMembership } from "./session.functions";
 import {
   OrganizationWorkspaceContext,
   organizationFailure,
@@ -16,6 +17,7 @@ export function OrganizationWorkspaceProvider({
   userId: string;
   children: ReactNode;
 }) {
+  const listMemberships = useServerFn(getOrganizationMemberships);
   const [memberships, setMemberships] = useState<OrganizationMembership[]>([]);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<OrganizationId | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -49,7 +51,7 @@ export function OrganizationWorkspaceProvider({
     setStatus("loading");
     setError(null);
     try {
-      const choices = await getOrganizationMemberships();
+      const choices = await listMemberships();
       if (!mounted.current || request !== loadRequest.current) return;
       setMemberships(choices);
       if (
@@ -83,7 +85,7 @@ export function OrganizationWorkspaceProvider({
         organizationFailure(failure)?.message ?? "Unable to load organizations. Please try again.",
       );
     }
-  }, [invalidate]);
+  }, [invalidate, listMemberships]);
 
   useEffect(() => {
     mounted.current = true;

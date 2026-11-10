@@ -87,7 +87,7 @@ The suite verifies:
   authenticated session, without a new sign-in or token refresh.
 
 The helper and extracted server handlers run inside the framework's real request
-and Start contexts. Cookie parsing, the application Supabase server-client factory,
+and Start contexts. Bearer header parsing, the application Supabase server-client factory,
 Auth verification, PostgREST requests and response status handling are genuine.
 This is not an end-to-end browser test or an HTTP test of TanStack's RPC routing,
 wire serialization, CSRF middleware, or deployed proxy behavior. Those boundaries
@@ -99,7 +99,7 @@ Teardown signs out the fixture sessions and deletes only the current run's
 memberships, organizations, Auth users and Auth audit records. Foreign-key cascades
 remove Auth session/refresh-token records. A privileged count then verifies zero
 remaining fixture users, organizations, memberships, sessions, refresh tokens and
-audit records. The summary prints counts and PASS status, never cookies or tokens.
+audit records. The summary prints counts and PASS status, never bearer credentials or tokens.
 It also reports the number of real Auth/PostgREST requests and blocked external
 attempts; the expected external-attempt count is zero.
 

@@ -6,9 +6,11 @@ import { PageHeader } from "@/components/common/page-header";
 import { analyzeFlightPrices } from "@/lib/flights/analytics";
 import { useOrganizationWorkspace } from "@/lib/organizations/workspace-context";
 
-export const Route = createFileRoute("/_workspace/analysis")({
+export const Route = createFileRoute("/_authenticated/_workspace/analysis")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Flight Analysis — Flight Analytics" },
       {
         name: "description",

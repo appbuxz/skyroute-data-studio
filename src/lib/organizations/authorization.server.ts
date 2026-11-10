@@ -43,7 +43,7 @@ function rejectAuthorization(code: keyof typeof authorizationErrors): never {
   throw error;
 }
 
-/** Verify current membership on every call using the caller's cookies and RLS. */
+/** Verify current membership on every call using the caller's bearer token and RLS. */
 export async function requireOrganization(requestedOrganizationId?: string): Promise<{
   userId: string;
   organizationId: OrganizationId;

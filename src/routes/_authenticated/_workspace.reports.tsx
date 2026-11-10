@@ -2,9 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { FileText } from "lucide-react";
 import { EmptyState, PageHeader } from "@/components/common/page-header";
 
-export const Route = createFileRoute("/_workspace/reports")({
+export const Route = createFileRoute("/_authenticated/_workspace/reports")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Reports — Flight Analytics" },
       { name: "description", content: "Saved fare and route reports for your agency." },
       { property: "og:title", content: "Reports — Flight Analytics" },

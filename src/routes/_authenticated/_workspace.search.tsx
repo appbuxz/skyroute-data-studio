@@ -1,3 +1,4 @@
+import { useServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { Info } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
@@ -16,7 +17,7 @@ import {
 import { PageHeader } from "@/components/common/page-header";
 
 import { flightSearchSchema, type FlightSearchInput } from "@/lib/flights/search-schema";
-import { searchFlightsServer } from "@/lib/flights/search.server";
+import { searchFlightsServer } from "@/lib/flights/search.functions";
 import { KZ_AIRPORTS } from "@/lib/flights/airports";
 import { CABIN_CLASSES, CABIN_LABELS, type FlightSearchParams } from "@/lib/flights/types";
 import { analyzeFlightPrices } from "@/lib/flights/analytics";
@@ -25,7 +26,7 @@ import {
   useOrganizationWorkspace,
 } from "@/lib/organizations/workspace-context";
 
-export const Route = createFileRoute("/_workspace/search")({
+export const Route = createFileRoute("/_authenticated/_workspace/search")({
   head: () => ({
     meta: [
       { title: "Flight Search — Flight Analytics" },
@@ -62,6 +63,7 @@ const initial: FormValues = {
 };
 
 function SearchPage() {
+  const searchFlights = useServerFn(searchFlightsServer);
   const workspace = useOrganizationWorkspace();
   const { selectedOrganizationId, canSearch, version } = workspace;
   const request = useRef(0);
@@ -134,7 +136,7 @@ function SearchPage() {
 
     try {
       // The server independently verifies membership for this explicit selection.
-      const result = await searchFlightsServer({
+      const result = await searchFlights({
         data: { ...params, organizationId: selectedOrganizationId },
       });
       if (!isCurrent()) return;

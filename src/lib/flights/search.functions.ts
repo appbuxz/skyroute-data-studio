@@ -26,7 +26,7 @@ export const searchFlightsServer = createServerFn({ method: "POST" })
         { organizationId },
       );
     } catch (error) {
-      console.error("Flight search failed:", error);
+      console.error("Flight search failed");
 
       return {
         status: "error",

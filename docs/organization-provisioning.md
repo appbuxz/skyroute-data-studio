@@ -219,7 +219,7 @@ operations in the client.
 - No tenant selection, application authorization, snapshots, quotas, invitations,
   reporting tables, ownership RPCs, or audit-log table are added in Phase 1.
 - RLS does not constrain a privileged operator or a role with BYPASSRLS. Keep normal
-  requests on the cookie-authenticated publishable-key client in future phases.
+  requests on the bearer-authenticated publishable-key client in future phases.
 - No paid service or new dependency is needed. Provider usage can still cost money.
 
 An operator can check for ownerless organizations with:
