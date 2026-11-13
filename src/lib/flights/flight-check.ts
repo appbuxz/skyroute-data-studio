@@ -6,21 +6,42 @@ const allowance = z.object({
   pieces: z.number().int().nonnegative(),
   weightKg: z.number().finite().nonnegative().optional(),
 });
+const baggageRequirement = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("not_required") }),
+  z.object({
+    status: z.literal("required"),
+    pieces: z.number().int().positive(),
+    weightKg: z.number().finite().positive().optional(),
+  }),
+]);
+const originalBaggage = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("unknown") }),
+  z.object({ status: z.literal("known"), checked: allowance, cabin: allowance }),
+]);
 export const flightCheckSchema = flightSearchSchema
   .and(
-    z.object({
-      tripType: z.enum(["one_way", "round_trip"]),
-      originalPrice: z.number().finite().positive(),
-      originalCurrency: z
-        .string()
-        .trim()
-        .toUpperCase()
-        .regex(/^[A-Z]{3}$/),
-      baggage: z.discriminatedUnion("status", [
-        z.object({ status: z.literal("unknown") }),
-        z.object({ status: z.literal("known"), checked: allowance, cabin: allowance }),
-      ]),
-    }),
+    z
+      .object({
+        tripType: z.enum(["one_way", "round_trip"]),
+        originalPrice: z.number().finite().positive(),
+        originalCurrency: z
+          .string()
+          .trim()
+          .toUpperCase()
+          .regex(/^[A-Z]{3}$/),
+      })
+      .and(
+        z.union([
+          z.object({ mode: z.literal("strict_equivalence").optional(), baggage: originalBaggage }),
+          z.object({
+            mode: z.literal("requirements_match"),
+            baggageRequirements: z.object({
+              checked: baggageRequirement,
+              cabin: baggageRequirement,
+            }),
+          }),
+        ]),
+      ),
   )
   .superRefine((value, ctx) => {
     for (const key of ["departureDate", "returnDate"] as const) {
@@ -54,6 +75,20 @@ export interface FlightCheckProvenance {
   environment: "test" | "production" | "unknown";
   searchedAt: string;
 }
+export type RequirementStatus =
+  "requirements_met" | "requirements_unknown" | "requirements_not_met";
+export interface RequirementReason {
+  requirement: "checked" | "cabin" | "compatibility" | "pricing";
+  status: RequirementStatus;
+  reason: string;
+}
+export interface OfferRequirementEvaluation {
+  offer: FlightOffer;
+  status: RequirementStatus;
+  reasons: RequirementReason[];
+  /** Original minus offer total; informational, never confirmed savings. */
+  priceDifference?: number;
+}
 export interface FlightCheckResult extends FlightCheckProvenance {
   status:
     | "better_offer_found"
@@ -61,6 +96,8 @@ export interface FlightCheckResult extends FlightCheckProvenance {
     | "insufficient_data"
     | "no_offers_found"
     | "search_failed";
+  /** Present only in requirements mode. Comparable offers are fully qualifying. */
+  requirementEvaluations?: OfferRequirementEvaluation[];
   originalPrice: { amount: number; currency: string; source: "user_provided" };
   offersChecked: number;
   comparableOffers: FlightOffer[];
@@ -116,10 +153,88 @@ export function compareFlightCheck(
   };
   if (provenance.environment !== "production")
     result.limitations.push("These results must not be represented as live bookable offers.");
+  if (input.mode === "requirements_match") result.requirementEvaluations = [];
   let bestMinor = Infinity;
   for (const entry of entries) {
     const { offer } = entry;
-    const insufficient = (reason: string) => result.insufficientOffers.push({ offer, reason });
+    const evaluation: OfferRequirementEvaluation | undefined =
+      input.mode === "requirements_match"
+        ? { offer, status: "requirements_unknown", reasons: [] }
+        : undefined;
+    const record = (
+      requirement: RequirementReason["requirement"],
+      status: RequirementStatus,
+      reason: string,
+    ) => {
+      evaluation?.reasons.push({ requirement, status, reason });
+      if (evaluation)
+        evaluation.status = evaluation.reasons.some((r) => r.status === "requirements_not_met")
+          ? "requirements_not_met"
+          : evaluation.reasons.some((r) => r.status === "requirements_unknown")
+            ? "requirements_unknown"
+            : "requirements_met";
+    };
+    if (evaluation && input.mode === "requirements_match") {
+      result.requirementEvaluations!.push(evaluation);
+      for (const kind of ["checked", "cabin"] as const) {
+        const required = input.baggageRequirements[kind];
+        if (required.status === "not_required") {
+          record(kind, "requirements_met", "Explicitly not required");
+          continue;
+        }
+        const actual = offer.baggage?.[kind];
+        if (
+          entry.baggageScopes?.[kind] !== "all_passengers_all_segments" &&
+          entry.baggageScope !== "all_passengers_all_segments"
+        ) {
+          record(
+            kind,
+            "requirements_unknown",
+            "All-passenger and all-segment applicability unverified",
+          );
+          continue;
+        }
+        let unknown = false,
+          failed = false;
+        for (const field of ["pieces", "weightKg"] as const) {
+          const minimum = required[field];
+          if (minimum === undefined) continue;
+          const value = actual?.[field];
+          if (
+            value === undefined ||
+            !Number.isFinite(value) ||
+            value < 0 ||
+            (field === "pieces" && !Number.isInteger(value))
+          )
+            unknown = true;
+          else if (value < minimum) failed = true;
+        }
+        record(
+          kind,
+          failed ? "requirements_not_met" : unknown ? "requirements_unknown" : "requirements_met",
+          failed
+            ? "Allowance below selected minimum"
+            : unknown
+              ? "Allowance or required weight unknown"
+              : "Allowance meets selected minimum",
+        );
+      }
+    }
+    const insufficient = (
+      reason: string,
+      requirement: RequirementReason["requirement"] = "pricing",
+    ) => {
+      result.insufficientOffers.push({ offer, reason });
+      record(requirement, "requirements_unknown", reason);
+    };
+    const incompatible = () => {
+      result.incompatibleOffers.push(offer);
+      record(
+        "compatibility",
+        "requirements_not_met",
+        "Route, dates, trip type, cabin, passengers or currency incompatible",
+      );
+    };
     const outbound = offer.outbound?.segments;
     const inbound = offer.inbound?.segments;
     if (
@@ -130,11 +245,11 @@ export function compareFlightCheck(
       (entry.passengers !== undefined && entry.passengers !== input.passengers) ||
       Boolean(offer.inbound) !== (input.tripType === "round_trip")
     ) {
-      result.incompatibleOffers.push(offer);
+      incompatible();
       continue;
     }
     if (!outbound?.length || (offer.inbound && !inbound?.length)) {
-      insufficient("Incomplete itinerary");
+      insufficient("Incomplete itinerary", "compatibility");
       continue;
     }
     const matches = (
@@ -156,7 +271,7 @@ export function compareFlightCheck(
       !matches(outbound, input.origin, input.destination, input.departureDate) ||
       (inbound && !matches(inbound, input.destination, input.origin, input.returnDate!))
     ) {
-      result.incompatibleOffers.push(offer);
+      incompatible();
       continue;
     }
     const amount = minorUnits(offer.price?.amount, input.originalCurrency);
@@ -169,39 +284,67 @@ export function compareFlightCheck(
       insufficient("Total price, passenger scope or mandatory charges unverified");
       continue;
     }
-    if (
-      input.baggage.status === "unknown" ||
-      entry.baggageScope !== "all_passengers_all_segments" ||
-      !offer.baggage?.checked ||
-      !offer.baggage.cabin
-    ) {
-      insufficient("Baggage conditions unknown or scope unverified");
-      continue;
-    }
-    let unknown = false,
-      incompatible = false;
-    for (const kind of ["checked", "cabin"] as const) {
-      for (const field of ["pieces", "weightKg"] as const) {
-        const required = input.baggage[kind][field],
-          actual = offer.baggage[kind]![field];
-        if (field === "weightKg" && required === undefined) continue;
-        if (
-          actual === undefined ||
-          !Number.isFinite(actual) ||
-          actual < 0 ||
-          (field === "pieces" && !Number.isInteger(actual))
-        )
-          unknown = true;
-        else if (actual !== required) incompatible = true;
+    if (evaluation) {
+      record(
+        "compatibility",
+        "requirements_met",
+        "Requested itinerary and passenger count verified",
+      );
+      record(
+        "pricing",
+        "requirements_met",
+        "Comparable group total and mandatory charges verified",
+      );
+      if (evaluation.status === "requirements_unknown") {
+        const digits =
+          new Intl.NumberFormat("en", {
+            style: "currency",
+            currency: input.originalCurrency,
+          }).resolvedOptions().maximumFractionDigits ?? 2;
+        evaluation.priceDifference = (original - amount) / 10 ** digits;
+        result.insufficientOffers.push({ offer, reason: "Selected requirements remain unknown" });
+        continue;
+      }
+      if (evaluation.status === "requirements_not_met") {
+        result.incompatibleOffers.push(offer);
+        continue;
       }
     }
-    if (unknown) {
-      insufficient("Incomplete baggage allowance");
-      continue;
-    }
-    if (incompatible) {
-      result.incompatibleOffers.push(offer);
-      continue;
+    if (input.mode !== "requirements_match") {
+      if (
+        input.baggage.status === "unknown" ||
+        entry.baggageScope !== "all_passengers_all_segments" ||
+        !offer.baggage?.checked ||
+        !offer.baggage.cabin
+      ) {
+        insufficient("Baggage conditions unknown or scope unverified");
+        continue;
+      }
+      let unknown = false,
+        incompatible = false;
+      for (const kind of ["checked", "cabin"] as const) {
+        for (const field of ["pieces", "weightKg"] as const) {
+          const required = input.baggage[kind][field],
+            actual = offer.baggage[kind]![field];
+          if (field === "weightKg" && required === undefined) continue;
+          if (
+            actual === undefined ||
+            !Number.isFinite(actual) ||
+            actual < 0 ||
+            (field === "pieces" && !Number.isInteger(actual))
+          )
+            unknown = true;
+          else if (actual !== required) incompatible = true;
+        }
+      }
+      if (unknown) {
+        insufficient("Incomplete baggage allowance");
+        continue;
+      }
+      if (incompatible) {
+        result.incompatibleOffers.push(offer);
+        continue;
+      }
     }
     result.comparableOffers.push(offer);
     if (amount < bestMinor) {
@@ -217,7 +360,7 @@ export function compareFlightCheck(
       : bestMinor < original
         ? "better_offer_found"
         : "no_better_offer_found";
-  if (result.bestComparableOffer) {
+  if (result.bestComparableOffer && (input.mode !== "requirements_match" || bestMinor < original)) {
     const savings = Math.max(0, original - bestMinor);
     const digits =
       new Intl.NumberFormat("en", {
