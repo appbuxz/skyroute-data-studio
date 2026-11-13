@@ -41,9 +41,10 @@ covers the returned comparable results. Missing environment metadata stays
 Travelport uses a hardcoded pre-production endpoint, so its successful search
 results now explicitly carry `environment: "test"`.
 
-Current blockers: Travelport does not normalize baggage or comparison evidence and
-rejects round trips. Nonempty current Travelport results therefore cannot produce
-savings claims; round trips return `search_failed`. Synthetic tests demonstrate
-the comparison behavior when verified evidence is supplied. No live validation
-has been performed. Next: normalize and verify Travelport total-price passenger
-scope, mandatory charges, and baggage coverage before enabling savings claims.
+Travelport now normalizes comparison evidence for documented one-way GDS adult
+pricing and unambiguous baggage coverage. See [Travelport evidence rules and
+remaining blockers](travelport-comparison-evidence.md). The enriched captured
+fixture verifies price evidence but has ambiguous duplicate carry-on rows, so
+it still cannot produce savings. Complete synthetic normalized offers exercise
+savings without weakening validation. Round trips remain unsupported. No live
+validation or production readiness is claimed.

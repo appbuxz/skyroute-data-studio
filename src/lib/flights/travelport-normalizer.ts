@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { CabinClass, FlightOffer } from "./types";
+import { travelportComparison } from "./travelport-comparison";
 import { getAirportTimeZone } from "./airport-timezone";
 import { localDateTimeToIso } from "./local-datetime";
 const text = z.string().trim().min(1);
@@ -26,6 +27,7 @@ const productSchema = z.object({
     .array(
       z.object({
         passengerQuantity: z.number().int().positive(),
+        passengerTypeCode: z.unknown().optional(),
         FlightProduct: z
           .array(
             z.object({ cabin: text, segmentSequence: z.array(z.number().int().positive()).min(1) }),
@@ -37,10 +39,14 @@ const productSchema = z.object({
 });
 const variantSchema = z.object({
   Product: z.array(z.object({ productRef: text })).length(1),
-  BestCombinablePrice: z.object({
-    TotalPrice: z.number().finite().nonnegative(),
-    CurrencyCode: z.object({ value: z.string().regex(/^[A-Z]{3}$/) }),
-  }),
+  ContentSource: z.unknown().optional(),
+  TermsAndConditions: z.unknown().optional(),
+  BestCombinablePrice: z
+    .object({
+      TotalPrice: z.number().finite().nonnegative(),
+      CurrencyCode: z.object({ value: z.string().regex(/^[A-Z]{3}$/) }),
+    })
+    .passthrough(),
 });
 const cabins: Record<string, CabinClass> = {
   Economy: "economy",
@@ -66,7 +72,7 @@ export interface TravelportNormalization {
   }>;
 }
 /** One-way, single-product variants only. No payloads appear in diagnostics.
- * Passenger quantities are validated but not emitted: FlightOffer has no such field.
+ * Optional comparison evidence is independently validated; incomplete evidence never rejects search offers.
  */
 export function normalizeTravelportFlights(
   response: unknown,
@@ -185,6 +191,7 @@ export function normalizeTravelportFlights(
             last = segments[segments.length - 1]!;
           const duration = minutes(product.totalDuration);
           result.offers.push({
+            ...travelportComparison(variant, product, r.ReferenceList ?? []),
             id: `travelport-${catalogIndex}-${optionIndex}-${variantIndex}-${product.id}`,
             provider: "travelport",
             carrier: first.carrier,

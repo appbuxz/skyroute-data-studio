@@ -20,7 +20,9 @@ Only a single outbound journey is supported; cross-bound combinability and retur
 trip assembly are outside this module's contract.
 
 PassengerFlight.passengerQuantity is validated; Product.Quantity is not treated as
-passenger count. FlightOffer has no passenger-count field, so it is not emitted.
+passenger count. Optional comparison evidence is now normalized separately when
+documented passenger pricing and allowance evidence is complete; see
+[comparison evidence](travelport-comparison-evidence.md).
 All passenger/segment cabin assignments must be present and uniform; mixed cabins
 are skipped rather than reduced to a fabricated cabin. Flight.carrier and number
 supply marketing carrier and flight number; operating carriers are not substituted.
@@ -35,8 +37,8 @@ supported.
 
 Malformed envelopes and duplicate reference IDs throw a fixed safe error. Invalid
 variants are skipped with index-only diagnostics and fixed reason codes. Optional
-durations may be absent; present unsupported duration formats cause a skip. Baggage,
-brands, penalties, availability and expiry are deliberately not emitted.
+durations may be absent; present unsupported duration formats cause a skip. Brands, penalties, availability and expiry are deliberately not emitted. Baggage
+is emitted only under the conservative comparison evidence rules linked above.
 
 `src/lib/flights/fixtures/travelport-core.json` is a field-whitelisted real-response
 subset: two catalogs, four products, three flights. It was reviewed separately:

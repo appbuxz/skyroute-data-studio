@@ -1,0 +1,965 @@
+{
+  "CatalogProductOfferingsResponse": {
+    "CatalogProductOfferings": {
+      "CatalogProductOffering": [
+        {
+          "id": "o4",
+          "ProductBrandOptions": [
+            {
+              "flightRefs": [
+                "s1"
+              ],
+              "ProductBrandOffering": [
+                {
+                  "Product": [
+                    {
+                      "@type": "ProductID",
+                      "productRef": "p25"
+                    }
+                  ],
+                  "BestCombinablePrice": {
+                    "@type": "BestCombinablePriceDetail",
+                    "CurrencyCode": {
+                      "decimalPlace": 2,
+                      "value": "GBP"
+                    },
+                    "Base": 184,
+                    "TotalTaxes": 25.4,
+                    "TotalFees": 0,
+                    "TotalPrice": 209.4,
+                    "PriceBreakdown": [
+                      {
+                        "@type": "PriceBreakdownAir",
+                        "quantity": 1,
+                        "requestedPassengerType": "ADT",
+                        "Amount": {
+                          "@type": "Amount",
+                          "CurrencyCode": {
+                            "decimalPlace": 2,
+                            "value": "GBP"
+                          },
+                          "Base": 184,
+                          "Taxes": {
+                            "@type": "TaxesDetail",
+                            "TotalTaxes": 25.4,
+                            "Tax": [
+                              {
+                                "taxCode": "AY",
+                                "value": 4.2
+                              },
+                              {
+                                "taxCode": "US",
+                                "value": 13.8
+                              },
+                              {
+                                "taxCode": "XF",
+                                "value": 3.4
+                              },
+                              {
+                                "taxCode": "ZP",
+                                "value": 4
+                              }
+                            ]
+                          },
+                          "Fees": {
+                            "@type": "FeesDetail",
+                            "TotalFees": 0
+                          },
+                          "Total": 209.4
+                        }
+                      }
+                    ]
+                  },
+                  "ContentSource": "GDS",
+                  "TermsAndConditions": {
+                    "@type": "TermsAndConditionsID",
+                    "termsAndConditionsRef": "T15"
+                  }
+                },
+                {
+                  "Product": [
+                    {
+                      "@type": "ProductID",
+                      "productRef": "p29"
+                    }
+                  ],
+                  "BestCombinablePrice": {
+                    "@type": "BestCombinablePriceDetail",
+                    "CurrencyCode": {
+                      "decimalPlace": 2,
+                      "value": "GBP"
+                    },
+                    "Base": 250,
+                    "TotalTaxes": 30.4,
+                    "TotalFees": 0,
+                    "TotalPrice": 280.4,
+                    "PriceBreakdown": [
+                      {
+                        "@type": "PriceBreakdownAir",
+                        "quantity": 1,
+                        "requestedPassengerType": "ADT",
+                        "Amount": {
+                          "@type": "Amount",
+                          "CurrencyCode": {
+                            "decimalPlace": 2,
+                            "value": "GBP"
+                          },
+                          "Base": 250,
+                          "Taxes": {
+                            "@type": "TaxesDetail",
+                            "TotalTaxes": 30.4,
+                            "Tax": [
+                              {
+                                "taxCode": "AY",
+                                "value": 4.2
+                              },
+                              {
+                                "taxCode": "US",
+                                "value": 18.8
+                              },
+                              {
+                                "taxCode": "XF",
+                                "value": 3.4
+                              },
+                              {
+                                "taxCode": "ZP",
+                                "value": 4
+                              }
+                            ]
+                          },
+                          "Fees": {
+                            "@type": "FeesDetail",
+                            "TotalFees": 0
+                          },
+                          "Total": 280.4
+                        }
+                      }
+                    ]
+                  },
+                  "ContentSource": "GDS",
+                  "TermsAndConditions": {
+                    "@type": "TermsAndConditionsID",
+                    "termsAndConditionsRef": "T16"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "o1",
+          "ProductBrandOptions": [
+            {
+              "flightRefs": [
+                "s26",
+                "s27"
+              ],
+              "ProductBrandOffering": [
+                {
+                  "Product": [
+                    {
+                      "@type": "ProductID",
+                      "productRef": "p0"
+                    }
+                  ],
+                  "BestCombinablePrice": {
+                    "@type": "BestCombinablePriceDetail",
+                    "CurrencyCode": {
+                      "decimalPlace": 2,
+                      "value": "GBP"
+                    },
+                    "Base": 148,
+                    "TotalTaxes": 30.1,
+                    "TotalFees": 0,
+                    "TotalPrice": 178.1,
+                    "PriceBreakdown": [
+                      {
+                        "@type": "PriceBreakdownAir",
+                        "quantity": 1,
+                        "requestedPassengerType": "ADT",
+                        "Amount": {
+                          "@type": "Amount",
+                          "CurrencyCode": {
+                            "decimalPlace": 2,
+                            "value": "GBP"
+                          },
+                          "Base": 148,
+                          "Taxes": {
+                            "@type": "TaxesDetail",
+                            "TotalTaxes": 30.1,
+                            "Tax": [
+                              {
+                                "taxCode": "AY",
+                                "value": 4.2
+                              },
+                              {
+                                "taxCode": "US",
+                                "value": 11.1
+                              },
+                              {
+                                "taxCode": "XF",
+                                "value": 6.8
+                              },
+                              {
+                                "taxCode": "ZP",
+                                "value": 8
+                              }
+                            ]
+                          },
+                          "Fees": {
+                            "@type": "FeesDetail",
+                            "TotalFees": 0
+                          },
+                          "Total": 178.1
+                        }
+                      }
+                    ]
+                  },
+                  "ContentSource": "GDS",
+                  "TermsAndConditions": {
+                    "@type": "TermsAndConditionsID",
+                    "termsAndConditionsRef": "T0"
+                  }
+                },
+                {
+                  "Product": [
+                    {
+                      "@type": "ProductID",
+                      "productRef": "p1"
+                    }
+                  ],
+                  "BestCombinablePrice": {
+                    "@type": "BestCombinablePriceDetail",
+                    "CurrencyCode": {
+                      "decimalPlace": 2,
+                      "value": "GBP"
+                    },
+                    "Base": 216,
+                    "TotalTaxes": 35.2,
+                    "TotalFees": 0,
+                    "TotalPrice": 251.2,
+                    "PriceBreakdown": [
+                      {
+                        "@type": "PriceBreakdownAir",
+                        "quantity": 1,
+                        "requestedPassengerType": "ADT",
+                        "Amount": {
+                          "@type": "Amount",
+                          "CurrencyCode": {
+                            "decimalPlace": 2,
+                            "value": "GBP"
+                          },
+                          "Base": 216,
+                          "Taxes": {
+                            "@type": "TaxesDetail",
+                            "TotalTaxes": 35.2,
+                            "Tax": [
+                              {
+                                "taxCode": "AY",
+                                "value": 4.2
+                              },
+                              {
+                                "taxCode": "US",
+                                "value": 16.2
+                              },
+                              {
+                                "taxCode": "XF",
+                                "value": 6.8
+                              },
+                              {
+                                "taxCode": "ZP",
+                                "value": 8
+                              }
+                            ]
+                          },
+                          "Fees": {
+                            "@type": "FeesDetail",
+                            "TotalFees": 0
+                          },
+                          "Total": 251.2
+                        }
+                      }
+                    ]
+                  },
+                  "ContentSource": "GDS",
+                  "TermsAndConditions": {
+                    "@type": "TermsAndConditionsID",
+                    "termsAndConditionsRef": "T1"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "ReferenceList": [
+      {
+        "Product": [
+          {
+            "id": "p25",
+            "totalDuration": "PT6H10M",
+            "FlightSegment": [
+              {
+                "sequence": 1,
+                "Flight": {
+                  "FlightRef": "s1"
+                }
+              }
+            ],
+            "PassengerFlight": [
+              {
+                "passengerQuantity": 1,
+                "FlightProduct": [
+                  {
+                    "cabin": "Economy",
+                    "segmentSequence": [
+                      1
+                    ]
+                  }
+                ],
+                "passengerTypeCode": "ADT"
+              }
+            ]
+          },
+          {
+            "id": "p29",
+            "totalDuration": "PT6H10M",
+            "FlightSegment": [
+              {
+                "sequence": 1,
+                "Flight": {
+                  "FlightRef": "s1"
+                }
+              }
+            ],
+            "PassengerFlight": [
+              {
+                "passengerQuantity": 1,
+                "FlightProduct": [
+                  {
+                    "cabin": "Economy",
+                    "segmentSequence": [
+                      1
+                    ]
+                  }
+                ],
+                "passengerTypeCode": "ADT"
+              }
+            ]
+          },
+          {
+            "id": "p0",
+            "totalDuration": "PT8H39M",
+            "FlightSegment": [
+              {
+                "sequence": 1,
+                "Flight": {
+                  "FlightRef": "s26"
+                }
+              },
+              {
+                "sequence": 2,
+                "Flight": {
+                  "FlightRef": "s27"
+                }
+              }
+            ],
+            "PassengerFlight": [
+              {
+                "passengerQuantity": 1,
+                "FlightProduct": [
+                  {
+                    "cabin": "Economy",
+                    "segmentSequence": [
+                      1,
+                      2
+                    ]
+                  }
+                ],
+                "passengerTypeCode": "ADT"
+              }
+            ]
+          },
+          {
+            "id": "p1",
+            "totalDuration": "PT8H39M",
+            "FlightSegment": [
+              {
+                "sequence": 1,
+                "Flight": {
+                  "FlightRef": "s26"
+                }
+              },
+              {
+                "sequence": 2,
+                "Flight": {
+                  "FlightRef": "s27"
+                }
+              }
+            ],
+            "PassengerFlight": [
+              {
+                "passengerQuantity": 1,
+                "FlightProduct": [
+                  {
+                    "cabin": "Economy",
+                    "segmentSequence": [
+                      1,
+                      2
+                    ]
+                  }
+                ],
+                "passengerTypeCode": "ADT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Flight": [
+          {
+            "id": "s1",
+            "carrier": "AA",
+            "number": "171",
+            "Departure": {
+              "location": "JFK",
+              "date": "2026-12-03",
+              "time": "06:05:00"
+            },
+            "Arrival": {
+              "location": "LAX",
+              "date": "2026-12-03",
+              "time": "09:15:00"
+            },
+            "duration": "PT6H10M"
+          },
+          {
+            "id": "s26",
+            "carrier": "AA",
+            "number": "1487",
+            "Departure": {
+              "location": "JFK",
+              "date": "2026-12-03",
+              "time": "07:00:00"
+            },
+            "Arrival": {
+              "location": "PHX",
+              "date": "2026-12-03",
+              "time": "10:53:00"
+            },
+            "duration": "PT5H53M"
+          },
+          {
+            "id": "s27",
+            "carrier": "AA",
+            "number": "3016",
+            "Departure": {
+              "location": "PHX",
+              "date": "2026-12-03",
+              "time": "12:22:00"
+            },
+            "Arrival": {
+              "location": "ONT",
+              "date": "2026-12-03",
+              "time": "12:39:00"
+            },
+            "duration": "PT1H17M"
+          }
+        ]
+      },
+      {
+        "TermsAndConditions": [
+          {
+            "id": "T15",
+            "BaggageAllowance": [
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "FirstCheckedBag",
+                "ProductRef": [
+                  "p25",
+                  "p26",
+                  "p27",
+                  "p28"
+                ],
+                "SegmentSequenceList": [
+                  1
+                ],
+                "Text": [
+                  "0P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "No",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO50LB/23KG AND UPTO62LI/158LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "SecondCheckedBag",
+                "ProductRef": [
+                  "p25",
+                  "p26",
+                  "p27",
+                  "p28"
+                ],
+                "SegmentSequenceList": [
+                  1
+                ],
+                "Text": [
+                  "0P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "No",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO50LB/23KG AND UPTO62LI/158LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "CarryOn",
+                "ProductRef": [
+                  "p25",
+                  "p26",
+                  "p27",
+                  "p28"
+                ],
+                "SegmentSequenceList": [
+                  1
+                ],
+                "Text": [
+                  "2P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "Yes",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO45LI/115LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "CarryOn",
+                "ProductRef": [
+                  "p25",
+                  "p26",
+                  "p27",
+                  "p28"
+                ],
+                "SegmentSequenceList": [
+                  1
+                ],
+                "Text": [
+                  "2P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "Yes",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO40LI/101LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "BaggageEmbargo",
+                "ProductRef": [
+                  "p25",
+                  "p26",
+                  "p27",
+                  "p28"
+                ],
+                "SegmentSequenceList": [
+                  1
+                ],
+                "BaggageItem": [
+                  {}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "T16",
+            "BaggageAllowance": [
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "FirstCheckedBag",
+                "ProductRef": [
+                  "p29",
+                  "p30",
+                  "p31",
+                  "p32"
+                ],
+                "SegmentSequenceList": [
+                  1
+                ],
+                "Text": [
+                  "1P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "Yes",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO50LB/23KG AND UPTO62LI/158LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "SecondCheckedBag",
+                "ProductRef": [
+                  "p29",
+                  "p30",
+                  "p31",
+                  "p32"
+                ],
+                "SegmentSequenceList": [
+                  1
+                ],
+                "Text": [
+                  "1P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "No",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO50LB/23KG AND UPTO62LI/158LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "CarryOn",
+                "ProductRef": [
+                  "p29",
+                  "p30",
+                  "p31",
+                  "p32"
+                ],
+                "SegmentSequenceList": [
+                  1
+                ],
+                "Text": [
+                  "2P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "Yes",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO45LI/115LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "CarryOn",
+                "ProductRef": [
+                  "p29",
+                  "p30",
+                  "p31",
+                  "p32"
+                ],
+                "SegmentSequenceList": [
+                  1
+                ],
+                "Text": [
+                  "2P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "Yes",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO40LI/101LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "BaggageEmbargo",
+                "ProductRef": [
+                  "p29",
+                  "p30",
+                  "p31",
+                  "p32"
+                ],
+                "SegmentSequenceList": [
+                  1
+                ],
+                "BaggageItem": [
+                  {}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "T0",
+            "BaggageAllowance": [
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "FirstCheckedBag",
+                "ProductRef": [
+                  "p0"
+                ],
+                "SegmentSequenceList": [
+                  1,
+                  2
+                ],
+                "Text": [
+                  "0P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "No",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO50LB/23KG AND UPTO62LI/158LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "SecondCheckedBag",
+                "ProductRef": [
+                  "p0"
+                ],
+                "SegmentSequenceList": [
+                  1,
+                  2
+                ],
+                "Text": [
+                  "0P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "No",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO50LB/23KG AND UPTO62LI/158LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "CarryOn",
+                "ProductRef": [
+                  "p0"
+                ],
+                "SegmentSequenceList": [
+                  1,
+                  2
+                ],
+                "Text": [
+                  "2P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "Yes",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO45LI/115LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "CarryOn",
+                "ProductRef": [
+                  "p0"
+                ],
+                "SegmentSequenceList": [
+                  1,
+                  2
+                ],
+                "Text": [
+                  "2P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "Yes",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO40LI/101LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "BaggageEmbargo",
+                "ProductRef": [
+                  "p0"
+                ],
+                "SegmentSequenceList": [
+                  1,
+                  2
+                ],
+                "BaggageItem": [
+                  {}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "T1",
+            "BaggageAllowance": [
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "FirstCheckedBag",
+                "ProductRef": [
+                  "p1"
+                ],
+                "SegmentSequenceList": [
+                  1,
+                  2
+                ],
+                "Text": [
+                  "1P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "Yes",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO50LB/23KG AND UPTO62LI/158LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "SecondCheckedBag",
+                "ProductRef": [
+                  "p1"
+                ],
+                "SegmentSequenceList": [
+                  1,
+                  2
+                ],
+                "Text": [
+                  "1P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "No",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO50LB/23KG AND UPTO62LI/158LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "CarryOn",
+                "ProductRef": [
+                  "p1"
+                ],
+                "SegmentSequenceList": [
+                  1,
+                  2
+                ],
+                "Text": [
+                  "2P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "Yes",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO45LI/115LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "CarryOn",
+                "ProductRef": [
+                  "p1"
+                ],
+                "SegmentSequenceList": [
+                  1,
+                  2
+                ],
+                "Text": [
+                  "2P"
+                ],
+                "BaggageItem": [
+                  {
+                    "quantity": 1,
+                    "includedInOfferPrice": "Yes",
+                    "soldByPieceInd": true,
+                    "Text": "UPTO40LI/101LCM"
+                  }
+                ]
+              },
+              {
+                "passengerTypeCodes": [
+                  "ADT"
+                ],
+                "baggageType": "BaggageEmbargo",
+                "ProductRef": [
+                  "p1"
+                ],
+                "SegmentSequenceList": [
+                  1,
+                  2
+                ],
+                "BaggageItem": [
+                  {}
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
