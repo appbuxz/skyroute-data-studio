@@ -107,3 +107,24 @@ describe("review regression checks", () => {
     expect(() => run(x)).toThrow("Invalid or unsupported Travelport response");
   });
 });
+
+describe("CDG/PVG timezone regression with the default resolver", () => {
+  it.each([
+    ["CDG", "2027-03-08", "+01:00"],
+    ["PVG", "2027-01-09", "+08:00"],
+  ])("normalizes %s to NQZ without an injected timezone map", (origin, date, offset) => {
+    const data = structuredClone(fixture);
+    const flight = data.CatalogProductOfferingsResponse.ReferenceList.flatMap((ref) =>
+      "Flight" in ref ? ref.Flight : [],
+    ).find((item) => item.id === "s1")!;
+    flight.Departure = { location: origin, date, time: "01:00:00" };
+    flight.Arrival = { location: "NQZ", date, time: "23:00:00" };
+    const result = normalizeTravelportFlights(data);
+    const offer = result.offers.find(
+      (item) => item.origin === origin && item.destination === "NQZ",
+    );
+    expect(offer).toBeDefined();
+    expect(offer!.departureAt).toBe(`${date}T01:00:00${offset}`);
+    expect(offer!.arrivalAt).toBe(`${date}T23:00:00+05:00`);
+  });
+});

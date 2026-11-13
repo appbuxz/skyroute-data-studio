@@ -11,11 +11,33 @@ const AIRPORT_TIMEZONES: Record<string, string> = {
 
   // Turkey
   IST: "Europe/Istanbul",
+  ESB: "Europe/Istanbul",
+  SAW: "Europe/Istanbul",
 
   // Azerbaijan
   GYD: "Asia/Baku",
 
+  // France
+  CDG: "Europe/Paris",
+  ORY: "Europe/Paris",
+
+  // Germany and Poland
+  FRA: "Europe/Berlin",
+  WAW: "Europe/Warsaw",
+
+  // Qatar, UAE and Uzbekistan
+  DOH: "Asia/Qatar",
+  DXB: "Asia/Dubai",
+  TAS: "Asia/Tashkent",
+
   // China
+  PVG: "Asia/Shanghai",
+  CAN: "Asia/Shanghai",
+  PEK: "Asia/Shanghai",
+  SHA: "Asia/Shanghai",
+  XIY: "Asia/Shanghai",
+  // Airport schedules use Beijing time, not unofficial Xinjiang time.
+  URC: "Asia/Shanghai",
   PKX: "Asia/Shanghai",
 
   // United States — Travelport test route
