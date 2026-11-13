@@ -32,6 +32,7 @@ vi.mock("@tanstack/react-start", () => ({
 import { OrganizationAuthorizationError } from "../organizations/authorization.server";
 import { UnauthorizedError } from "../supabase/auth.server";
 import { searchFlightsServer } from "./search.functions";
+import { checkFlightServer } from "./flight-check.functions";
 
 const organizationId = "f2000000-0000-4000-8000-000000000001" as OrganizationId;
 const params: FlightSearchParams = {
@@ -207,5 +208,41 @@ describe("searchFlightsServer authorization", () => {
       message: "Flight search is temporarily unavailable.",
     });
     expect(console.error).toHaveBeenCalledOnce();
+  });
+});
+
+const checkInput = {
+  ...params,
+  tripType: "one_way" as const,
+  originalPrice: 300,
+  originalCurrency: "USD",
+  baggage: { status: "unknown" as const },
+};
+describe("checkFlightServer authorization", () => {
+  it.each([
+    new UnauthorizedError(),
+    new OrganizationAuthorizationError("ORGANIZATION_ACCESS_DENIED"),
+    new OrganizationAuthorizationError("AUTHORIZATION_UNAVAILABLE"),
+  ])("preserves authorization failures before provider execution", async (error) => {
+    mocks.requireOrganization.mockRejectedValue(error);
+    await expect(checkFlightServer({ data: checkInput })).rejects.toBe(error);
+    expect(mocks.searchFlights).not.toHaveBeenCalled();
+  });
+  it("uses only verified organization context and exact search fields", async () => {
+    await expect(
+      checkFlightServer({ data: { ...checkInput, organizationId } }),
+    ).resolves.toMatchObject({ status: "no_offers_found" });
+    expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith(organizationId);
+    expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
+      { ...params, returnDate: undefined },
+      { organizationId },
+    );
+  });
+  it("rejects invalid input before authorization", async () => {
+    await expect(
+      checkFlightServer({ data: { ...checkInput, originalPrice: 0 } }),
+    ).rejects.toThrow();
+    expect(mocks.requireOrganization).not.toHaveBeenCalled();
+    expect(mocks.searchFlights).not.toHaveBeenCalled();
   });
 });
