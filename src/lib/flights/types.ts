@@ -58,6 +58,9 @@ export interface FlightOfferComparisonEvidence {
   passengers?: number;
   priceScope?: "all_passengers_total";
   mandatoryChargesIncluded?: boolean;
+  /** Verified scope for each independently known baggage allowance. Absence remains unknown. */
+  baggageScopes?: Partial<Record<keyof FlightBaggage, "all_passengers_all_segments">>;
+  /** Complete checked and cabin scope, required by strict Flight Check comparisons. */
   baggageScope?: "all_passengers_all_segments";
 }
 

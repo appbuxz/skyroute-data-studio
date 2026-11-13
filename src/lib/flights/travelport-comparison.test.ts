@@ -68,6 +68,10 @@ describe("Travelport comparison evidence (synthetic)", () => {
       passengers: n,
       priceScope: "all_passengers_total",
       mandatoryChargesIncluded: true,
+      baggageScopes: {
+        checked: "all_passengers_all_segments",
+        cabin: "all_passengers_all_segments",
+      },
       baggageScope: "all_passengers_all_segments",
     });
     expect(o.baggage?.checked).toEqual({ pieces: 1, weightKg: 23 });
@@ -104,6 +108,67 @@ describe("Travelport comparison evidence (synthetic)", () => {
       if (kind === "product") x.rows[0]!.ProductRef = ["other"];
       expect(x.offer().baggage?.checked).toBeUndefined();
       expect(x.offer().comparisonEvidence?.baggageScope).toBeUndefined();
+    },
+  );
+  it("accepts multiple distinct product references including the selected product", () => {
+    const x = sample();
+    for (const row of x.rows) row.ProductRef = ["other-valid-product", x.product.id];
+    expect(x.offer().comparisonEvidence?.baggageScope).toBe("all_passengers_all_segments");
+    expect(x.offer().baggage?.checked).toEqual({ pieces: 1, weightKg: 23 });
+  });
+  it.each([[], ["other"], [""], [" "], ["p", "p"]].map((refs) => ({ refs })))(
+    "rejects missing, unrelated or ambiguous product references %j",
+    ({ refs }) => {
+      const x = sample();
+      x.rows[0]!.ProductRef = refs;
+      expect(x.offer().baggage?.checked).toBeUndefined();
+      expect(x.offer().comparisonEvidence?.baggageScopes?.checked).toBeUndefined();
+    },
+  );
+  it("rejects malformed or duplicate product references even when the product is included", () => {
+    for (const extra of ["", " ", " padded ", null, 12, undefined]) {
+      const x = sample();
+      Object.assign(x.rows[0]!, { ProductRef: [x.product.id, extra] });
+      expect(x.offer().baggage?.checked).toBeUndefined();
+    }
+    const x = sample();
+    x.rows[0]!.ProductRef = [x.product.id, x.product.id];
+    expect(x.offer().baggage?.checked).toBeUndefined();
+    Reflect.deleteProperty(x.rows[0]!, "ProductRef");
+    expect(x.offer().baggage?.checked).toBeUndefined();
+  });
+  it.each(["checked", "cabin"] as const)(
+    "retains verified %s scope independently of the other allowance",
+    (known) => {
+      const x = sample();
+      const unknown = known === "checked" ? "cabin" : "checked";
+      const row = x.rows[known === "checked" ? 1 : 0]!;
+      x.rows.push(structuredClone(row));
+      const o = x.offer();
+      expect(o.baggage?.[known]).toEqual({ pieces: 1, weightKg: 23 });
+      expect(o.baggage?.[unknown]).toBeUndefined();
+      expect(o.comparisonEvidence?.baggageScopes).toEqual({
+        [known]: "all_passengers_all_segments",
+      });
+      expect(o.comparisonEvidence?.baggageScope).toBeUndefined();
+    },
+  );
+  it.each(["checked", "cabin"] as const)(
+    "requires complete passenger and segment applicability for %s scope",
+    (kind) => {
+      for (const invalid of [
+        { passengerTypeCodes: [] },
+        { passengerTypeCodes: ["CNN"] },
+        { passengerTypeCodes: ["ADT", "CNN"] },
+        { SegmentSequenceList: [] },
+        { SegmentSequenceList: [99] },
+        { SegmentSequenceList: [1, 1] },
+      ]) {
+        const x = sample();
+        Object.assign(x.rows[kind === "checked" ? 0 : 1]!, invalid);
+        expect(x.offer().baggage?.[kind]).toBeUndefined();
+        expect(x.offer().comparisonEvidence?.baggageScopes?.[kind]).toBeUndefined();
+      }
     },
   );
   it("does not parse text into weights", () => {
@@ -180,4 +245,12 @@ it("normalizes captured evidence without resolving duplicate carry-on descriptio
   );
   expect(result.offers.every((o) => o.comparisonEvidence?.passengers === 1)).toBe(true);
   expect(result.offers.every((o) => o.comparisonEvidence?.baggageScope === undefined)).toBe(true);
+  expect(
+    result.offers.every(
+      (o) => o.comparisonEvidence?.baggageScopes?.checked === "all_passengers_all_segments",
+    ),
+  ).toBe(true);
+  expect(
+    result.offers.every((o) => !o.baggage?.cabin && !o.comparisonEvidence?.baggageScopes?.cabin),
+  ).toBe(true);
 });

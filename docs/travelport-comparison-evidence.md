@@ -19,10 +19,11 @@ arithmetic consistency alone establishes provider semantics.
 | comparisonEvidence.passengers | Exactly one ADT PassengerFlight, passengerQuantity matching the sole PriceBreakdownAir.quantity and requestedPassengerType ADT. Product.Quantity is not used. |
 | priceScope | Per-passenger PriceBreakdown.Amount.Total times quantity must equal TotalPrice; Amount currency must match offer currency. |
 | mandatoryChargesIncluded | Explicit Base, TotalTaxes and TotalFees at group level and explicit Amount.Base, Taxes.TotalTaxes, Fees.TotalFees and Total at passenger level. Each sum and each quantity-weighted component must reconcile. Missing fees are unknown, never zero. |
-| baggage.checked / cabin | Unique TermsAndConditions reference; exactly one FirstCheckedBag / CarryOn entry. Explicit ProductRef, passengerTypeCodes and SegmentSequenceList must cover the exact product, adult PTC and every segment, with no duplicate segments. |
+| baggage.checked / cabin | Unique TermsAndConditions reference; exactly one FirstCheckedBag / CarryOn entry. Explicit ProductRef must be a nonempty array of distinct, nonblank, unpadded IDs containing the selected product. passengerTypeCodes and SegmentSequenceList must cover the adult PTC and every segment, with no duplicate segments. |
 | pieces | Exactly one BaggageItem with soldByPieceInd true and explicit includedInOfferPrice Yes gives quantity; No gives zero included pieces. Unknown/missing inclusion stays unknown. Higher checked-bag entries must be explicitly paid; included or ambiguous higher allowances block checked normalization. |
 | weightKg | Explicit Measurement with measurementType Weight and unit Kilograms. Free Text is never parsed; pounds and weight-only allowances remain unsupported. |
-| baggageScope | Both checked and cabin allowances must pass the full coverage checks. Partial baggage can be retained without this evidence flag. |
+| baggageScopes.checked / cabin | Each independently normalized allowance records all_passengers_all_segments only after its passenger, product and full segment coverage checks pass. Missing per-kind scope remains unknown. |
+| baggageScope | Both checked and cabin allowances must pass the full coverage checks. Strict Flight Check still requires this combined flag and both allowances; per-kind flags alone do not enable comparison. |
 
 Limitations: multiple PTCs, multiple passenger rows, multiple breakdowns, bundled
 ancillary pricing, NDC, multiple products, duplicate baggage rows, weight-only

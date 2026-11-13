@@ -32,7 +32,15 @@ const passengerSchema = z
   .length(1);
 const allowanceSchema = z.object({
   passengerTypeCodes: z.array(z.string()).length(1),
-  ProductRef: z.array(z.string()).length(1),
+  ProductRef: z
+    .array(
+      z
+        .string()
+        .min(1)
+        .refine((id) => id.trim() === id),
+    )
+    .min(1)
+    .refine((ids) => new Set(ids).size === ids.length),
   SegmentSequenceList: z.array(z.number().int().positive()).min(1),
   baggageType: z.string(),
   BaggageItem: z
@@ -120,7 +128,7 @@ export function travelportComparison(
         sequences = r.SegmentSequenceList;
       if (
         r.passengerTypeCodes[0] !== "ADT" ||
-        r.ProductRef[0] !== product.id ||
+        !r.ProductRef.includes(product.id) ||
         sequences.length !== product.FlightSegment.length ||
         new Set(sequences).size !== sequences.length ||
         !product.FlightSegment.every((s) => sequences.includes(s.sequence))
@@ -142,6 +150,8 @@ export function travelportComparison(
       )
         continue;
       const item = r.BaggageItem[0]!;
+      evidence.baggageScopes ??= {};
+      evidence.baggageScopes[kind] = "all_passengers_all_segments";
       baggage[kind] =
         item.includedInOfferPrice === "No"
           ? { pieces: 0 }

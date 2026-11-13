@@ -273,3 +273,16 @@ it.each([
     savings,
   );
 });
+
+it.each(["checked", "cabin"] as const)("rejects %s-only scope evidence without savings", (kind) => {
+  const e = entry();
+  delete e.baggageScope;
+  e.baggageScopes = { [kind]: "all_passengers_all_segments" };
+  const result = compare([e]);
+  expect(result.status).toBe("insufficient_data");
+  expect(result.comparableOfferCount).toBe(0);
+  expect(result.savingsAmount).toBeUndefined();
+  expect(result.insufficientOffers[0]?.reason).toBe(
+    "Baggage conditions unknown or scope unverified",
+  );
+});
