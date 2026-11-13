@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { terminateSession } from "@/lib/auth/session";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BarChart3, FileText, LayoutDashboard, Search } from "lucide-react";
+import { BarChart3, FileText, LayoutDashboard, Plane, Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { Brand } from "./brand";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ import { clearLegacyFlightSearch } from "@/lib/flights/search-session";
 import { OrganizationSelector } from "./organization-selector";
 
 const NAV = [
+  { to: "/check-my-flight", label: "Check My Flight", icon: Plane },
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/search", label: "Flight search", icon: Search },
   { to: "/analysis", label: "Analysis", icon: BarChart3 },
