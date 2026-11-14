@@ -32,6 +32,8 @@ import { OrganizationWorkspaceProvider } from "@/lib/organizations/workspace-pro
 import { useOrganizationWorkspace } from "@/lib/organizations/workspace-context";
 import { OrganizationSelector } from "@/components/layout/organization-selector";
 import { Route as SearchRoute } from "@/routes/_authenticated/_workspace.search";
+import { analyticsSnapshot51 } from "./fixtures/agency-analysis";
+import { Route as DashboardRoute } from "@/routes/_authenticated/_workspace.dashboard";
 import { Route as AnalysisRoute } from "@/routes/_authenticated/_workspace.analysis";
 
 const USER = "f1000000-0000-4000-8000-000000000001";
@@ -42,6 +44,7 @@ const agencies: OrganizationMembership[] = [
   { organizationId: B, organizationName: "Agency B", role: "member" },
 ];
 const SearchPage = SearchRoute.options.component!;
+const DashboardPage = DashboardRoute.options.component!;
 const AnalysisPage = AnalysisRoute.options.component!;
 const LEGACY_KEY = "flight-analytics:search:v1";
 
@@ -71,7 +74,11 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function Workspace({ initialPage = "search" }: { initialPage?: "search" | "analysis" }) {
+function Workspace({
+  initialPage = "search",
+}: {
+  initialPage?: "search" | "analysis" | "dashboard";
+}) {
   const [page, setPage] = useState(initialPage);
   return (
     <OrganizationWorkspaceProvider userId={USER}>
@@ -79,7 +86,14 @@ function Workspace({ initialPage = "search" }: { initialPage?: "search" | "analy
       <SelectionState />
       <button onClick={() => setPage("search")}>Search tab</button>
       <button onClick={() => setPage("analysis")}>Analysis tab</button>
-      {page === "search" ? <SearchPage /> : <AnalysisPage />}
+      <button onClick={() => setPage("dashboard")}>Dashboard tab</button>
+      {page === "search" ? (
+        <SearchPage />
+      ) : page === "analysis" ? (
+        <AnalysisPage />
+      ) : (
+        <DashboardPage />
+      )}
     </OrganizationWorkspaceProvider>
   );
 }
@@ -547,4 +561,43 @@ describe("organization workspace", () => {
     submitSearch();
     await screen.findByText(/A Airways · KC100/);
   });
+});
+
+it("shares the latest agency snapshot across search, dashboard and analytics and clears it on organization changes", async () => {
+  const snapshot = analyticsSnapshot51();
+  snapshot.offers.forEach((offer, i) => {
+    if (i % 3 === 1) offer.price = { amount: 500 + Math.floor(i / 3) * 5, currency: "USD" };
+  });
+  mocks.search.mockResolvedValueOnce({
+    status: "ok",
+    offers: snapshot.offers,
+    fetchedAt: snapshot.fetchedAt,
+  });
+  render(<Workspace />);
+  await ready();
+  select(A);
+  submitSearch();
+  await screen.findByText("Flight offers (51)");
+  fireEvent.click(screen.getByText("Dashboard tab"));
+  await screen.findByRole("link", { name: "Open analytics" });
+  expect(screen.getByText("180,000 KZT")).toBeInTheDocument();
+  expect(screen.getByText("500 USD")).toBeInTheDocument();
+  fireEvent.click(screen.getByText("Analysis tab"));
+  await screen.findByText("Carrier comparison");
+  expect(screen.getByText("51 offers", { selector: "dd" })).toBeInTheDocument();
+  fireEvent.click(screen.getByText("Dashboard tab"));
+  await screen.findByRole("link", { name: "Open analytics" });
+  select(B);
+  expect(screen.queryByText("180,000 KZT")).not.toBeInTheDocument();
+  await screen.findByText("No search results in this session");
+  fireEvent.click(screen.getByText("Search tab"));
+  mocks.search.mockResolvedValueOnce({ status: "ok", offers: [], fetchedAt: snapshot.fetchedAt });
+  submitSearch();
+  await screen.findByText("No flights found for the selected route and date.");
+  fireEvent.click(screen.getByText("Dashboard tab"));
+  await screen.findByText("The latest search returned no offers");
+  expect(screen.queryByRole("link", { name: "Open analytics" })).not.toBeInTheDocument();
+  select(A);
+  await screen.findByText("No search results in this session");
+  expect(screen.queryByText("180,000 KZT")).not.toBeInTheDocument();
 });
