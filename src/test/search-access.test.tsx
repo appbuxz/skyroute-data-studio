@@ -92,8 +92,10 @@ describe("Search flights sign-in flow", () => {
 });
 
 describe("agency tool membership gate", () => {
+  it("keeps analytics on its own account access screen without a redirect gate", () => {
+    expect(AnalysisRoute.options.beforeLoad).toBeUndefined();
+  });
   it.each([
-    ["analytics", AnalysisRoute],
     ["dashboard", DashboardRoute],
     ["reports", ReportsRoute],
   ])("guards %s with a server membership check", async (_label, route) => {

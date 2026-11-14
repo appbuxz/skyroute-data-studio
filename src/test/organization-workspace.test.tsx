@@ -201,7 +201,7 @@ describe("organization workspace", () => {
     expect(screen.queryByText("Carrier comparison")).not.toBeInTheDocument();
     expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
     expect(
-      screen.getByText("Select an organization before viewing flight analysis."),
+      await screen.findByText("Analytics isn’t available for your account"),
     ).toBeInTheDocument();
   });
 
@@ -285,7 +285,7 @@ describe("organization workspace", () => {
     submitSearch();
     await screen.findByText(/A Airways · KC100/);
     fireEvent.click(screen.getByText("Analysis tab"));
-    expect(screen.getByText("Carrier comparison")).toBeInTheDocument();
+    expect(await screen.findByText("Carrier comparison")).toBeInTheDocument();
     select(B);
     expect(screen.queryByText("Carrier comparison")).not.toBeInTheDocument();
     expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
@@ -324,7 +324,7 @@ describe("organization workspace", () => {
     expect(screen.getByText(/B Airways · KC100/)).toBeInTheDocument();
     fireEvent.click(screen.getByText("Analysis tab"));
     expect(screen.queryByText(/STALE Airways/)).not.toBeInTheDocument();
-    expect(screen.getByText("Carrier comparison")).toBeInTheDocument();
+    expect(await screen.findByText("Carrier comparison")).toBeInTheDocument();
   });
 
   it("resets pending on switching even if the old request never settles, without unlocking a newer request", async () => {
