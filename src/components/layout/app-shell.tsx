@@ -13,11 +13,21 @@ import { clearLegacyFlightSearch } from "@/lib/flights/search-session";
 import { OrganizationSelector } from "./organization-selector";
 
 const NAV = [
-  { to: "/check-my-flight", label: "Check My Flight", icon: Plane },
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/search", label: "Flight search", icon: Search },
-  { to: "/analysis", label: "Analysis", icon: BarChart3 },
-  { to: "/reports", label: "Reports", icon: FileText },
+  {
+    label: "Search",
+    items: [
+      { to: "/search", label: "Flight Search", icon: Search },
+      { to: "/check-my-flight", label: "Check My Flight", icon: Plane },
+    ],
+  },
+  {
+    label: "Agency Tools",
+    items: [
+      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/analysis", label: "Analytics", icon: BarChart3 },
+      { to: "/reports", label: "Reports", icon: FileText },
+    ],
+  },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -52,25 +62,35 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link to="/" className="flex h-14 items-center px-5 text-sidebar-accent-foreground">
           <Brand />
         </Link>
-        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:pb-0">
-          {NAV.map(({ to, label, icon: Icon }) => {
-            const active = path === to;
-            return (
-              <Link
-                key={to}
-                to={to}
-                className={cn(
-                  "flex shrink-0 items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-                )}
-              >
-                <Icon className={cn("h-4 w-4", active && "text-sidebar-primary")} />
-                {label}
-              </Link>
-            );
-          })}
+        <nav className="flex gap-4 overflow-x-auto px-3 pb-3 md:flex-col md:pb-0">
+          {NAV.map((group) => (
+            <section key={group.label} aria-label={group.label} className="shrink-0">
+              <h2 className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-sidebar-foreground/70">
+                {group.label}
+              </h2>
+              <div className="flex gap-1 md:flex-col">
+                {group.items.map(({ to, label, icon: Icon }) => {
+                  const active = path === to;
+                  return (
+                    <Link
+                      key={to}
+                      to={to}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "flex shrink-0 items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                        active
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                      )}
+                    >
+                      <Icon className={cn("h-4 w-4", active && "text-sidebar-primary")} />
+                      {label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </nav>
         <div className="mt-auto border-t border-sidebar-border px-5 py-4">
           <OrganizationSelector />

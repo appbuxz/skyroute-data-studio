@@ -174,7 +174,7 @@ function SearchPage() {
     <>
       <PageHeader
         title="Flight search"
-        description="Define a route to analyse. Enter IATA airport codes, e.g. ALA or NQZ."
+        description="Search and compare flights, fares and schedules for free. An account and organization access are currently required. Enter IATA airport codes, e.g. ALA or NQZ."
       />
 
       {!canSearch && (
@@ -399,8 +399,12 @@ function SearchPage() {
                       <FlightItinerary itinerary={offer.outbound} label="Outbound itinerary" />
                     ) : (
                       <>
-                        <p className="text-sm text-muted-foreground">Departure: <FlightDateTime value={offer.departureAt} /></p>
-                        <p className="text-sm text-muted-foreground">Arrival: <FlightDateTime value={offer.arrivalAt} /></p>
+                        <p className="text-sm text-muted-foreground">
+                          Departure: <FlightDateTime value={offer.departureAt} />
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Arrival: <FlightDateTime value={offer.arrivalAt} />
+                        </p>
                         <p className="text-sm text-muted-foreground">Segment details unavailable</p>
                       </>
                     )}

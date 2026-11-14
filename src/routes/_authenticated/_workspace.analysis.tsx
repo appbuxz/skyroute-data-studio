@@ -12,15 +12,19 @@ export const Route = createFileRoute("/_authenticated/_workspace/analysis")({
     meta: [
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { title: "Flight Analysis — Flight Analytics" },
+      { title: "Agency Analytics — Flight Analytics" },
       {
         name: "description",
-        content: "Analyse flight offers from the latest search.",
+        content:
+          "Advanced fare and route analytics for travel agencies. Subscription access is planned.",
       },
     ],
   }),
   component: Analysis,
 });
+
+const AGENCY_DESCRIPTION =
+  "Advanced tools for travel agencies to analyze and compare flight offers. A subscription offering is planned.";
 
 function Analysis() {
   const workspace = useOrganizationWorkspace();
@@ -30,7 +34,10 @@ function Analysis() {
   if (loading) {
     return (
       <>
-        <PageHeader title="Flight analysis" description="Loading the latest search results." />
+        <PageHeader
+          title="Agency analytics"
+          description={`${AGENCY_DESCRIPTION} Loading the latest search results.`}
+        />
         <p className="text-sm text-muted-foreground">Loading analysis…</p>
       </>
     );
@@ -39,10 +46,7 @@ function Analysis() {
   if (!search) {
     return (
       <>
-        <PageHeader
-          title="Flight analysis"
-          description="Analyse flight offers from your latest search."
-        />
+        <PageHeader title="Agency analytics" description={AGENCY_DESCRIPTION} />
 
         <Card>
           <CardContent className="space-y-3 pt-6">
@@ -96,15 +100,17 @@ function Analysis() {
   return (
     <>
       <PageHeader
-        title="Flight analysis"
-        description={`${search.params.origin} → ${search.params.destination} · ${search.params.departureDate}`}
+        title="Agency analytics"
+        description={`${AGENCY_DESCRIPTION} ${search.params.origin} → ${search.params.destination} · ${search.params.departureDate}`}
       />
 
       <p className="mb-5 text-sm text-muted-foreground">
         {search.offers.length} offers · Retrieved: {new Date(search.fetchedAt).toLocaleString()}
       </p>
 
-      <div className="mb-5"><ComparablePrices search={search} /></div>
+      <div className="mb-5">
+        <ComparablePrices search={search} />
+      </div>
 
       {!analysis ? (
         <Card>
