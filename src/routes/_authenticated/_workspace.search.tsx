@@ -381,7 +381,7 @@ function SearchPage() {
             </div>
           )}
 
-          {search && <ComparablePrices search={search} />}
+          {search && <ComparablePrices search={search} collapsible />}
 
           <div>
             <h2 className="text-xl font-semibold">Flight offers ({offers.length})</h2>
