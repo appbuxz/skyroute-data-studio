@@ -1,7 +1,6 @@
 import { useLanguage } from "@/lib/i18n/language-context";
 import { CABIN_LABELS } from "@/lib/flights/types";
-import { ChevronDown } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { WorkspaceSection } from "@/components/common/workspace-section";
 import type { FlightSearchSnapshot } from "@/lib/flights/types";
 import { analyzeComparablePrices } from "@/lib/flights/comparable-prices";
 import { FlightDateTime } from "./flight-date-time";
@@ -9,9 +8,11 @@ import { FlightDateTime } from "./flight-date-time";
 export function ComparablePrices({
   search,
   collapsible = false,
+  defaultOpen = false,
 }: {
   search: FlightSearchSnapshot;
   collapsible?: boolean;
+  defaultOpen?: boolean;
 }) {
   const { t, number, groupsLabel } = useLanguage();
   // Current search contract sends every passenger as ADT to Travelport.
@@ -60,32 +61,21 @@ export function ComparablePrices({
       )}
     </>
   );
+  if (collapsible)
+    return (
+      <WorkspaceSection
+        title="Potential price difference"
+        label="Comparable offer prices"
+        summary={groupsLabel(groups.length)}
+        defaultOpen={defaultOpen}
+      >
+        {content}
+      </WorkspaceSection>
+    );
   return (
     <section aria-label={t("Comparable offer prices")} className="space-y-3 rounded-lg border p-4">
-      {collapsible ? (
-        <Collapsible>
-          <h2>
-            <CollapsibleTrigger className="group flex w-full items-center justify-between gap-3 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
-              <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="font-semibold">{t("Potential price difference")}</span>
-                <span className="text-sm font-normal text-muted-foreground">
-                  {groupsLabel(groups.length)}
-                </span>
-              </span>
-              <ChevronDown
-                aria-hidden="true"
-                className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none"
-              />
-            </CollapsibleTrigger>
-          </h2>
-          <CollapsibleContent className="space-y-3 pt-3">{content}</CollapsibleContent>
-        </Collapsible>
-      ) : (
-        <>
-          <h2 className="font-semibold">{t("Potential price difference")}</h2>
-          {content}
-        </>
-      )}
+      <h2 className="font-semibold">{t("Potential price difference")}</h2>
+      {content}
     </section>
   );
 }

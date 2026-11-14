@@ -1,24 +1,24 @@
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useOrganizationWorkspace } from "@/lib/organizations/workspace-context";
 
-export function OrganizationSelector() {
+export function OrganizationSelector({ idPrefix = "workspace" }: { idPrefix?: string }) {
   const { t, message } = useLanguage();
   const workspace = useOrganizationWorkspace();
   return (
     <div className="space-y-2">
       <label
-        htmlFor="workspace-organization"
+        htmlFor={`${idPrefix}-organization`}
         className="text-xs font-medium text-sidebar-accent-foreground"
       >
         {t("Organization")}
       </label>
       <select
-        id="workspace-organization"
+        id={`${idPrefix}-organization`}
         className="h-9 w-full min-w-0 rounded-md border border-sidebar-border bg-sidebar px-2 text-sm text-sidebar-foreground disabled:opacity-60"
         value={workspace.selectedOrganizationId ?? ""}
         onChange={(event) => workspace.selectOrganization(event.target.value)}
         disabled={workspace.status !== "ready" || workspace.memberships.length === 0}
-        aria-describedby="organization-status"
+        aria-describedby={`${idPrefix}-organization-status`}
       >
         <option value="">{t("Select an organization")}</option>
         {workspace.memberships.map((membership) => (
@@ -28,7 +28,7 @@ export function OrganizationSelector() {
         ))}
       </select>
       <p
-        id="organization-status"
+        id={`${idPrefix}-organization-status`}
         role={workspace.error || workspace.authorizationError ? "alert" : "status"}
         className="text-xs opacity-90"
       >

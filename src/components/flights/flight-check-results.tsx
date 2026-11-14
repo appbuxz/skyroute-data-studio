@@ -1,3 +1,5 @@
+import { WorkspaceSection } from "@/components/common/workspace-section";
+import { useLanguage } from "@/lib/i18n/language-context";
 import { Card, CardContent } from "@/components/ui/card";
 import type { FlightCheckResult, OfferRequirementEvaluation } from "@/lib/flights/flight-check";
 import type { FlightOffer } from "@/lib/flights/types";
@@ -28,6 +30,7 @@ function money(amount: number, currency: string) {
 }
 
 export function FlightCheckResults({ result }: { result: FlightCheckResult }) {
+  const { t, number } = useLanguage();
   const evaluations = result.requirementEvaluations ?? [];
   const qualifying = evaluations.filter((e) => e.status === "requirements_met");
   const conditional = evaluations.filter((e) => e.status === "requirements_unknown");
@@ -116,8 +119,10 @@ export function FlightCheckResults({ result }: { result: FlightCheckResult }) {
         </CardContent>
       </Card>
       {qualifying.length > 0 && (
-        <section aria-label="Qualifying alternatives" className="space-y-3">
-          <h2 className="text-lg font-semibold">Meet your requirements ({qualifying.length})</h2>
+        <WorkspaceSection
+          label="Qualifying alternatives"
+          title={t("Meet your requirements ({count})", { count: number(qualifying.length) })}
+        >
           {[...qualifying]
             .sort((a, b) => a.offer.price.amount - b.offer.price.amount)
             .map((evaluation, index) => (
@@ -129,11 +134,13 @@ export function FlightCheckResults({ result }: { result: FlightCheckResult }) {
                 result={result}
               />
             ))}
-        </section>
+        </WorkspaceSection>
       )}
       {conditional.length > 0 && (
-        <section aria-label="Conditional alternatives" className="space-y-3">
-          <h2 className="text-lg font-semibold">Need more verification ({conditional.length})</h2>
+        <WorkspaceSection
+          label="Conditional alternatives"
+          title={t("Need more verification ({count})", { count: number(conditional.length) })}
+        >
           <p className="text-sm text-muted-foreground">
             These alternatives do not fully qualify. Any price difference is informational and is
             not qualifying savings.
@@ -147,13 +154,16 @@ export function FlightCheckResults({ result }: { result: FlightCheckResult }) {
               result={result}
             />
           ))}
-        </section>
+        </WorkspaceSection>
       )}
       {incompatible.length > 0 && (
-        <details className="rounded-lg border p-4">
-          <summary className="cursor-pointer font-semibold">
-            Do not meet your requirements ({incompatible.length})
-          </summary>
+        <WorkspaceSection
+          title={t("Do not meet your requirements ({count})", {
+            count: number(incompatible.length),
+          })}
+          defaultOpen={false}
+          keepMounted
+        >
           <p className="my-3 text-sm text-muted-foreground">
             These alternatives are unsuitable for the selected requirements and are not recommended.
           </p>
@@ -168,7 +178,7 @@ export function FlightCheckResults({ result }: { result: FlightCheckResult }) {
               />
             ))}
           </div>
-        </details>
+        </WorkspaceSection>
       )}
     </section>
   );

@@ -1,3 +1,4 @@
+import { WorkspaceSection } from "@/components/common/workspace-section";
 import { LocalizedDateInput } from "@/components/flights/localized-date-input";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useServerFn } from "@tanstack/react-start";
@@ -228,110 +229,106 @@ function SearchPage() {
         </p>
       )}
 
-      <Card className="shadow-card">
-        <CardContent className="pt-6">
-          <form
-            onSubmit={onSubmit}
-            noValidate
-            className="grid items-start gap-5 md:grid-cols-2 lg:grid-cols-3"
-          >
-            <Field id="origin" label={t("Origin")} error={errors.origin}>
-              <Input
-                id="origin"
-                list="kz-airports"
-                placeholder="ALA"
-                maxLength={3}
-                value={values.origin}
-                onChange={(event) => set("origin", event.target.value.toUpperCase())}
-                aria-invalid={!!errors.origin}
-              />
-            </Field>
+      <WorkspaceSection title="Search details" className="shadow-card" keepMounted>
+        <form
+          onSubmit={onSubmit}
+          noValidate
+          className="grid items-start gap-5 md:grid-cols-2 lg:grid-cols-3"
+        >
+          <Field id="origin" label={t("Origin")} error={errors.origin}>
+            <Input
+              id="origin"
+              list="kz-airports"
+              placeholder="ALA"
+              maxLength={3}
+              value={values.origin}
+              onChange={(event) => set("origin", event.target.value.toUpperCase())}
+              aria-invalid={!!errors.origin}
+            />
+          </Field>
 
-            <Field id="destination" label={t("Destination")} error={errors.destination}>
-              <Input
-                id="destination"
-                list="kz-airports"
-                placeholder="IST"
-                maxLength={3}
-                value={values.destination}
-                onChange={(event) => set("destination", event.target.value.toUpperCase())}
-                aria-invalid={!!errors.destination}
-              />
-            </Field>
+          <Field id="destination" label={t("Destination")} error={errors.destination}>
+            <Input
+              id="destination"
+              list="kz-airports"
+              placeholder="IST"
+              maxLength={3}
+              value={values.destination}
+              onChange={(event) => set("destination", event.target.value.toUpperCase())}
+              aria-invalid={!!errors.destination}
+            />
+          </Field>
 
-            <Field id="passengers" label={t("Passengers")} error={errors.passengers}>
-              <Input
-                id="passengers"
-                type="number"
-                min={1}
-                max={9}
-                value={String(values.passengers ?? "")}
-                onChange={(event) => set("passengers", event.target.value)}
-                aria-invalid={!!errors.passengers}
-              />
-            </Field>
+          <Field id="passengers" label={t("Passengers")} error={errors.passengers}>
+            <Input
+              id="passengers"
+              type="number"
+              min={1}
+              max={9}
+              value={String(values.passengers ?? "")}
+              onChange={(event) => set("passengers", event.target.value)}
+              aria-invalid={!!errors.passengers}
+            />
+          </Field>
 
-            <Field id="departureDate" label={t("Departure date")} error={errors.departureDate}>
-              <LocalizedDateInput
-                id="departureDate"
-                label={t("Departure date")}
-                value={values.departureDate}
-                onChange={(value) => set("departureDate", value)}
-                invalid={!!errors.departureDate}
-              />
-            </Field>
+          <Field id="departureDate" label={t("Departure date")} error={errors.departureDate}>
+            <LocalizedDateInput
+              id="departureDate"
+              label={t("Departure date")}
+              value={values.departureDate}
+              onChange={(value) => set("departureDate", value)}
+              invalid={!!errors.departureDate}
+            />
+          </Field>
 
-            <Field id="returnDate" label={t("Return date (optional)")} error={errors.returnDate}>
-              <LocalizedDateInput
-                id="returnDate"
-                label={t("Return date (optional)")}
-                value={values.returnDate ?? ""}
-                onChange={(value) => set("returnDate", value)}
-                invalid={!!errors.returnDate}
-              />
-            </Field>
+          <Field id="returnDate" label={t("Return date (optional)")} error={errors.returnDate}>
+            <LocalizedDateInput
+              id="returnDate"
+              label={t("Return date (optional)")}
+              value={values.returnDate ?? ""}
+              onChange={(value) => set("returnDate", value)}
+              invalid={!!errors.returnDate}
+            />
+          </Field>
 
-            <Field id="cabinClass" label={t("Cabin class")} error={errors.cabinClass}>
-              <Select
-                value={values.cabinClass}
-                onValueChange={(value) =>
-                  set("cabinClass", value as FlightSearchInput["cabinClass"])
-                }
-              >
-                <SelectTrigger id="cabinClass">
-                  <SelectValue />
-                </SelectTrigger>
+          <Field id="cabinClass" label={t("Cabin class")} error={errors.cabinClass}>
+            <Select
+              value={values.cabinClass}
+              onValueChange={(value) => set("cabinClass", value as FlightSearchInput["cabinClass"])}
+            >
+              <SelectTrigger id="cabinClass">
+                <SelectValue />
+              </SelectTrigger>
 
-                <SelectContent>
-                  {CABIN_CLASSES.map((cabinClass) => (
-                    <SelectItem key={cabinClass} value={cabinClass}>
-                      {t(CABIN_LABELS[cabinClass])}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+              <SelectContent>
+                {CABIN_CLASSES.map((cabinClass) => (
+                  <SelectItem key={cabinClass} value={cabinClass}>
+                    {t(CABIN_LABELS[cabinClass])}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
 
-            <datalist id="kz-airports">
-              {KZ_AIRPORTS.map((airport) => (
-                <option key={airport.iata} value={airport.iata}>
-                  {t(airport.city)} — {t(airport.name)}
-                </option>
-              ))}
-            </datalist>
+          <datalist id="kz-airports">
+            {KZ_AIRPORTS.map((airport) => (
+              <option key={airport.iata} value={airport.iata}>
+                {t(airport.city)} — {t(airport.name)}
+              </option>
+            ))}
+          </datalist>
 
-            <div className="md:col-span-2 lg:col-span-3">
-              <Button
-                type="submit"
-                disabled={pending || !canSearch}
-                aria-describedby={!canSearch ? "search-organization-status" : undefined}
-              >
-                {t(pending ? "Checking…" : "Search flights")}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+          <div className="md:col-span-2 lg:col-span-3">
+            <Button
+              type="submit"
+              disabled={pending || !canSearch}
+              aria-describedby={!canSearch ? "search-organization-status" : undefined}
+            >
+              {t(pending ? "Checking…" : "Search flights")}
+            </Button>
+          </div>
+        </form>
+      </WorkspaceSection>
 
       {notice && (
         <div
@@ -395,72 +392,67 @@ function SearchPage() {
 
           {search && <ComparablePrices search={search} collapsible />}
 
-          <div>
-            <h2 className="text-xl font-semibold">
-              {t("Flight offers ({count})", { count: number(offers.length) })}
-            </h2>
-
+          <WorkspaceSection title={t("Flight offers ({count})", { count: number(offers.length) })}>
             <p className="text-sm text-muted-foreground">
               {t("Retrieved: {date}", { date: dateTime(fetchedAt) })}
             </p>
-          </div>
+            {offers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {t("No flights found for the selected route and date.")}
+              </p>
+            ) : (
+              <div className="grid gap-3">
+                {offers.map((offer) => (
+                  <Card key={offer.id}>
+                    <CardContent className="space-y-2 pt-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="font-semibold">
+                            {offer.origin} → {offer.destination}
+                          </p>
 
-          {offers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {t("No flights found for the selected route and date.")}
-            </p>
-          ) : (
-            <div className="grid gap-3">
-              {offers.map((offer) => (
-                <Card key={offer.id}>
-                  <CardContent className="space-y-2 pt-5">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="font-semibold">
-                          {offer.origin} → {offer.destination}
-                        </p>
+                          <p className="text-sm text-muted-foreground">
+                            {offer.carrier} · {offer.flightNumber}
+                          </p>
+                        </div>
 
-                        <p className="text-sm text-muted-foreground">
-                          {offer.carrier} · {offer.flightNumber}
+                        <p className="text-lg font-bold">
+                          {number(offer.price.amount)} {offer.price.currency}
                         </p>
                       </div>
 
-                      <p className="text-lg font-bold">
-                        {number(offer.price.amount)} {offer.price.currency}
+                      <p className="text-sm">
+                        {offer.stops === 0
+                          ? t("Direct flight")
+                          : offer.stops === 1
+                            ? t("1 stop")
+                            : t("{count} stops", { count: number(offer.stops) })}
                       </p>
-                    </div>
 
-                    <p className="text-sm">
-                      {offer.stops === 0
-                        ? t("Direct flight")
-                        : offer.stops === 1
-                          ? t("1 stop")
-                          : t("{count} stops", { count: number(offer.stops) })}
-                    </p>
-
-                    {offer.outbound?.segments.length ? (
-                      <FlightItinerary itinerary={offer.outbound} label="Outbound itinerary" />
-                    ) : (
-                      <>
-                        <p className="text-sm text-muted-foreground">
-                          {t("Departure:")} <FlightDateTime value={offer.departureAt} />
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {t("Arrival:")} <FlightDateTime value={offer.arrivalAt} />
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {t("Segment details unavailable")}
-                        </p>
-                      </>
-                    )}
-                    {offer.inbound?.segments.length ? (
-                      <FlightItinerary itinerary={offer.inbound} label="Return itinerary" />
-                    ) : null}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+                      {offer.outbound?.segments.length ? (
+                        <FlightItinerary itinerary={offer.outbound} label="Outbound itinerary" />
+                      ) : (
+                        <>
+                          <p className="text-sm text-muted-foreground">
+                            {t("Departure:")} <FlightDateTime value={offer.departureAt} />
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {t("Arrival:")} <FlightDateTime value={offer.arrivalAt} />
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {t("Segment details unavailable")}
+                          </p>
+                        </>
+                      )}
+                      {offer.inbound?.segments.length ? (
+                        <FlightItinerary itinerary={offer.inbound} label="Return itinerary" />
+                      ) : null}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </WorkspaceSection>
         </section>
       )}
     </>

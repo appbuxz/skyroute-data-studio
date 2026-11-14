@@ -1,8 +1,9 @@
+import { WorkspaceSection } from "@/components/common/workspace-section";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { ArrowLeft, BarChart3, ShieldCheck } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -260,81 +261,67 @@ export function AnalyticsResults({ search }: { search: WorkspaceSearch }) {
           </CardContent>
         </Card>
       )}
-      <Card className="shadow-none">
-        <CardHeader className="px-4 py-3">
-          <CardTitle className="text-base">Flight schedules</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            {schedules.length} itineraries · One entry per complete route, across fare offers.
-          </p>
-        </CardHeader>
-        <CardContent className="px-4 pb-4">
-          <div className="hidden md:block">
-            <Table aria-label="Flight schedules">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Full itinerary</TableHead>
-                  <TableHead>Offers</TableHead>
-                  <TableHead>Original prices</TableHead>
+      <WorkspaceSection title="Flight schedules">
+        <p className="text-xs text-muted-foreground">
+          {schedules.length} itineraries · One entry per complete route, across fare offers.
+        </p>
+
+        <div className="hidden md:block">
+          <Table aria-label="Flight schedules">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Full itinerary</TableHead>
+                <TableHead>Offers</TableHead>
+                <TableHead>Original prices</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {schedules.map((group) => (
+                <TableRow key={group.key}>
+                  <TableCell className="align-top">
+                    <ScheduleItinerary offer={group.offer} />
+                  </TableCell>
+                  <TableCell className="align-top tabular-nums">{group.offers.length}</TableCell>
+                  <TableCell className="align-top">
+                    <SchedulePrices offers={group.offers} />
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {schedules.map((group) => (
-                  <TableRow key={group.key}>
-                    <TableCell className="align-top">
-                      <ScheduleItinerary offer={group.offer} />
-                    </TableCell>
-                    <TableCell className="align-top tabular-nums">{group.offers.length}</TableCell>
-                    <TableCell className="align-top">
-                      <SchedulePrices offers={group.offers} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          <ul aria-label="Flight schedules mobile" className="space-y-3 md:hidden">
-            {schedules.map((group) => (
-              <li key={group.key} className="space-y-3 rounded-lg border p-3">
-                <ScheduleItinerary offer={group.offer} />
-                <div className="flex flex-wrap justify-between gap-2 text-sm">
-                  <span className="text-muted-foreground">{group.offers.length} offers</span>
-                  <SchedulePrices offers={group.offers} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
-      <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-        <Card className="min-w-0 shadow-none">
-          <CardHeader className="px-4 py-3">
-            <CardTitle className="text-base">Price distribution</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 px-4 pb-4">
-            <PriceHistogram offers={search.offers} />
-          </CardContent>
-        </Card>
-        <Card className="shadow-none">
-          <CardHeader className="px-4 py-3">
-            <CardTitle className="text-base">Carrier comparison</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 px-4 pb-4">
-            {[...carriers.entries()].map(([key, data]) => (
-              <div
-                key={key}
-                className="flex flex-wrap justify-between gap-2 border-b pb-2 text-sm last:border-0"
-              >
-                <div>
-                  {data.carrier}
-                  <span className="ml-2 text-xs text-muted-foreground">{data.count} offers</span>
-                </div>
-                <span className="font-semibold">From {money(data.minimum, data.currency)}</span>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <ul aria-label="Flight schedules mobile" className="space-y-3 md:hidden">
+          {schedules.map((group) => (
+            <li key={group.key} className="space-y-3 rounded-lg border p-3">
+              <ScheduleItinerary offer={group.offer} />
+              <div className="flex flex-wrap justify-between gap-2 text-sm">
+                <span className="text-muted-foreground">{group.offers.length} offers</span>
+                <SchedulePrices offers={group.offers} />
               </div>
-            ))}
-          </CardContent>
-        </Card>
+            </li>
+          ))}
+        </ul>
+      </WorkspaceSection>
+      <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        <WorkspaceSection title="Price distribution" contentClassName="space-y-4">
+          <PriceHistogram offers={search.offers} />
+        </WorkspaceSection>
+        <WorkspaceSection title="Carrier comparison">
+          {[...carriers.entries()].map(([key, data]) => (
+            <div
+              key={key}
+              className="flex flex-wrap justify-between gap-2 border-b pb-2 text-sm last:border-0"
+            >
+              <div>
+                {data.carrier}
+                <span className="ml-2 text-xs text-muted-foreground">{data.count} offers</span>
+              </div>
+              <span className="font-semibold">From {money(data.minimum, data.currency)}</span>
+            </div>
+          ))}
+        </WorkspaceSection>
       </div>
-      <ComparablePrices search={search} />
+      <ComparablePrices search={search} collapsible defaultOpen />
       <p className="text-xs leading-relaxed text-muted-foreground">
         Price spread is not guaranteed savings. Fare conditions, baggage, transfers and availability
         may differ. Prices reflect the search snapshot, not a live booking quote.

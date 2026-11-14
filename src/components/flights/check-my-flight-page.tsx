@@ -1,9 +1,9 @@
+import { WorkspaceSection } from "@/components/common/workspace-section";
 import type { ZodIssue } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { ArrowRight, Loader2, Plane } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { KZ_AIRPORTS } from "@/lib/flights/airports";
@@ -171,193 +171,186 @@ export function CheckMyFlightPage() {
                 : "No organization assigned. Ask your administrator to arrange access."))}
         </p>
       )}
-      <Card className="shadow-card">
-        <CardContent className="pt-6">
-          <form aria-label="Check My Flight" onSubmit={submit} noValidate aria-busy={pending}>
-            <fieldset disabled={pending} className="min-w-0 space-y-6">
-              <legend className="mb-4 text-lg font-semibold">The flight you found</legend>
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field id="check-origin" label="Origin airport" error={errors["origin"]}>
-                  <Input
-                    id="check-origin"
-                    required
-                    list="check-airports"
-                    placeholder="JFK"
-                    maxLength={3}
-                    value={values.origin}
-                    onChange={(e) => set("origin", e.target.value.toUpperCase())}
-                    aria-invalid={!!errors["origin"]}
-                    aria-describedby={errors["origin"] ? "check-origin-error" : undefined}
-                  />
-                </Field>
-                <Field
+      <WorkspaceSection title="Flight details and requirements" className="shadow-card" keepMounted>
+        <form aria-label="Check My Flight" onSubmit={submit} noValidate aria-busy={pending}>
+          <fieldset disabled={pending} className="min-w-0 space-y-6">
+            <legend className="mb-4 text-lg font-semibold">The flight you found</legend>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field id="check-origin" label="Origin airport" error={errors["origin"]}>
+                <Input
+                  id="check-origin"
+                  required
+                  list="check-airports"
+                  placeholder="JFK"
+                  maxLength={3}
+                  value={values.origin}
+                  onChange={(e) => set("origin", e.target.value.toUpperCase())}
+                  aria-invalid={!!errors["origin"]}
+                  aria-describedby={errors["origin"] ? "check-origin-error" : undefined}
+                />
+              </Field>
+              <Field
+                id="check-destination"
+                label="Destination airport"
+                error={errors["destination"]}
+              >
+                <Input
                   id="check-destination"
-                  label="Destination airport"
-                  error={errors["destination"]}
+                  required
+                  list="check-airports"
+                  placeholder="LAX"
+                  maxLength={3}
+                  value={values.destination}
+                  onChange={(e) => set("destination", e.target.value.toUpperCase())}
+                  aria-invalid={!!errors["destination"]}
+                  aria-describedby={errors["destination"] ? "check-destination-error" : undefined}
+                />
+              </Field>
+              <datalist id="check-airports">
+                {KZ_AIRPORTS.map((airport) => (
+                  <option key={airport.iata} value={airport.iata}>
+                    {airport.city} — {airport.name}
+                  </option>
+                ))}
+              </datalist>
+              <Field id="check-date" label="Departure date" error={errors["departureDate"]}>
+                <Input
+                  id="check-date"
+                  type="date"
+                  required
+                  value={values.departureDate}
+                  onChange={(e) => set("departureDate", e.target.value)}
+                  aria-invalid={!!errors["departureDate"]}
+                  aria-describedby={errors["departureDate"] ? "check-date-error" : undefined}
+                />
+              </Field>
+              <Field id="check-passengers" label="Passengers (adults)" error={errors["passengers"]}>
+                <Input
+                  id="check-passengers"
+                  type="number"
+                  min={1}
+                  max={9}
+                  step={1}
+                  required
+                  value={values.passengers}
+                  onChange={(e) => set("passengers", e.target.value)}
+                  aria-invalid={!!errors["passengers"]}
+                  aria-describedby={errors["passengers"] ? "check-passengers-error" : undefined}
+                />
+              </Field>
+              <Field id="check-cabin" label="Cabin class" error={errors["cabinClass"]}>
+                <select
+                  id="check-cabin"
+                  required
+                  className={selectStyle}
+                  value={values.cabinClass}
+                  onChange={(e) => set("cabinClass", e.target.value as CabinClass)}
                 >
-                  <Input
-                    id="check-destination"
-                    required
-                    list="check-airports"
-                    placeholder="LAX"
-                    maxLength={3}
-                    value={values.destination}
-                    onChange={(e) => set("destination", e.target.value.toUpperCase())}
-                    aria-invalid={!!errors["destination"]}
-                    aria-describedby={errors["destination"] ? "check-destination-error" : undefined}
-                  />
-                </Field>
-                <datalist id="check-airports">
-                  {KZ_AIRPORTS.map((airport) => (
-                    <option key={airport.iata} value={airport.iata}>
-                      {airport.city} — {airport.name}
+                  {CABIN_CLASSES.map((cabin) => (
+                    <option key={cabin} value={cabin}>
+                      {CABIN_LABELS[cabin]}
                     </option>
                   ))}
-                </datalist>
-                <Field id="check-date" label="Departure date" error={errors["departureDate"]}>
-                  <Input
-                    id="check-date"
-                    type="date"
-                    required
-                    value={values.departureDate}
-                    onChange={(e) => set("departureDate", e.target.value)}
-                    aria-invalid={!!errors["departureDate"]}
-                    aria-describedby={errors["departureDate"] ? "check-date-error" : undefined}
-                  />
-                </Field>
+                </select>
+              </Field>
+              <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-3">
                 <Field
-                  id="check-passengers"
-                  label="Passengers (adults)"
-                  error={errors["passengers"]}
+                  id="check-price"
+                  label="Original total price"
+                  error={errors["originalPrice"]}
                 >
                   <Input
-                    id="check-passengers"
+                    id="check-price"
                     type="number"
-                    min={1}
-                    max={9}
-                    step={1}
+                    min="0"
+                    step="any"
                     required
-                    value={values.passengers}
-                    onChange={(e) => set("passengers", e.target.value)}
-                    aria-invalid={!!errors["passengers"]}
-                    aria-describedby={errors["passengers"] ? "check-passengers-error" : undefined}
+                    placeholder="Total for all passengers"
+                    value={values.originalPrice}
+                    onChange={(e) => set("originalPrice", e.target.value)}
+                    aria-invalid={!!errors["originalPrice"]}
+                    aria-describedby={
+                      errors["originalPrice"]
+                        ? "check-price-help check-price-error"
+                        : "check-price-help"
+                    }
                   />
                 </Field>
-                <Field id="check-cabin" label="Cabin class" error={errors["cabinClass"]}>
-                  <select
-                    id="check-cabin"
+                <Field id="check-currency" label="Currency" error={errors["originalCurrency"]}>
+                  <Input
+                    id="check-currency"
                     required
-                    className={selectStyle}
-                    value={values.cabinClass}
-                    onChange={(e) => set("cabinClass", e.target.value as CabinClass)}
-                  >
-                    {CABIN_CLASSES.map((cabin) => (
-                      <option key={cabin} value={cabin}>
-                        {CABIN_LABELS[cabin]}
-                      </option>
+                    maxLength={3}
+                    list="check-currencies"
+                    placeholder="GBP"
+                    value={values.originalCurrency}
+                    onChange={(e) => set("originalCurrency", e.target.value.toUpperCase())}
+                    aria-invalid={!!errors["originalCurrency"]}
+                    aria-describedby={
+                      errors["originalCurrency"] ? "check-currency-error" : undefined
+                    }
+                  />
+                  <datalist id="check-currencies">
+                    {["GBP", "USD", "EUR", "KZT"].map((c) => (
+                      <option key={c} value={c} />
                     ))}
-                  </select>
+                  </datalist>
                 </Field>
-                <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-3">
-                  <Field
-                    id="check-price"
-                    label="Original total price"
-                    error={errors["originalPrice"]}
-                  >
-                    <Input
-                      id="check-price"
-                      type="number"
-                      min="0"
-                      step="any"
-                      required
-                      placeholder="Total for all passengers"
-                      value={values.originalPrice}
-                      onChange={(e) => set("originalPrice", e.target.value)}
-                      aria-invalid={!!errors["originalPrice"]}
-                      aria-describedby={
-                        errors["originalPrice"]
-                          ? "check-price-help check-price-error"
-                          : "check-price-help"
-                      }
-                    />
-                  </Field>
-                  <Field id="check-currency" label="Currency" error={errors["originalCurrency"]}>
-                    <Input
-                      id="check-currency"
-                      required
-                      maxLength={3}
-                      list="check-currencies"
-                      placeholder="GBP"
-                      value={values.originalCurrency}
-                      onChange={(e) => set("originalCurrency", e.target.value.toUpperCase())}
-                      aria-invalid={!!errors["originalCurrency"]}
-                      aria-describedby={
-                        errors["originalCurrency"] ? "check-currency-error" : undefined
-                      }
-                    />
-                    <datalist id="check-currencies">
-                      {["GBP", "USD", "EUR", "KZT"].map((c) => (
-                        <option key={c} value={c} />
-                      ))}
-                    </datalist>
-                  </Field>
-                </div>
               </div>
-              <p id="check-price-help" className="text-sm text-muted-foreground">
-                Enter the total for all passengers in the currency you found. This is your
-                unverified, user-provided price. We compare matching currencies only; no conversion
-                is applied.
+            </div>
+            <p id="check-price-help" className="text-sm text-muted-foreground">
+              Enter the total for all passengers in the currency you found. This is your unverified,
+              user-provided price. We compare matching currencies only; no conversion is applied.
+            </p>
+            <div className="space-y-4 border-t pt-5">
+              <h2 className="text-lg font-semibold">What do you need to take?</h2>
+              <p id="check-baggage-help" className="text-sm text-muted-foreground">
+                Choose each allowance explicitly. “Not required” means you don’t need that
+                allowance; it does not mean baggage is included. Optional weight is the minimum
+                allowance in kilograms, not multiplied by the number of pieces.
               </p>
-              <div className="space-y-4 border-t pt-5">
-                <h2 className="text-lg font-semibold">What do you need to take?</h2>
-                <p id="check-baggage-help" className="text-sm text-muted-foreground">
-                  Choose each allowance explicitly. “Not required” means you don’t need that
-                  allowance; it does not mean baggage is included. Optional weight is the minimum
-                  allowance in kilograms, not multiplied by the number of pieces.
-                </p>
-                <div className="grid gap-5 sm:grid-cols-2">
-                  {(["checked", "cabin"] as const).map((kind) => (
-                    <BaggageFields
-                      key={kind}
-                      kind={kind}
-                      value={values[kind]}
-                      onChange={(value) => set(kind, value)}
-                      errors={errors}
-                    />
-                  ))}
-                </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                {(["checked", "cabin"] as const).map((kind) => (
+                  <BaggageFields
+                    key={kind}
+                    kind={kind}
+                    value={values[kind]}
+                    onChange={(value) => set(kind, value)}
+                    errors={errors}
+                  />
+                ))}
               </div>
-            </fieldset>
-            {Object.keys(errors).length > 0 && (
-              <p role="alert" className="mt-4 text-sm text-destructive">
-                Check the highlighted fields and select both baggage requirements.
-              </p>
+            </div>
+          </fieldset>
+          {Object.keys(errors).length > 0 && (
+            <p role="alert" className="mt-4 text-sm text-destructive">
+              Check the highlighted fields and select both baggage requirements.
+            </p>
+          )}
+          <Button
+            type="submit"
+            className="mt-6 w-full sm:w-auto"
+            disabled={pending || !canSearch}
+            aria-describedby={!canSearch ? "check-organization-status" : undefined}
+          >
+            {pending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> Checking your
+                flight…
+              </>
+            ) : (
+              <>
+                Check my flight <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+              </>
             )}
-            <Button
-              type="submit"
-              className="mt-6 w-full sm:w-auto"
-              disabled={pending || !canSearch}
-              aria-describedby={!canSearch ? "check-organization-status" : undefined}
-            >
-              {pending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> Checking your
-                  flight…
-                </>
-              ) : (
-                <>
-                  Check my flight <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-                </>
-              )}
-            </Button>
-            {pending && (
-              <p role="status" className="mt-3 text-sm text-muted-foreground">
-                Checking alternatives against your requirements. This may take a moment.
-              </p>
-            )}
-          </form>
-        </CardContent>
-      </Card>
+          </Button>
+          {pending && (
+            <p role="status" className="mt-3 text-sm text-muted-foreground">
+              Checking alternatives against your requirements. This may take a moment.
+            </p>
+          )}
+        </form>
+      </WorkspaceSection>
       {notice && (
         <p role="alert" className="rounded-lg border border-destructive/30 p-4 text-sm">
           {notice}
