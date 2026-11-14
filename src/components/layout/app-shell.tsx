@@ -1,3 +1,4 @@
+import { useLanguage } from "@/lib/i18n/language-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { terminateSession } from "@/lib/auth/session";
 import { Link, useRouterState } from "@tanstack/react-router";
@@ -31,6 +32,7 @@ const NAV = [
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { t } = useLanguage();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -64,9 +66,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
         <nav className="flex gap-4 overflow-x-auto px-3 pb-3 md:flex-col md:pb-0">
           {NAV.map((group) => (
-            <section key={group.label} aria-label={group.label} className="shrink-0">
+            <section key={t(group.label)} aria-label={t(group.label)} className="shrink-0">
               <h2 className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-sidebar-foreground/70">
-                {group.label}
+                {t(group.label)}
               </h2>
               <div className="flex gap-1 md:flex-col">
                 {group.items.map(({ to, label, icon: Icon }) => {
@@ -84,7 +86,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                       )}
                     >
                       <Icon className={cn("h-4 w-4", active && "text-sidebar-primary")} />
-                      {label}
+                      {t(label)}
                     </Link>
                   );
                 })}
@@ -102,7 +104,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             )}
           >
             <Settings className="h-4 w-4" />
-            Settings
+            {t("Settings")}
           </Link>
         </nav>
         <div className="mt-auto border-t border-sidebar-border px-5 py-4">
@@ -115,12 +117,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             className="mt-4 flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-sidebar-accent disabled:opacity-50"
           >
             <LogOut className="h-4 w-4" />
-            {signingOut ? "Signing out..." : "Sign out"}
+            {t(signingOut ? "Signing out..." : "Sign out")}
           </button>
 
           {signOutError && (
             <p role="alert" className="mt-2 text-xs text-destructive">
-              {signOutError}
+              {t(signOutError)}
             </p>
           )}
         </div>

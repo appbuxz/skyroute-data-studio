@@ -1,3 +1,5 @@
+import { LocalizedDateInput } from "@/components/flights/localized-date-input";
+import { useLanguage } from "@/lib/i18n/language-context";
 import { useServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { Info } from "lucide-react";
@@ -71,6 +73,10 @@ const initial: FormValues = {
 };
 
 function SearchPage() {
+  const { t, message, number, dateTime } = useLanguage();
+  useEffect(() => {
+    document.title = `${t("Flight Search")} — Flight Analytics`;
+  }, [t]);
   const searchFlights = useServerFn(searchFlightsServer);
   const workspace = useOrganizationWorkspace();
   const { selectedOrganizationId, version } = workspace;
@@ -200,8 +206,10 @@ function SearchPage() {
   return (
     <>
       <PageHeader
-        title="Flight search"
-        description="Search and compare flights, fares and schedules for free. Sign in to search; no organization is required. Enter IATA airport codes, e.g. ALA or NQZ."
+        title={t("Flight search")}
+        description={t(
+          "Search and compare flights, fares and schedules for free. Sign in to search; no organization is required. Enter IATA airport codes, e.g. ALA or NQZ.",
+        )}
       />
 
       {!canSearch && (
@@ -211,12 +219,12 @@ function SearchPage() {
           className="mb-4 text-sm text-muted-foreground"
         >
           {workspace.status === "loading"
-            ? "Loading organizations…"
-            : (workspace.error ??
-              workspace.authorizationError ??
+            ? t("Loading organizations…")
+            : ((workspace.error ? message(workspace.error) : null) ??
+              (workspace.authorizationError ? message(workspace.authorizationError) : null) ??
               (workspace.memberships.length === 0
-                ? "No organization assigned. Ask your agency owner to arrange access."
-                : "Select an organization before searching."))}
+                ? t("No organization assigned. Ask your agency owner to arrange access.")
+                : t("Select an organization before searching.")))}
         </p>
       )}
 
@@ -227,7 +235,7 @@ function SearchPage() {
             noValidate
             className="grid items-start gap-5 md:grid-cols-2 lg:grid-cols-3"
           >
-            <Field id="origin" label="Origin" error={errors.origin}>
+            <Field id="origin" label={t("Origin")} error={errors.origin}>
               <Input
                 id="origin"
                 list="kz-airports"
@@ -239,7 +247,7 @@ function SearchPage() {
               />
             </Field>
 
-            <Field id="destination" label="Destination" error={errors.destination}>
+            <Field id="destination" label={t("Destination")} error={errors.destination}>
               <Input
                 id="destination"
                 list="kz-airports"
@@ -251,7 +259,7 @@ function SearchPage() {
               />
             </Field>
 
-            <Field id="passengers" label="Passengers" error={errors.passengers}>
+            <Field id="passengers" label={t("Passengers")} error={errors.passengers}>
               <Input
                 id="passengers"
                 type="number"
@@ -263,27 +271,27 @@ function SearchPage() {
               />
             </Field>
 
-            <Field id="departureDate" label="Departure date" error={errors.departureDate}>
-              <Input
+            <Field id="departureDate" label={t("Departure date")} error={errors.departureDate}>
+              <LocalizedDateInput
                 id="departureDate"
-                type="date"
+                label={t("Departure date")}
                 value={values.departureDate}
-                onChange={(event) => set("departureDate", event.target.value)}
-                aria-invalid={!!errors.departureDate}
+                onChange={(value) => set("departureDate", value)}
+                invalid={!!errors.departureDate}
               />
             </Field>
 
-            <Field id="returnDate" label="Return date (optional)" error={errors.returnDate}>
-              <Input
+            <Field id="returnDate" label={t("Return date (optional)")} error={errors.returnDate}>
+              <LocalizedDateInput
                 id="returnDate"
-                type="date"
-                value={values.returnDate}
-                onChange={(event) => set("returnDate", event.target.value)}
-                aria-invalid={!!errors.returnDate}
+                label={t("Return date (optional)")}
+                value={values.returnDate ?? ""}
+                onChange={(value) => set("returnDate", value)}
+                invalid={!!errors.returnDate}
               />
             </Field>
 
-            <Field id="cabinClass" label="Cabin class" error={errors.cabinClass}>
+            <Field id="cabinClass" label={t("Cabin class")} error={errors.cabinClass}>
               <Select
                 value={values.cabinClass}
                 onValueChange={(value) =>
@@ -297,7 +305,7 @@ function SearchPage() {
                 <SelectContent>
                   {CABIN_CLASSES.map((cabinClass) => (
                     <SelectItem key={cabinClass} value={cabinClass}>
-                      {CABIN_LABELS[cabinClass]}
+                      {t(CABIN_LABELS[cabinClass])}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -307,7 +315,7 @@ function SearchPage() {
             <datalist id="kz-airports">
               {KZ_AIRPORTS.map((airport) => (
                 <option key={airport.iata} value={airport.iata}>
-                  {airport.city} — {airport.name}
+                  {t(airport.city)} — {t(airport.name)}
                 </option>
               ))}
             </datalist>
@@ -318,7 +326,7 @@ function SearchPage() {
                 disabled={pending || !canSearch}
                 aria-describedby={!canSearch ? "search-organization-status" : undefined}
               >
-                {pending ? "Checking…" : "Search flights"}
+                {t(pending ? "Checking…" : "Search flights")}
               </Button>
             </div>
           </form>
@@ -333,9 +341,9 @@ function SearchPage() {
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
 
           <div>
-            <p className="font-medium">Flight search unavailable</p>
+            <p className="font-medium">{t("Flight search unavailable")}</p>
 
-            <p className="mt-0.5">{notice}</p>
+            <p className="mt-0.5">{message(notice)}</p>
           </div>
         </div>
       )}
@@ -346,35 +354,39 @@ function SearchPage() {
             <div className="grid gap-4 md:grid-cols-3">
               <Card>
                 <CardContent className="pt-5">
-                  <p className="text-sm text-muted-foreground">Lowest price</p>
+                  <p className="text-sm text-muted-foreground">{t("Lowest price")}</p>
 
                   <p className="mt-2 text-2xl font-bold">
-                    {priceAnalysis.cheapest.price.amount.toLocaleString()} {priceAnalysis.currency}
+                    {number(priceAnalysis.cheapest.price.amount)} {priceAnalysis.currency}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardContent className="pt-5">
-                  <p className="text-sm text-muted-foreground">Average price</p>
+                  <p className="text-sm text-muted-foreground">{t("Average price")}</p>
 
                   <p className="mt-2 text-2xl font-bold">
-                    {Math.round(priceAnalysis.averagePrice).toLocaleString()}{" "}
-                    {priceAnalysis.currency}
+                    {number(Math.round(priceAnalysis.averagePrice))} {priceAnalysis.currency}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardContent className="pt-5">
-                  <p className="text-sm text-muted-foreground">Price spread</p>
+                  <p className="text-sm text-muted-foreground">{t("Price spread")}</p>
 
                   <p className="mt-2 text-2xl font-bold">
-                    {priceAnalysis.priceSpread.toLocaleString()} {priceAnalysis.currency}
+                    {number(priceAnalysis.priceSpread)} {priceAnalysis.currency}
                   </p>
 
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {priceAnalysis.priceSpreadPercent.toFixed(1)}% between highest and lowest fares
+                    {t("{percent}% between highest and lowest fares", {
+                      percent: number(priceAnalysis.priceSpreadPercent, {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1,
+                      }),
+                    })}
                   </p>
                 </CardContent>
               </Card>
@@ -384,16 +396,18 @@ function SearchPage() {
           {search && <ComparablePrices search={search} collapsible />}
 
           <div>
-            <h2 className="text-xl font-semibold">Flight offers ({offers.length})</h2>
+            <h2 className="text-xl font-semibold">
+              {t("Flight offers ({count})", { count: number(offers.length) })}
+            </h2>
 
             <p className="text-sm text-muted-foreground">
-              Retrieved: {new Date(fetchedAt).toLocaleString()}
+              {t("Retrieved: {date}", { date: dateTime(fetchedAt) })}
             </p>
           </div>
 
           {offers.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No flights found for the selected route and date.
+              {t("No flights found for the selected route and date.")}
             </p>
           ) : (
             <div className="grid gap-3">
@@ -412,14 +426,16 @@ function SearchPage() {
                       </div>
 
                       <p className="text-lg font-bold">
-                        {offer.price.amount.toLocaleString()} {offer.price.currency}
+                        {number(offer.price.amount)} {offer.price.currency}
                       </p>
                     </div>
 
                     <p className="text-sm">
                       {offer.stops === 0
-                        ? "Direct flight"
-                        : `${offer.stops} stop${offer.stops === 1 ? "" : "s"}`}
+                        ? t("Direct flight")
+                        : offer.stops === 1
+                          ? t("1 stop")
+                          : t("{count} stops", { count: number(offer.stops) })}
                     </p>
 
                     {offer.outbound?.segments.length ? (
@@ -427,12 +443,14 @@ function SearchPage() {
                     ) : (
                       <>
                         <p className="text-sm text-muted-foreground">
-                          Departure: <FlightDateTime value={offer.departureAt} />
+                          {t("Departure:")} <FlightDateTime value={offer.departureAt} />
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Arrival: <FlightDateTime value={offer.arrivalAt} />
+                          {t("Arrival:")} <FlightDateTime value={offer.arrivalAt} />
                         </p>
-                        <p className="text-sm text-muted-foreground">Segment details unavailable</p>
+                        <p className="text-sm text-muted-foreground">
+                          {t("Segment details unavailable")}
+                        </p>
                       </>
                     )}
                     {offer.inbound?.segments.length ? (
@@ -460,13 +478,14 @@ function Field({
   error?: string | undefined;
   children: ReactNode;
 }) {
+  const { message } = useLanguage();
   return (
     <div className="grid content-start gap-1.5">
       <Label htmlFor={id}>{label}</Label>
 
       {children}
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="text-xs text-destructive">{message(error)}</p>}
     </div>
   );
 }

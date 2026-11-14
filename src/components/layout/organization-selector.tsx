@@ -1,6 +1,8 @@
+import { useLanguage } from "@/lib/i18n/language-context";
 import { useOrganizationWorkspace } from "@/lib/organizations/workspace-context";
 
 export function OrganizationSelector() {
+  const { t, message } = useLanguage();
   const workspace = useOrganizationWorkspace();
   return (
     <div className="space-y-2">
@@ -8,7 +10,7 @@ export function OrganizationSelector() {
         htmlFor="workspace-organization"
         className="text-xs font-medium text-sidebar-accent-foreground"
       >
-        Organization
+        {t("Organization")}
       </label>
       <select
         id="workspace-organization"
@@ -18,7 +20,7 @@ export function OrganizationSelector() {
         disabled={workspace.status !== "ready" || workspace.memberships.length === 0}
         aria-describedby="organization-status"
       >
-        <option value="">Select an organization</option>
+        <option value="">{t("Select an organization")}</option>
         {workspace.memberships.map((membership) => (
           <option key={membership.organizationId} value={membership.organizationId}>
             {membership.organizationName}
@@ -31,14 +33,16 @@ export function OrganizationSelector() {
         className="text-xs opacity-90"
       >
         {workspace.status === "loading"
-          ? "Loading organizations…"
-          : (workspace.error ??
-            workspace.authorizationError ??
+          ? t("Loading organizations…")
+          : ((workspace.error ? message(workspace.error) : null) ??
+            (workspace.authorizationError ? message(workspace.authorizationError) : null) ??
             (workspace.memberships.length === 0
-              ? "No organization assigned. Flight Search is available with your account; agency tools require membership."
+              ? t(
+                  "No organization assigned. Flight Search is available with your account; agency tools require membership.",
+                )
               : !workspace.selectedOrganizationId
-                ? "Select an organization to search flights."
-                : "Searches use the selected organization."))}
+                ? t("Select an organization to search flights.")
+                : t("Searches use the selected organization.")))}
       </p>
       <button
         type="button"
@@ -46,7 +50,7 @@ export function OrganizationSelector() {
         disabled={workspace.status === "loading"}
         className="text-xs underline disabled:opacity-60"
       >
-        Refresh organizations
+        {t("Refresh organizations")}
       </button>
     </div>
   );
