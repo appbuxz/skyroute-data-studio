@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ select: vi.fn() }));
@@ -92,10 +92,9 @@ describe("workspace sidebar", () => {
     async (language, expand, analytics, organization) => {
       window.localStorage.setItem(SIDEBAR_PREFERENCE_KEY, "collapsed");
       page(language);
-      expect(screen.getByRole("button", { name: expand })).toHaveAttribute(
-        "aria-expanded",
-        "false",
-      );
+      expect(
+        within(screen.getByRole("complementary")).getByRole("button", { name: expand }),
+      ).toHaveAttribute("aria-expanded", "false");
       const link = screen.getByRole("link", { name: analytics });
       expect(link).toHaveAttribute("aria-current", "page");
       act(() => link.focus());
@@ -123,3 +122,30 @@ describe("workspace sidebar", () => {
     expect(screen.getByRole("button", { name: "Expand navigation" })).toBeInTheDocument();
   });
 });
+
+it.each([
+  ["en", "Open menu", "Close menu", "Workspace navigation", "Organization"],
+  ["ru", "Открыть меню", "Закрыть меню", "Навигация рабочего пространства", "Организация"],
+  ["kk", "Мәзірді ашу", "Мәзірді жабу", "Жұмыс кеңістігінің мәзірі", "Ұйым"],
+] as const)(
+  "provides every destination and organization selection in the mobile sheet in %s",
+  async (language, open, close, title, organization) => {
+    vi.stubGlobal("innerWidth", 390);
+    page(language);
+    const trigger = screen.getByRole("button", { name: open });
+    fireEvent.click(trigger);
+    const drawer = await screen.findByRole("dialog", { name: title });
+    expect(
+      within(drawer)
+        .getAllByRole("link")
+        .map((link) => link.getAttribute("href")),
+    ).toEqual(["/search", "/check-my-flight", "/dashboard", "/analysis", "/reports", "/settings"]);
+    const picker = within(drawer).getByRole("combobox", { name: organization });
+    fireEvent.change(picker, { target: { value: "agency-a" } });
+    expect(mocks.select).toHaveBeenCalledWith("agency-a");
+    expect(within(drawer).getByRole("button", { name: close })).toBeInTheDocument();
+    fireEvent.click(within(drawer).getAllByRole("link")[0]!);
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+  },
+);

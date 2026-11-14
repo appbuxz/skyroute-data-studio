@@ -9,6 +9,7 @@ import {
   ChevronRight,
   FileText,
   LayoutDashboard,
+  Menu,
   Plane,
   Search,
   Settings,
@@ -17,12 +18,20 @@ import type { ReactNode } from "react";
 import { Brand } from "./brand";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { clearLegacyFlightSearch } from "@/lib/flights/search-session";
 import { OrganizationSelector } from "./organization-selector";
 
+import {
+  Sheet,
+  SheetTrigger,
+  SheetContent,
+  SheetTitle,
+  SheetDescription,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -55,6 +64,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(readSidebarCollapsed);
   const isMobile = useIsMobile();
   const compact = collapsed && !isMobile;
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const currentLabel =
+    path === "/settings"
+      ? "Settings"
+      : (NAV.map((group) => group.items.find((item) => item.to === path)).find(
+          (item) => item !== undefined,
+        )?.label ?? "Workspace navigation");
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [path, isMobile]);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState("");
 
@@ -89,13 +108,100 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background text-foreground md:flex-row">
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <header className="sticky top-0 z-40 flex min-h-14 items-center gap-3 border-b bg-background px-4 py-2 md:hidden">
+          <SheetTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0"
+              aria-label={t("Open menu")}
+            >
+              <Menu aria-hidden="true" className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <p className="min-w-0 break-words text-base font-semibold leading-snug">
+            {t(currentLabel)}
+          </p>
+        </header>
+        <SheetContent
+          side="left"
+          closeLabel={t("Close menu")}
+          className="flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-4 overflow-y-auto bg-sidebar px-4 text-sidebar-foreground md:hidden"
+        >
+          <SheetTitle className="pr-8 text-left">{t("Workspace navigation")}</SheetTitle>
+          <SheetDescription className="sr-only">
+            {t("Choose a section or switch organization.")}
+          </SheetDescription>
+          <nav aria-label={t("Workspace navigation")} className="space-y-3">
+            {NAV.map((group) => (
+              <section key={group.label} aria-label={t(group.label)}>
+                <h2 className="px-3 py-2 text-xs font-medium uppercase tracking-wide opacity-70">
+                  {t(group.label)}
+                </h2>
+                {group.items.map(({ to, label, icon: Icon }) => (
+                  <SheetClose asChild key={to}>
+                    <Link
+                      to={to}
+                      aria-current={path === to ? "page" : undefined}
+                      className={cn(
+                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm",
+                        path === to
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "hover:bg-sidebar-accent",
+                      )}
+                    >
+                      <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
+                      <span>{t(label)}</span>
+                    </Link>
+                  </SheetClose>
+                ))}
+              </section>
+            ))}
+            <SheetClose asChild>
+              <Link
+                to="/settings"
+                aria-current={path === "/settings" ? "page" : undefined}
+                className={cn(
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm",
+                  path === "/settings"
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "hover:bg-sidebar-accent",
+                )}
+              >
+                <Settings aria-hidden="true" className="h-4 w-4 shrink-0" />
+                {t("Settings")}
+              </Link>
+            </SheetClose>
+          </nav>
+          <div className="mt-auto space-y-3 border-t border-sidebar-border pt-4">
+            <OrganizationSelector idPrefix="mobile-workspace" />
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={signingOut}
+              onClick={handleSignOut}
+              className="w-full justify-start gap-3"
+            >
+              <LogOut aria-hidden="true" className="h-4 w-4" />
+              {t(signingOut ? "Signing out..." : "Sign out")}
+            </Button>
+            {signOutError && (
+              <p role="alert" className="text-xs text-destructive">
+                {t(signOutError)}
+              </p>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
       <TooltipProvider delayDuration={200}>
         <aside
           id="workspace-sidebar"
           aria-label={t("Workspace navigation")}
           data-collapsed={collapsed}
           className={cn(
-            "flex shrink-0 flex-col bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-screen",
+            "hidden shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex md:sticky md:top-0 md:h-screen",
             collapsed ? "md:w-16" : "md:w-60",
           )}
         >

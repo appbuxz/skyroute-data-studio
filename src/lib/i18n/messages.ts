@@ -92,6 +92,12 @@ export const messages: Record<string, readonly [string, string]> = {
     "{currency} валютасындағы ең төмен баға",
   ],
   "No valid prices available.": ["Нет корректных данных о ценах.", "Жарамды баға деректері жоқ."],
+  "Open menu": ["Открыть меню", "Мәзірді ашу"],
+  "Close menu": ["Закрыть меню", "Мәзірді жабу"],
+  "Choose a section or switch organization.": [
+    "Выберите раздел или смените организацию.",
+    "Бөлімді таңдаңыз немесе ұйымды ауыстырыңыз.",
+  ],
   Search: ["Поиск", "Іздеу"],
   "Flight Search": ["Поиск рейсов", "Рейстерді іздеу"],
   "Flight search": ["Поиск рейсов", "Рейстерді іздеу"],
