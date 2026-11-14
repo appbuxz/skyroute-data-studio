@@ -40,7 +40,12 @@ it("keeps accurately normalized offers when the captured response also contains 
     )
     .mockResolvedValueOnce(new Response(JSON.stringify(mixedFixture)));
   const result = await travelportProvider.searchFlights(params, {});
-  expect(result).toEqual({ status: "ok", offers: expected, fetchedAt: expect.any(String) });
+  expect(result).toEqual({
+    status: "ok",
+    environment: "test",
+    offers: expected,
+    fetchedAt: expect.any(String),
+  });
   expect(warn).toHaveBeenCalledWith("Travelport offers skipped", {
     count: 1,
     reasons: "UNSUPPORTED_CABIN",

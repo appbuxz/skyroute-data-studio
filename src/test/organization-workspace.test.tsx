@@ -32,6 +32,8 @@ import { OrganizationWorkspaceProvider } from "@/lib/organizations/workspace-pro
 import { useOrganizationWorkspace } from "@/lib/organizations/workspace-context";
 import { OrganizationSelector } from "@/components/layout/organization-selector";
 import { Route as SearchRoute } from "@/routes/_authenticated/_workspace.search";
+import { analyticsSnapshot51 } from "./fixtures/agency-analysis";
+import { Route as DashboardRoute } from "@/routes/_authenticated/_workspace.dashboard";
 import { Route as AnalysisRoute } from "@/routes/_authenticated/_workspace.analysis";
 
 const USER = "f1000000-0000-4000-8000-000000000001";
@@ -42,6 +44,7 @@ const agencies: OrganizationMembership[] = [
   { organizationId: B, organizationName: "Agency B", role: "member" },
 ];
 const SearchPage = SearchRoute.options.component!;
+const DashboardPage = DashboardRoute.options.component!;
 const AnalysisPage = AnalysisRoute.options.component!;
 const LEGACY_KEY = "flight-analytics:search:v1";
 
@@ -71,7 +74,11 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function Workspace({ initialPage = "search" }: { initialPage?: "search" | "analysis" }) {
+function Workspace({
+  initialPage = "search",
+}: {
+  initialPage?: "search" | "analysis" | "dashboard";
+}) {
   const [page, setPage] = useState(initialPage);
   return (
     <OrganizationWorkspaceProvider userId={USER}>
@@ -79,7 +86,14 @@ function Workspace({ initialPage = "search" }: { initialPage?: "search" | "analy
       <SelectionState />
       <button onClick={() => setPage("search")}>Search tab</button>
       <button onClick={() => setPage("analysis")}>Analysis tab</button>
-      {page === "search" ? <SearchPage /> : <AnalysisPage />}
+      <button onClick={() => setPage("dashboard")}>Dashboard tab</button>
+      {page === "search" ? (
+        <SearchPage />
+      ) : page === "analysis" ? (
+        <AnalysisPage />
+      ) : (
+        <DashboardPage />
+      )}
     </OrganizationWorkspaceProvider>
   );
 }
@@ -176,14 +190,65 @@ describe("organization workspace", () => {
     await act(async () => loading.resolve([]));
   });
 
-  it("shows an assignment message and blocks users without organizations", async () => {
+  it("allows a traveler without an organization to search without publishing agency analysis", async () => {
+    mocks.memberships.mockResolvedValue([]);
+    const storageWrite = vi.spyOn(Storage.prototype, "setItem");
+    render(<Workspace />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Search flights" })).toBeEnabled(),
+    );
+    expect(screen.getByLabelText("Organization")).toBeDisabled();
+    submitSearch();
+    await screen.findByText(/A Airways · KC100/);
+    expect(mocks.search).toHaveBeenCalledExactlyOnceWith({
+      data: {
+        origin: "ALA",
+        destination: "IST",
+        departureDate: "2099-12-10",
+        returnDate: undefined,
+        passengers: 1,
+        cabinClass: "economy",
+      },
+    });
+    expect(storageWrite).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("Analysis tab"));
+    expect(screen.queryByText("Carrier comparison")).not.toBeInTheDocument();
+    expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
+    expect(
+      await screen.findByText("Analytics isn’t available for your account"),
+    ).toBeInTheDocument();
+  });
+
+  it("discards pending personal results when an agency becomes selected", async () => {
+    const pending = deferred<FlightSearchResult>();
+    mocks.memberships.mockResolvedValue([]);
+    mocks.search.mockReturnValueOnce(pending.promise);
+    render(<Workspace />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Search flights" })).toBeEnabled(),
+    );
+    submitSearch();
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    fireEvent.click(screen.getByRole("button", { name: "Refresh organizations" }));
+    await ready();
+    await act(async () => pending.resolve(result("PERSONAL Airways")));
+    expect(screen.queryByText(/PERSONAL Airways/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("Analysis tab"));
+    expect(screen.queryByText("Carrier comparison")).not.toBeInTheDocument();
+  });
+
+  it("clears personal results when the authenticated account changes", async () => {
     mocks.memberships.mockResolvedValue([]);
     render(<Workspace />);
-    await screen.findAllByText(/No organization assigned/);
-    expect(screen.getByLabelText("Organization")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Search flights" })).toBeDisabled();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Search flights" })).toBeEnabled(),
+    );
     submitSearch();
-    expect(mocks.search).not.toHaveBeenCalled();
+    await screen.findByText(/A Airways · KC100/);
+    const listener = mocks.onAuthStateChange.mock.calls[0]![0];
+    act(() => listener("SIGNED_OUT", null));
+    expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Search flights" })).toBeDisabled();
   });
 
   it("automatically selects one organization and sends it to search", async () => {
@@ -234,7 +299,7 @@ describe("organization workspace", () => {
     submitSearch();
     await screen.findByText(/A Airways · KC100/);
     fireEvent.click(screen.getByText("Analysis tab"));
-    expect(screen.getByText("Carrier comparison")).toBeInTheDocument();
+    expect(await screen.findByText("Carrier comparison")).toBeInTheDocument();
     select(B);
     expect(screen.queryByText("Carrier comparison")).not.toBeInTheDocument();
     expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
@@ -273,7 +338,7 @@ describe("organization workspace", () => {
     expect(screen.getByText(/B Airways · KC100/)).toBeInTheDocument();
     fireEvent.click(screen.getByText("Analysis tab"));
     expect(screen.queryByText(/STALE Airways/)).not.toBeInTheDocument();
-    expect(screen.getByText("Carrier comparison")).toBeInTheDocument();
+    expect(await screen.findByText("Carrier comparison")).toBeInTheDocument();
   });
 
   it("resets pending on switching even if the old request never settles, without unlocking a newer request", async () => {
@@ -496,4 +561,43 @@ describe("organization workspace", () => {
     submitSearch();
     await screen.findByText(/A Airways · KC100/);
   });
+});
+
+it("shares the latest agency snapshot across search, dashboard and analytics and clears it on organization changes", async () => {
+  const snapshot = analyticsSnapshot51();
+  snapshot.offers.forEach((offer, i) => {
+    if (i % 3 === 1) offer.price = { amount: 500 + Math.floor(i / 3) * 5, currency: "USD" };
+  });
+  mocks.search.mockResolvedValueOnce({
+    status: "ok",
+    offers: snapshot.offers,
+    fetchedAt: snapshot.fetchedAt,
+  });
+  render(<Workspace />);
+  await ready();
+  select(A);
+  submitSearch();
+  await screen.findByText("Flight offers (51)");
+  fireEvent.click(screen.getByText("Dashboard tab"));
+  await screen.findByRole("link", { name: "Open analytics" });
+  expect(screen.getByText("180,000 KZT")).toBeInTheDocument();
+  expect(screen.getByText("500 USD")).toBeInTheDocument();
+  fireEvent.click(screen.getByText("Analysis tab"));
+  await screen.findByText("Carrier comparison");
+  expect(screen.getByText("51 offers", { selector: "dd" })).toBeInTheDocument();
+  fireEvent.click(screen.getByText("Dashboard tab"));
+  await screen.findByRole("link", { name: "Open analytics" });
+  select(B);
+  expect(screen.queryByText("180,000 KZT")).not.toBeInTheDocument();
+  await screen.findByText("No search results in this session");
+  fireEvent.click(screen.getByText("Search tab"));
+  mocks.search.mockResolvedValueOnce({ status: "ok", offers: [], fetchedAt: snapshot.fetchedAt });
+  submitSearch();
+  await screen.findByText("No flights found for the selected route and date.");
+  fireEvent.click(screen.getByText("Dashboard tab"));
+  await screen.findByText("The latest search returned no offers");
+  expect(screen.queryByRole("link", { name: "Open analytics" })).not.toBeInTheDocument();
+  select(A);
+  await screen.findByText("No search results in this session");
+  expect(screen.queryByText("180,000 KZT")).not.toBeInTheDocument();
 });

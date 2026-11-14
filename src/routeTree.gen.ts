@@ -15,9 +15,11 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated/_workspace'
 import { Route as AuthenticatedWorkspaceAnalysisRouteImport } from './routes/_authenticated/_workspace.analysis'
+import { Route as AuthenticatedWorkspaceCheckMyFlightRouteImport } from './routes/_authenticated/_workspace.check-my-flight'
 import { Route as AuthenticatedWorkspaceDashboardRouteImport } from './routes/_authenticated/_workspace.dashboard'
 import { Route as AuthenticatedWorkspaceReportsRouteImport } from './routes/_authenticated/_workspace.reports'
 import { Route as AuthenticatedWorkspaceSearchRouteImport } from './routes/_authenticated/_workspace.search'
+import { Route as AuthenticatedWorkspaceSettingsRouteImport } from './routes/_authenticated/_workspace.settings'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -48,6 +50,12 @@ const AuthenticatedWorkspaceAnalysisRoute =
     path: '/analysis',
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any)
+const AuthenticatedWorkspaceCheckMyFlightRoute =
+  AuthenticatedWorkspaceCheckMyFlightRouteImport.update({
+    id: '/check-my-flight',
+    path: '/check-my-flight',
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any)
 const AuthenticatedWorkspaceDashboardRoute =
   AuthenticatedWorkspaceDashboardRouteImport.update({
     id: '/dashboard',
@@ -66,24 +74,34 @@ const AuthenticatedWorkspaceSearchRoute =
     path: '/search',
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any)
+const AuthenticatedWorkspaceSettingsRoute =
+  AuthenticatedWorkspaceSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/analysis': typeof AuthenticatedWorkspaceAnalysisRoute
+  '/check-my-flight': typeof AuthenticatedWorkspaceCheckMyFlightRoute
   '/dashboard': typeof AuthenticatedWorkspaceDashboardRoute
   '/reports': typeof AuthenticatedWorkspaceReportsRoute
   '/search': typeof AuthenticatedWorkspaceSearchRoute
+  '/settings': typeof AuthenticatedWorkspaceSettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/login': typeof LoginRoute
   '/analysis': typeof AuthenticatedWorkspaceAnalysisRoute
+  '/check-my-flight': typeof AuthenticatedWorkspaceCheckMyFlightRoute
   '/dashboard': typeof AuthenticatedWorkspaceDashboardRoute
   '/reports': typeof AuthenticatedWorkspaceReportsRoute
   '/search': typeof AuthenticatedWorkspaceSearchRoute
+  '/settings': typeof AuthenticatedWorkspaceSettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -93,9 +111,11 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/_workspace': typeof AuthenticatedWorkspaceRouteWithChildren
   '/_authenticated/_workspace/analysis': typeof AuthenticatedWorkspaceAnalysisRoute
+  '/_authenticated/_workspace/check-my-flight': typeof AuthenticatedWorkspaceCheckMyFlightRoute
   '/_authenticated/_workspace/dashboard': typeof AuthenticatedWorkspaceDashboardRoute
   '/_authenticated/_workspace/reports': typeof AuthenticatedWorkspaceReportsRoute
   '/_authenticated/_workspace/search': typeof AuthenticatedWorkspaceSearchRoute
+  '/_authenticated/_workspace/settings': typeof AuthenticatedWorkspaceSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -104,18 +124,22 @@ export interface FileRouteTypes {
     | '/auth'
     | '/login'
     | '/analysis'
+    | '/check-my-flight'
     | '/dashboard'
     | '/reports'
     | '/search'
+    | '/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/login'
     | '/analysis'
+    | '/check-my-flight'
     | '/dashboard'
     | '/reports'
     | '/search'
+    | '/settings'
   id:
     | '__root__'
     | '/'
@@ -124,9 +148,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/_workspace'
     | '/_authenticated/_workspace/analysis'
+    | '/_authenticated/_workspace/check-my-flight'
     | '/_authenticated/_workspace/dashboard'
     | '/_authenticated/_workspace/reports'
     | '/_authenticated/_workspace/search'
+    | '/_authenticated/_workspace/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -180,6 +206,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWorkspaceAnalysisRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
+    '/_authenticated/_workspace/check-my-flight': {
+      id: '/_authenticated/_workspace/check-my-flight'
+      path: '/check-my-flight'
+      fullPath: '/check-my-flight'
+      preLoaderRoute: typeof AuthenticatedWorkspaceCheckMyFlightRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
+    }
     '/_authenticated/_workspace/dashboard': {
       id: '/_authenticated/_workspace/dashboard'
       path: '/dashboard'
@@ -201,22 +234,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWorkspaceSearchRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
+    '/_authenticated/_workspace/settings': {
+      id: '/_authenticated/_workspace/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
+    }
   }
 }
 
 interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceAnalysisRoute: typeof AuthenticatedWorkspaceAnalysisRoute
+  AuthenticatedWorkspaceCheckMyFlightRoute: typeof AuthenticatedWorkspaceCheckMyFlightRoute
   AuthenticatedWorkspaceDashboardRoute: typeof AuthenticatedWorkspaceDashboardRoute
   AuthenticatedWorkspaceReportsRoute: typeof AuthenticatedWorkspaceReportsRoute
   AuthenticatedWorkspaceSearchRoute: typeof AuthenticatedWorkspaceSearchRoute
+  AuthenticatedWorkspaceSettingsRoute: typeof AuthenticatedWorkspaceSettingsRoute
 }
 
 const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
   {
     AuthenticatedWorkspaceAnalysisRoute: AuthenticatedWorkspaceAnalysisRoute,
+    AuthenticatedWorkspaceCheckMyFlightRoute:
+      AuthenticatedWorkspaceCheckMyFlightRoute,
     AuthenticatedWorkspaceDashboardRoute: AuthenticatedWorkspaceDashboardRoute,
     AuthenticatedWorkspaceReportsRoute: AuthenticatedWorkspaceReportsRoute,
     AuthenticatedWorkspaceSearchRoute: AuthenticatedWorkspaceSearchRoute,
+    AuthenticatedWorkspaceSettingsRoute: AuthenticatedWorkspaceSettingsRoute,
   }
 
 const AuthenticatedWorkspaceRouteWithChildren =

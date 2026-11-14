@@ -53,7 +53,19 @@ export interface FlightBaggage {
   };
 }
 
+/** Optional provider-verified evidence; absence must remain unknown. */
+export interface FlightOfferComparisonEvidence {
+  passengers?: number;
+  priceScope?: "all_passengers_total";
+  mandatoryChargesIncluded?: boolean;
+  /** Verified scope for each independently known baggage allowance. Absence remains unknown. */
+  baggageScopes?: Partial<Record<keyof FlightBaggage, "all_passengers_all_segments">>;
+  /** Complete checked and cabin scope, required by strict Flight Check comparisons. */
+  baggageScope?: "all_passengers_all_segments";
+}
+
 export interface FlightOffer {
+  comparisonEvidence?: FlightOfferComparisonEvidence;
   id: string;
   carrier: string;
   flightNumber: string;
@@ -81,9 +93,19 @@ export interface FlightOffer {
 
 export type FlightSearchResult =
   | { status: "not_connected"; message: string }
-  | { status: "ok"; offers: FlightOffer[]; fetchedAt: string }
+  | { status: "ok"; offers: FlightOffer[]; fetchedAt: string; environment?: "test" | "production" }
   | { status: "error"; message: string };
 
+/** Search snapshot with no implied organization ownership. */
+export interface FlightSearchSnapshot {
+  params: FlightSearchParams;
+  offers: FlightOffer[];
+  fetchedAt: string;
+}
+
 export interface FlightDataProvider {
-  searchFlights(params: FlightSearchParams, ctx: { organizationId?: OrganizationId }): Promise<FlightSearchResult>;
+  searchFlights(
+    params: FlightSearchParams,
+    ctx: { organizationId?: OrganizationId },
+  ): Promise<FlightSearchResult>;
 }

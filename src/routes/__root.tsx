@@ -10,6 +10,12 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+import { AppearanceProvider } from "@/lib/appearance/appearance-provider";
+import { APPEARANCE_INIT_SCRIPT } from "@/lib/appearance/theme";
+
+import { LanguageProvider } from "@/lib/i18n/language-provider";
+import { LANGUAGE_INIT_SCRIPT } from "@/lib/i18n/language";
+
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
@@ -115,8 +121,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{ __html: APPEARANCE_INIT_SCRIPT + LANGUAGE_INIT_SCRIPT }}
+        />
         <HeadContent />
       </head>
       <body>
@@ -148,8 +157,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <AppearanceProvider>
+        <LanguageProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+        </LanguageProvider>
+      </AppearanceProvider>
     </QueryClientProvider>
   );
 }

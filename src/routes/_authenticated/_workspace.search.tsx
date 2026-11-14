@@ -1,3 +1,6 @@
+import { WorkspaceSection } from "@/components/common/workspace-section";
+import { LocalizedDateInput } from "@/components/flights/localized-date-input";
+import { useLanguage } from "@/lib/i18n/language-context";
 import { useServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { Info } from "lucide-react";
@@ -22,7 +25,12 @@ import { ComparablePrices } from "@/components/flights/comparable-prices";
 import { flightSearchSchema, type FlightSearchInput } from "@/lib/flights/search-schema";
 import { searchFlightsServer } from "@/lib/flights/search.functions";
 import { KZ_AIRPORTS } from "@/lib/flights/airports";
-import { CABIN_CLASSES, CABIN_LABELS, type FlightSearchParams } from "@/lib/flights/types";
+import {
+  CABIN_CLASSES,
+  CABIN_LABELS,
+  type FlightSearchParams,
+  type FlightSearchSnapshot,
+} from "@/lib/flights/types";
 import { analyzeFlightPrices } from "@/lib/flights/analytics";
 import {
   organizationFailure,
@@ -66,17 +74,38 @@ const initial: FormValues = {
 };
 
 function SearchPage() {
+  const { t, message, number, dateTime } = useLanguage();
+  useEffect(() => {
+    document.title = `${t("Flight Search")} — Flight Analytics`;
+  }, [t]);
   const searchFlights = useServerFn(searchFlightsServer);
   const workspace = useOrganizationWorkspace();
-  const { selectedOrganizationId, canSearch, version } = workspace;
+  const { selectedOrganizationId, version } = workspace;
+  const personalScope =
+    workspace.status === "ready" &&
+    workspace.memberships.length === 0 &&
+    !workspace.error &&
+    !workspace.authorizationError &&
+    selectedOrganizationId === null;
+  const canSearch = workspace.canSearch || personalScope;
+  // Personal snapshots stay on this page, never in the agency workspace or storage.
+  const [personalSearch, setPersonalSearch] = useState<{
+    version: number;
+    snapshot: FlightSearchSnapshot;
+  } | null>(null);
+  const search = personalScope
+    ? personalSearch?.version === version
+      ? personalSearch.snapshot
+      : null
+    : workspace.search;
   const request = useRef(0);
   const [values, setValues] = useState<FormValues>(initial);
   const [errors, setErrors] = useState<Errors>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const offers = workspace.search?.offers ?? [];
-  const fetchedAt = workspace.search?.fetchedAt ?? null;
+  const offers = search?.offers ?? [];
+  const fetchedAt = search?.fetchedAt ?? null;
   const invalidateRequest = useCallback(() => {
     ++request.current;
   }, []);
@@ -87,6 +116,7 @@ function SearchPage() {
     invalidateRequest();
     setPending(false);
     setNotice(null);
+    setPersonalSearch(null);
     return invalidateRequest;
   }, [selectedOrganizationId, version, invalidateRequest]);
 
@@ -102,7 +132,7 @@ function SearchPage() {
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
 
-    if (pending || !canSearch || !selectedOrganizationId) {
+    if (pending || !canSearch) {
       return;
     }
 
@@ -128,7 +158,8 @@ function SearchPage() {
 
     setErrors({});
     setPending(true);
-    workspace.clearSearch();
+    if (selectedOrganizationId) workspace.clearSearch();
+    setPersonalSearch(null);
     const currentRequest = ++request.current;
     const isCurrent = () => request.current === currentRequest && workspace.isCurrentScope();
 
@@ -138,19 +169,22 @@ function SearchPage() {
     };
 
     try {
-      // The server independently verifies membership for this explicit selection.
+      // Omit organization context for a personal search; the server verifies identity.
       const result = await searchFlights({
-        data: { ...params, organizationId: selectedOrganizationId },
+        data: {
+          ...params,
+          ...(selectedOrganizationId ? { organizationId: selectedOrganizationId } : {}),
+        },
       });
       if (!isCurrent()) return;
 
       if (result.status === "ok") {
-        workspace.publishSearch({
-          organizationId: selectedOrganizationId,
-          params,
-          offers: result.offers,
-          fetchedAt: result.fetchedAt,
-        });
+        const snapshot = { params, offers: result.offers, fetchedAt: result.fetchedAt };
+        if (selectedOrganizationId) {
+          workspace.publishSearch({ ...snapshot, organizationId: selectedOrganizationId });
+        } else {
+          setPersonalSearch({ version, snapshot });
+        }
       } else {
         setNotice(result.message);
       }
@@ -173,8 +207,10 @@ function SearchPage() {
   return (
     <>
       <PageHeader
-        title="Flight search"
-        description="Define a route to analyse. Enter IATA airport codes, e.g. ALA or NQZ."
+        title={t("Flight search")}
+        description={t(
+          "Search and compare flights, fares and schedules for free. Sign in to search; no organization is required. Enter IATA airport codes, e.g. ALA or NQZ.",
+        )}
       />
 
       {!canSearch && (
@@ -184,119 +220,115 @@ function SearchPage() {
           className="mb-4 text-sm text-muted-foreground"
         >
           {workspace.status === "loading"
-            ? "Loading organizations…"
-            : (workspace.error ??
-              workspace.authorizationError ??
+            ? t("Loading organizations…")
+            : ((workspace.error ? message(workspace.error) : null) ??
+              (workspace.authorizationError ? message(workspace.authorizationError) : null) ??
               (workspace.memberships.length === 0
-                ? "No organization assigned. Ask your agency owner to arrange access."
-                : "Select an organization before searching."))}
+                ? t("No organization assigned. Ask your agency owner to arrange access.")
+                : t("Select an organization before searching.")))}
         </p>
       )}
 
-      <Card className="shadow-card">
-        <CardContent className="pt-6">
-          <form
-            onSubmit={onSubmit}
-            noValidate
-            className="grid items-start gap-5 md:grid-cols-2 lg:grid-cols-3"
-          >
-            <Field id="origin" label="Origin" error={errors.origin}>
-              <Input
-                id="origin"
-                list="kz-airports"
-                placeholder="ALA"
-                maxLength={3}
-                value={values.origin}
-                onChange={(event) => set("origin", event.target.value.toUpperCase())}
-                aria-invalid={!!errors.origin}
-              />
-            </Field>
+      <WorkspaceSection title="Search details" className="shadow-card" keepMounted>
+        <form
+          onSubmit={onSubmit}
+          noValidate
+          className="grid items-start gap-5 md:grid-cols-2 lg:grid-cols-3"
+        >
+          <Field id="origin" label={t("Origin")} error={errors.origin}>
+            <Input
+              id="origin"
+              list="kz-airports"
+              placeholder="ALA"
+              maxLength={3}
+              value={values.origin}
+              onChange={(event) => set("origin", event.target.value.toUpperCase())}
+              aria-invalid={!!errors.origin}
+            />
+          </Field>
 
-            <Field id="destination" label="Destination" error={errors.destination}>
-              <Input
-                id="destination"
-                list="kz-airports"
-                placeholder="IST"
-                maxLength={3}
-                value={values.destination}
-                onChange={(event) => set("destination", event.target.value.toUpperCase())}
-                aria-invalid={!!errors.destination}
-              />
-            </Field>
+          <Field id="destination" label={t("Destination")} error={errors.destination}>
+            <Input
+              id="destination"
+              list="kz-airports"
+              placeholder="IST"
+              maxLength={3}
+              value={values.destination}
+              onChange={(event) => set("destination", event.target.value.toUpperCase())}
+              aria-invalid={!!errors.destination}
+            />
+          </Field>
 
-            <Field id="passengers" label="Passengers" error={errors.passengers}>
-              <Input
-                id="passengers"
-                type="number"
-                min={1}
-                max={9}
-                value={String(values.passengers ?? "")}
-                onChange={(event) => set("passengers", event.target.value)}
-                aria-invalid={!!errors.passengers}
-              />
-            </Field>
+          <Field id="passengers" label={t("Passengers")} error={errors.passengers}>
+            <Input
+              id="passengers"
+              type="number"
+              min={1}
+              max={9}
+              value={String(values.passengers ?? "")}
+              onChange={(event) => set("passengers", event.target.value)}
+              aria-invalid={!!errors.passengers}
+            />
+          </Field>
 
-            <Field id="departureDate" label="Departure date" error={errors.departureDate}>
-              <Input
-                id="departureDate"
-                type="date"
-                value={values.departureDate}
-                onChange={(event) => set("departureDate", event.target.value)}
-                aria-invalid={!!errors.departureDate}
-              />
-            </Field>
+          <Field id="departureDate" label={t("Departure date")} error={errors.departureDate}>
+            <LocalizedDateInput
+              id="departureDate"
+              label={t("Departure date")}
+              value={values.departureDate}
+              onChange={(value) => set("departureDate", value)}
+              invalid={!!errors.departureDate}
+            />
+          </Field>
 
-            <Field id="returnDate" label="Return date (optional)" error={errors.returnDate}>
-              <Input
-                id="returnDate"
-                type="date"
-                value={values.returnDate}
-                onChange={(event) => set("returnDate", event.target.value)}
-                aria-invalid={!!errors.returnDate}
-              />
-            </Field>
+          <Field id="returnDate" label={t("Return date (optional)")} error={errors.returnDate}>
+            <LocalizedDateInput
+              id="returnDate"
+              label={t("Return date (optional)")}
+              value={values.returnDate ?? ""}
+              onChange={(value) => set("returnDate", value)}
+              invalid={!!errors.returnDate}
+            />
+          </Field>
 
-            <Field id="cabinClass" label="Cabin class" error={errors.cabinClass}>
-              <Select
-                value={values.cabinClass}
-                onValueChange={(value) =>
-                  set("cabinClass", value as FlightSearchInput["cabinClass"])
-                }
-              >
-                <SelectTrigger id="cabinClass">
-                  <SelectValue />
-                </SelectTrigger>
+          <Field id="cabinClass" label={t("Cabin class")} error={errors.cabinClass}>
+            <Select
+              value={values.cabinClass}
+              onValueChange={(value) => set("cabinClass", value as FlightSearchInput["cabinClass"])}
+            >
+              <SelectTrigger id="cabinClass">
+                <SelectValue />
+              </SelectTrigger>
 
-                <SelectContent>
-                  {CABIN_CLASSES.map((cabinClass) => (
-                    <SelectItem key={cabinClass} value={cabinClass}>
-                      {CABIN_LABELS[cabinClass]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+              <SelectContent>
+                {CABIN_CLASSES.map((cabinClass) => (
+                  <SelectItem key={cabinClass} value={cabinClass}>
+                    {t(CABIN_LABELS[cabinClass])}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
 
-            <datalist id="kz-airports">
-              {KZ_AIRPORTS.map((airport) => (
-                <option key={airport.iata} value={airport.iata}>
-                  {airport.city} — {airport.name}
-                </option>
-              ))}
-            </datalist>
+          <datalist id="kz-airports">
+            {KZ_AIRPORTS.map((airport) => (
+              <option key={airport.iata} value={airport.iata}>
+                {t(airport.city)} — {t(airport.name)}
+              </option>
+            ))}
+          </datalist>
 
-            <div className="md:col-span-2 lg:col-span-3">
-              <Button
-                type="submit"
-                disabled={pending || !canSearch}
-                aria-describedby={!canSearch ? "search-organization-status" : undefined}
-              >
-                {pending ? "Checking…" : "Search flights"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+          <div className="md:col-span-2 lg:col-span-3">
+            <Button
+              type="submit"
+              disabled={pending || !canSearch}
+              aria-describedby={!canSearch ? "search-organization-status" : undefined}
+            >
+              {t(pending ? "Checking…" : "Search flights")}
+            </Button>
+          </div>
+        </form>
+      </WorkspaceSection>
 
       {notice && (
         <div
@@ -306,9 +338,9 @@ function SearchPage() {
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
 
           <div>
-            <p className="font-medium">Flight search unavailable</p>
+            <p className="font-medium">{t("Flight search unavailable")}</p>
 
-            <p className="mt-0.5">{notice}</p>
+            <p className="mt-0.5">{message(notice)}</p>
           </div>
         </div>
       )}
@@ -319,99 +351,108 @@ function SearchPage() {
             <div className="grid gap-4 md:grid-cols-3">
               <Card>
                 <CardContent className="pt-5">
-                  <p className="text-sm text-muted-foreground">Lowest price</p>
+                  <p className="text-sm text-muted-foreground">{t("Lowest price")}</p>
 
                   <p className="mt-2 text-2xl font-bold">
-                    {priceAnalysis.cheapest.price.amount.toLocaleString()} {priceAnalysis.currency}
+                    {number(priceAnalysis.cheapest.price.amount)} {priceAnalysis.currency}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardContent className="pt-5">
-                  <p className="text-sm text-muted-foreground">Average price</p>
+                  <p className="text-sm text-muted-foreground">{t("Average price")}</p>
 
                   <p className="mt-2 text-2xl font-bold">
-                    {Math.round(priceAnalysis.averagePrice).toLocaleString()}{" "}
-                    {priceAnalysis.currency}
+                    {number(Math.round(priceAnalysis.averagePrice))} {priceAnalysis.currency}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardContent className="pt-5">
-                  <p className="text-sm text-muted-foreground">Price spread</p>
+                  <p className="text-sm text-muted-foreground">{t("Price spread")}</p>
 
                   <p className="mt-2 text-2xl font-bold">
-                    {priceAnalysis.priceSpread.toLocaleString()} {priceAnalysis.currency}
+                    {number(priceAnalysis.priceSpread)} {priceAnalysis.currency}
                   </p>
 
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {priceAnalysis.priceSpreadPercent.toFixed(1)}% between highest and lowest fares
+                    {t("{percent}% between highest and lowest fares", {
+                      percent: number(priceAnalysis.priceSpreadPercent, {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1,
+                      }),
+                    })}
                   </p>
                 </CardContent>
               </Card>
             </div>
           )}
 
-          {workspace.search && <ComparablePrices search={workspace.search} />}
+          {search && <ComparablePrices search={search} collapsible />}
 
-          <div>
-            <h2 className="text-xl font-semibold">Flight offers ({offers.length})</h2>
-
+          <WorkspaceSection title={t("Flight offers ({count})", { count: number(offers.length) })}>
             <p className="text-sm text-muted-foreground">
-              Retrieved: {new Date(fetchedAt).toLocaleString()}
+              {t("Retrieved: {date}", { date: dateTime(fetchedAt) })}
             </p>
-          </div>
+            {offers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {t("No flights found for the selected route and date.")}
+              </p>
+            ) : (
+              <div className="grid gap-3">
+                {offers.map((offer) => (
+                  <Card key={offer.id}>
+                    <CardContent className="space-y-2 pt-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="font-semibold">
+                            {offer.origin} → {offer.destination}
+                          </p>
 
-          {offers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No flights found for the selected route and date.
-            </p>
-          ) : (
-            <div className="grid gap-3">
-              {offers.map((offer) => (
-                <Card key={offer.id}>
-                  <CardContent className="space-y-2 pt-5">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="font-semibold">
-                          {offer.origin} → {offer.destination}
-                        </p>
+                          <p className="text-sm text-muted-foreground">
+                            {offer.carrier} · {offer.flightNumber}
+                          </p>
+                        </div>
 
-                        <p className="text-sm text-muted-foreground">
-                          {offer.carrier} · {offer.flightNumber}
+                        <p className="text-lg font-bold">
+                          {number(offer.price.amount)} {offer.price.currency}
                         </p>
                       </div>
 
-                      <p className="text-lg font-bold">
-                        {offer.price.amount.toLocaleString()} {offer.price.currency}
+                      <p className="text-sm">
+                        {offer.stops === 0
+                          ? t("Direct flight")
+                          : offer.stops === 1
+                            ? t("1 stop")
+                            : t("{count} stops", { count: number(offer.stops) })}
                       </p>
-                    </div>
 
-                    <p className="text-sm">
-                      {offer.stops === 0
-                        ? "Direct flight"
-                        : `${offer.stops} stop${offer.stops === 1 ? "" : "s"}`}
-                    </p>
-
-                    {offer.outbound?.segments.length ? (
-                      <FlightItinerary itinerary={offer.outbound} label="Outbound itinerary" />
-                    ) : (
-                      <>
-                        <p className="text-sm text-muted-foreground">Departure: <FlightDateTime value={offer.departureAt} /></p>
-                        <p className="text-sm text-muted-foreground">Arrival: <FlightDateTime value={offer.arrivalAt} /></p>
-                        <p className="text-sm text-muted-foreground">Segment details unavailable</p>
-                      </>
-                    )}
-                    {offer.inbound?.segments.length ? (
-                      <FlightItinerary itinerary={offer.inbound} label="Return itinerary" />
-                    ) : null}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+                      {offer.outbound?.segments.length ? (
+                        <FlightItinerary itinerary={offer.outbound} label="Outbound itinerary" />
+                      ) : (
+                        <>
+                          <p className="text-sm text-muted-foreground">
+                            {t("Departure:")} <FlightDateTime value={offer.departureAt} />
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {t("Arrival:")} <FlightDateTime value={offer.arrivalAt} />
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {t("Segment details unavailable")}
+                          </p>
+                        </>
+                      )}
+                      {offer.inbound?.segments.length ? (
+                        <FlightItinerary itinerary={offer.inbound} label="Return itinerary" />
+                      ) : null}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </WorkspaceSection>
         </section>
       )}
     </>
@@ -429,13 +470,14 @@ function Field({
   error?: string | undefined;
   children: ReactNode;
 }) {
+  const { message } = useLanguage();
   return (
     <div className="grid content-start gap-1.5">
       <Label htmlFor={id}>{label}</Label>
 
       {children}
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="text-xs text-destructive">{message(error)}</p>}
     </div>
   );
 }

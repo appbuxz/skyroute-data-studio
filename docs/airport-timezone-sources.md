@@ -42,3 +42,34 @@ Mappings select IANA regions; no numeric offset is stored in the resolver.
 Existing Intl-based conversion computes date-specific offsets. Tests cover winter,
 summer, spring gaps and autumn overlaps for every added DST-observing airport,
 and verify Phoenix has neither transition. No UTC fallback was introduced.
+
+## CDG/PVG searches — 2026-11-14
+
+Added the requested CDG/PVG mappings and only additional airports observed in
+Travelport pre-production reference flights for the six requested January/March
+2027 searches. Reference lists also contain nearby origin airports ORY and SHA;
+these are not necessarily transit airports or exact-route offers.
+
+| Airports                     | IANA timezone   |
+| ---------------------------- | --------------- |
+| CDG, ORY                     | Europe/Paris    |
+| PVG, CAN, PEK, SHA, XIY, URC | Asia/Shanghai   |
+| ESB, SAW                     | Europe/Istanbul |
+| FRA                          | Europe/Berlin   |
+| WAW                          | Europe/Warsaw   |
+| DOH                          | Asia/Qatar      |
+| DXB                          | Asia/Dubai      |
+| TAS                          | Asia/Tashkent   |
+
+Airport locations and candidate zones were checked against the
+[OpenFlights airport dataset](https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat).
+IANA [zone1970.tab](https://data.iana.org/time-zones/tzdb/zone1970.tab)
+confirms the region names and country coverage. DOH is located in Qatar (its
+OpenFlights zone field is empty); IANA supplies Asia/Qatar. TAS uses the eastern
+Uzbekistan region Asia/Tashkent, rather than OpenFlights' Asia/Samarkand.
+URC explicitly has Asia/Shanghai in the airport dataset: airport schedules use
+Beijing time, not the unofficial Asia/Urumqi clock. China's aviation time standard
+is documented in [AIP China GEN 2.1](https://yinlei.org/x-plane10/doc/GEN_2.pdf).
+
+Tests verify winter/summer 2027 offsets for every addition and European DST gaps
+and overlaps. Unknown airports still fail explicitly; there is no UTC fallback.

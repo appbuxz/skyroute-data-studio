@@ -28,7 +28,12 @@ export const travelportProvider: FlightDataProvider = {
           };
         }
       }
-      return { status: "ok", offers: result.offers, fetchedAt: new Date().toISOString() };
+      return {
+        status: "ok",
+        offers: result.offers,
+        environment: "test",
+        fetchedAt: new Date().toISOString(),
+      };
     } catch {
       return { status: "error", message: "Flight search is temporarily unavailable." };
     }

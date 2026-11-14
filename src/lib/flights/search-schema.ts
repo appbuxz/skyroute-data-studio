@@ -7,7 +7,16 @@ const iata = z
   .toUpperCase()
   .regex(/^[A-Z]{3}$/, { message: "Enter a 3-letter airport code" });
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Select a date" });
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Select a date" })
+  .refine(
+    (value) => {
+      const date = new Date(`${value}T00:00:00Z`);
+      return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+    },
+    { message: "Select a date" },
+  );
 
 function todayInKazakhstan(): string {
   return new Intl.DateTimeFormat("en-CA", {

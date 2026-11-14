@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BarChart3, Building2, LineChart, ShieldCheck } from "lucide-react";
+import { BarChart3, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Brand } from "@/components/layout/brand";
 
 export const Route = createFileRoute("/")({
@@ -8,21 +9,22 @@ export const Route = createFileRoute("/")({
     meta: [
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { title: "Flight Analytics — Fare intelligence for Kazakhstan travel agencies" },
-      { name: "description", content: "Analyse routes, fares and carriers in one workspace built for travel agencies in Kazakhstan." },
-      { property: "og:title", content: "Flight Analytics — Fare intelligence for travel agencies" },
-      { property: "og:description", content: "Analyse routes, fares and carriers in one workspace built for travel agencies in Kazakhstan." },
+      { title: "Flight Analytics — Flight search and agency analytics" },
+      {
+        name: "description",
+        content:
+          "Free flight search for travelers and advanced analytics for travel agencies. Flight Search requires an account; Check My Flight also requires organization access.",
+      },
+      { property: "og:title", content: "Flight Analytics — Flight search and agency analytics" },
+      {
+        property: "og:description",
+        content:
+          "Free flight search for travelers and advanced analytics for travel agencies. Flight Search requires an account; Check My Flight also requires organization access.",
+      },
     ],
   }),
   component: Landing,
 });
-
-const FEATURES = [
-  { icon: LineChart, title: "Fare trends", text: "Follow how prices move on the routes your clients book most." },
-  { icon: BarChart3, title: "Route analysis", text: "Compare carriers, stops and schedules for any origin and destination." },
-  { icon: Building2, title: "Built for agencies", text: "Organization workspaces so your whole team shares one view." },
-  { icon: ShieldCheck, title: "Transparent data", text: "Every figure shows its source. Nothing is invented." },
-];
 
 function Landing() {
   return (
@@ -31,42 +33,97 @@ function Landing() {
         <header className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:px-8">
           <Brand />
           <nav className="flex items-center gap-2">
-            <Button asChild variant="ghost" className="hover:bg-primary-foreground/10 hover:text-primary-foreground">
-              <a href="#features">Features</a>
+            <Button
+              asChild
+              variant="ghost"
+              className="hover:bg-primary-foreground/10 hover:text-primary-foreground"
+            >
+              <a href="#features">Explore</a>
             </Button>
-            <Button asChild variant="secondary"><Link to="/dashboard">Open workspace</Link></Button>
+            <Button asChild variant="secondary">
+              <Link to="/dashboard">Open workspace</Link>
+            </Button>
           </nav>
         </header>
         <div className="mx-auto max-w-6xl px-4 pb-24 pt-16 md:px-8 md:pt-24">
-          <p className="text-sm font-medium uppercase tracking-widest text-highlight">For travel agencies in Kazakhstan</p>
+          <p className="text-sm font-medium uppercase tracking-widest text-highlight">
+            For travelers and travel agencies
+          </p>
           <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight md:text-6xl">
-            Flight fare intelligence for every route you sell.
+            Find flights. Make informed travel decisions.
           </h1>
           <p className="mt-6 max-w-xl text-base opacity-80 md:text-lg">
-            Flight Analytics brings route, fare and carrier insights into one workspace, so your agents quote with confidence.
+            Search and compare flights for your next trip, or explore advanced fare and route
+            analytics for your agency.
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
-            <Button asChild size="lg" variant="secondary"><Link to="/search">Try the search form</Link></Button>
-            <Button asChild size="lg" variant="ghost" className="hover:bg-primary-foreground/10 hover:text-primary-foreground">
-              <Link to="/dashboard">View dashboard</Link>
+            <Button asChild size="lg" variant="secondary">
+              <Link to="/search">Search flights</Link>
+            </Button>
+            <Button
+              asChild
+              size="lg"
+              variant="ghost"
+              className="hover:bg-primary-foreground/10 hover:text-primary-foreground"
+            >
+              <Link to="/analysis">Explore agency analytics</Link>
             </Button>
           </div>
-          <p className="mt-6 text-xs opacity-60">Early preview — live flight data is not connected yet.</p>
+          <p className="mt-6 text-xs opacity-60">
+            Flight Search is free with an account. Check My Flight also requires organization
+            access.
+          </p>
         </div>
       </section>
       <section id="features" className="mx-auto max-w-6xl px-4 py-20 md:px-8">
-        <h2 className="text-2xl font-semibold md:text-3xl">What the platform will do</h2>
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="rounded-lg border bg-card p-6 shadow-card">
-              <Icon className="h-5 w-5 text-highlight" />
-              <h3 className="mt-4 font-semibold">{title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{text}</p>
-            </div>
-          ))}
+        <h2 className="text-2xl font-semibold md:text-3xl">Two ways to use Flight Analytics</h2>
+        <div className="mt-10 grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <Search className="h-5 w-5 text-highlight" />
+              <p className="text-sm text-muted-foreground">For travelers · Free search</p>
+              <CardTitle>Search and compare flights</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Compare fares, carriers and schedules, or use Check My Flight to compare an offer
+                against your travel requirements.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Flight Search requires an account, with no organization membership needed. Check My
+                Flight currently requires both an account and organization access.
+              </p>
+              <Button asChild>
+                <Link to="/search">Search flights</Link>
+              </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <BarChart3 className="h-5 w-5 text-highlight" />
+              <p className="text-sm text-muted-foreground">
+                For travel agencies · Subscription planned
+              </p>
+              <CardTitle>Advanced agency analytics</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Explore fare distributions and carrier comparisons from your latest search to
+                support your agency’s decisions.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Advanced agency tools are planned as a subscription offering.
+              </p>
+              <Button asChild variant="outline">
+                <Link to="/analysis">Explore analytics</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </section>
-      <footer className="border-t py-8 text-center text-xs text-muted-foreground">© 2026 Flight Analytics</footer>
+      <footer className="border-t py-8 text-center text-xs text-muted-foreground">
+        © 2026 Flight Analytics
+      </footer>
     </div>
   );
 }
