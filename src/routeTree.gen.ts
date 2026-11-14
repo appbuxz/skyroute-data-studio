@@ -19,6 +19,7 @@ import { Route as AuthenticatedWorkspaceCheckMyFlightRouteImport } from './route
 import { Route as AuthenticatedWorkspaceDashboardRouteImport } from './routes/_authenticated/_workspace.dashboard'
 import { Route as AuthenticatedWorkspaceReportsRouteImport } from './routes/_authenticated/_workspace.reports'
 import { Route as AuthenticatedWorkspaceSearchRouteImport } from './routes/_authenticated/_workspace.search'
+import { Route as AuthenticatedWorkspaceSettingsRouteImport } from './routes/_authenticated/_workspace.settings'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -73,6 +74,12 @@ const AuthenticatedWorkspaceSearchRoute =
     path: '/search',
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any)
+const AuthenticatedWorkspaceSettingsRoute =
+  AuthenticatedWorkspaceSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedWorkspaceDashboardRoute
   '/reports': typeof AuthenticatedWorkspaceReportsRoute
   '/search': typeof AuthenticatedWorkspaceSearchRoute
+  '/settings': typeof AuthenticatedWorkspaceSettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,6 +101,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedWorkspaceDashboardRoute
   '/reports': typeof AuthenticatedWorkspaceReportsRoute
   '/search': typeof AuthenticatedWorkspaceSearchRoute
+  '/settings': typeof AuthenticatedWorkspaceSettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -106,6 +115,7 @@ export interface FileRoutesById {
   '/_authenticated/_workspace/dashboard': typeof AuthenticatedWorkspaceDashboardRoute
   '/_authenticated/_workspace/reports': typeof AuthenticatedWorkspaceReportsRoute
   '/_authenticated/_workspace/search': typeof AuthenticatedWorkspaceSearchRoute
+  '/_authenticated/_workspace/settings': typeof AuthenticatedWorkspaceSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/reports'
     | '/search'
+    | '/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/reports'
     | '/search'
+    | '/settings'
   id:
     | '__root__'
     | '/'
@@ -140,6 +152,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_workspace/dashboard'
     | '/_authenticated/_workspace/reports'
     | '/_authenticated/_workspace/search'
+    | '/_authenticated/_workspace/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -221,6 +234,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWorkspaceSearchRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
+    '/_authenticated/_workspace/settings': {
+      id: '/_authenticated/_workspace/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedWorkspaceSettingsRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
+    }
   }
 }
 
@@ -230,6 +250,7 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceDashboardRoute: typeof AuthenticatedWorkspaceDashboardRoute
   AuthenticatedWorkspaceReportsRoute: typeof AuthenticatedWorkspaceReportsRoute
   AuthenticatedWorkspaceSearchRoute: typeof AuthenticatedWorkspaceSearchRoute
+  AuthenticatedWorkspaceSettingsRoute: typeof AuthenticatedWorkspaceSettingsRoute
 }
 
 const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
@@ -240,6 +261,7 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
     AuthenticatedWorkspaceDashboardRoute: AuthenticatedWorkspaceDashboardRoute,
     AuthenticatedWorkspaceReportsRoute: AuthenticatedWorkspaceReportsRoute,
     AuthenticatedWorkspaceSearchRoute: AuthenticatedWorkspaceSearchRoute,
+    AuthenticatedWorkspaceSettingsRoute: AuthenticatedWorkspaceSettingsRoute,
   }
 
 const AuthenticatedWorkspaceRouteWithChildren =

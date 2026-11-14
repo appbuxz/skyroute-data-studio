@@ -14,7 +14,7 @@ describe("App routing", () => {
 
     expect(matches.at(-1)?.routeId).not.toBe(rootRouteId);
   });
-  it.each(["/check-my-flight", "/search", "/dashboard", "/analysis", "/reports"])(
+  it.each(["/check-my-flight", "/search", "/dashboard", "/analysis", "/reports", "/settings"])(
     "keeps %s under the authenticated workspace",
     (path) => {
       const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });

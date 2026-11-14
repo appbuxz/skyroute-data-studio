@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { terminateSession } from "@/lib/auth/session";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BarChart3, FileText, LayoutDashboard, Plane, Search } from "lucide-react";
+import { BarChart3, FileText, LayoutDashboard, Plane, Search, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 import { Brand } from "./brand";
 import { cn } from "@/lib/utils";
@@ -57,12 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }
   return (
-    <div
-      className={cn(
-        "flex min-h-screen w-full flex-col bg-background md:flex-row",
-        path === "/analysis" && "analytics-workspace",
-      )}
-    >
+    <div className="flex min-h-screen w-full flex-col bg-background text-foreground md:flex-row">
       <aside className="flex shrink-0 flex-col bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-screen md:w-60">
         <Link to="/" className="flex h-14 items-center px-5 text-sidebar-accent-foreground">
           <Brand />
@@ -96,6 +91,19 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
             </section>
           ))}
+          <Link
+            to="/settings"
+            aria-current={path === "/settings" ? "page" : undefined}
+            className={cn(
+              "flex shrink-0 items-center gap-3 self-start rounded-md px-3 py-2 text-sm transition-colors md:self-auto",
+              path === "/settings"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                : "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+            )}
+          >
+            <Settings className="h-4 w-4" />
+            Settings
+          </Link>
         </nav>
         <div className="mt-auto border-t border-sidebar-border px-5 py-4">
           <OrganizationSelector />
