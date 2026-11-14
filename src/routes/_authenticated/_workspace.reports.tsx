@@ -1,8 +1,10 @@
+import { requireAgencyWorkspace } from "@/lib/organizations/agency-access";
 import { createFileRoute } from "@tanstack/react-router";
 import { FileText } from "lucide-react";
 import { EmptyState, PageHeader } from "@/components/common/page-header";
 
 export const Route = createFileRoute("/_authenticated/_workspace/reports")({
+  beforeLoad: requireAgencyWorkspace,
   head: () => ({
     meta: [
       { property: "og:type", content: "website" },
@@ -19,7 +21,10 @@ export const Route = createFileRoute("/_authenticated/_workspace/reports")({
 function Reports() {
   return (
     <>
-      <PageHeader title="Reports" description="Saved route and fare reports for your organization." />
+      <PageHeader
+        title="Reports"
+        description="Saved route and fare reports for your organization."
+      />
       <EmptyState
         icon={<FileText className="h-5 w-5" />}
         title="No reports yet"

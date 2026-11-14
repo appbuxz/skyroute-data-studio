@@ -1,12 +1,9 @@
 import { createContext, useContext } from "react";
-import type { FlightOffer, FlightSearchParams, OrganizationId } from "../flights/types";
+import type { FlightSearchSnapshot, OrganizationId } from "../flights/types";
 import type { OrganizationMembership } from "./session.functions";
 
-export interface WorkspaceSearch {
+export interface WorkspaceSearch extends FlightSearchSnapshot {
   organizationId: OrganizationId;
-  params: FlightSearchParams;
-  offers: FlightOffer[];
-  fetchedAt: string;
 }
 
 export interface OrganizationWorkspace {

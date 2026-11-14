@@ -35,7 +35,7 @@ export function OrganizationSelector() {
           : (workspace.error ??
             workspace.authorizationError ??
             (workspace.memberships.length === 0
-              ? "No organization assigned. Ask your agency owner to arrange access."
+              ? "No organization assigned. Flight Search is available with your account; agency tools require membership."
               : !workspace.selectedOrganizationId
                 ? "Select an organization to search flights."
                 : "Searches use the selected organization."))}

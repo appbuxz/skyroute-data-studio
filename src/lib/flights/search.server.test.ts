@@ -3,12 +3,18 @@ import type { FlightSearchParams, FlightSearchResult, OrganizationId } from "./t
 
 const mocks = vi.hoisted(() => ({
   requireOrganization: vi.fn(),
+  requireAuth: vi.fn(),
   searchFlights: vi.fn(),
 }));
 
 vi.mock("../organizations/authorization.server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../organizations/authorization.server")>()),
   requireOrganization: mocks.requireOrganization,
+}));
+
+vi.mock("../supabase/auth.server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../supabase/auth.server")>()),
+  requireAuth: mocks.requireAuth,
 }));
 
 vi.mock("./travelport-provider.server", () => ({
@@ -57,6 +63,7 @@ beforeEach(() => {
     organizationId,
     role: "member",
   });
+  mocks.requireAuth.mockResolvedValue({ id: "verified-user" });
   mocks.searchFlights.mockResolvedValue(success);
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -83,8 +90,8 @@ describe("searchFlightsServer authorization", () => {
     mocks.requireOrganization.mockRejectedValue(error);
 
     // Preserve the exact error and statusCode outside the provider catch block.
-    await expect(searchFlightsServer({ data: params })).rejects.toBe(error);
-    expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith(undefined);
+    await expect(searchFlightsServer({ data: { ...params, organizationId } })).rejects.toBe(error);
+    expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith(organizationId);
     expect(mocks.searchFlights).not.toHaveBeenCalled();
     expect(console.error).not.toHaveBeenCalled();
   });
@@ -97,7 +104,7 @@ describe("searchFlightsServer authorization", () => {
       }),
     );
 
-    const pending = searchFlightsServer({ data: params });
+    const pending = searchFlightsServer({ data: { ...params, organizationId } });
     expect(mocks.requireOrganization).toHaveBeenCalledOnce();
     expect(mocks.searchFlights).not.toHaveBeenCalled();
     authorize({ organizationId });
@@ -114,8 +121,10 @@ describe("searchFlightsServer authorization", () => {
         role,
       });
 
-      await expect(searchFlightsServer({ data: params })).resolves.toBe(success);
-      expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith(undefined);
+      await expect(searchFlightsServer({ data: { ...params, organizationId } })).resolves.toBe(
+        success,
+      );
+      expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith(organizationId);
       expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
         { ...params, returnDate: undefined },
         { organizationId },
@@ -128,9 +137,10 @@ describe("searchFlightsServer authorization", () => {
       ...params,
       userId: "forged-user",
       role: "owner",
+      organizationId,
     };
     await searchFlightsServer({ data: forgedInput });
-    expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith(undefined);
+    expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith(organizationId);
     expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
       { ...params, returnDate: undefined },
       { organizationId },
@@ -180,7 +190,7 @@ describe("searchFlightsServer authorization", () => {
   });
 
   it("preserves empty return-date normalization", async () => {
-    await searchFlightsServer({ data: { ...params, returnDate: "" } });
+    await searchFlightsServer({ data: { ...params, returnDate: "", organizationId } });
     expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
       { ...params, returnDate: undefined },
       { organizationId },
@@ -189,7 +199,7 @@ describe("searchFlightsServer authorization", () => {
 
   it("preserves nonempty return dates for provider handling", async () => {
     const roundTrip = { ...params, returnDate: "2026-12-20" };
-    await searchFlightsServer({ data: roundTrip });
+    await searchFlightsServer({ data: { ...roundTrip, organizationId } });
     expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(roundTrip, { organizationId });
   });
 
@@ -198,16 +208,60 @@ describe("searchFlightsServer authorization", () => {
     { status: "error", message: "Flight data provider is unavailable." },
   ] satisfies FlightSearchResult[])("preserves provider result $status", async (result) => {
     mocks.searchFlights.mockResolvedValue(result);
-    await expect(searchFlightsServer({ data: params })).resolves.toBe(result);
+    await expect(searchFlightsServer({ data: { ...params, organizationId } })).resolves.toBe(
+      result,
+    );
   });
 
   it("preserves generic handling for unexpected provider failures", async () => {
     mocks.searchFlights.mockRejectedValue(new Error("Provider unavailable"));
-    await expect(searchFlightsServer({ data: params })).resolves.toEqual({
+    await expect(searchFlightsServer({ data: { ...params, organizationId } })).resolves.toEqual({
       status: "error",
       message: "Flight search is temporarily unavailable.",
     });
     expect(console.error).toHaveBeenCalledOnce();
+  });
+});
+
+describe("personal search authorization", () => {
+  it("allows a verified traveler without resolving any organization", async () => {
+    mocks.requireOrganization.mockRejectedValue(
+      new OrganizationAuthorizationError("ORGANIZATION_ACCESS_DENIED"),
+    );
+    await expect(searchFlightsServer({ data: params })).resolves.toBe(success);
+    expect(mocks.requireAuth).toHaveBeenCalledOnce();
+    expect(mocks.requireOrganization).not.toHaveBeenCalled();
+    expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
+      { ...params, returnDate: undefined },
+      {},
+    );
+  });
+
+  it("rejects signed-out callers before the provider runs", async () => {
+    const error = new UnauthorizedError();
+    mocks.requireAuth.mockRejectedValue(error);
+    await expect(searchFlightsServer({ data: params })).rejects.toBe(error);
+    expect(mocks.searchFlights).not.toHaveBeenCalled();
+  });
+
+  it("does not trust client identity or implicitly select an agency", async () => {
+    const forgedInput = { ...params, userId: "forged-user", role: "owner" };
+    await searchFlightsServer({ data: forgedInput });
+    expect(mocks.requireAuth).toHaveBeenCalledOnce();
+    expect(mocks.requireOrganization).not.toHaveBeenCalled();
+    expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
+      { ...params, returnDate: undefined },
+      {},
+    );
+  });
+
+  it("fails closed when identity verification is unavailable", async () => {
+    const error = Object.assign(new Error("Authentication service unavailable"), {
+      statusCode: 503,
+    });
+    mocks.requireAuth.mockRejectedValue(error);
+    await expect(searchFlightsServer({ data: params })).rejects.toBe(error);
+    expect(mocks.searchFlights).not.toHaveBeenCalled();
   });
 });
 

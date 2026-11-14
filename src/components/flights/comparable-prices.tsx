@@ -1,8 +1,8 @@
-import type { WorkspaceSearch } from "@/lib/organizations/workspace-context";
+import type { FlightSearchSnapshot } from "@/lib/flights/types";
 import { analyzeComparablePrices } from "@/lib/flights/comparable-prices";
 import { FlightDateTime } from "./flight-date-time";
 
-export function ComparablePrices({ search }: { search: WorkspaceSearch }) {
+export function ComparablePrices({ search }: { search: FlightSearchSnapshot }) {
   // Current search contract sends every passenger as ADT to Travelport.
   const passengers = { adults: search.params.passengers, children: 0, infants: 0 };
   const groups = analyzeComparablePrices(search.offers.map((offer) => ({ offer, passengers })));

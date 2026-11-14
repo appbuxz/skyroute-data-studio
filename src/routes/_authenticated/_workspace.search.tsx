@@ -22,7 +22,12 @@ import { ComparablePrices } from "@/components/flights/comparable-prices";
 import { flightSearchSchema, type FlightSearchInput } from "@/lib/flights/search-schema";
 import { searchFlightsServer } from "@/lib/flights/search.functions";
 import { KZ_AIRPORTS } from "@/lib/flights/airports";
-import { CABIN_CLASSES, CABIN_LABELS, type FlightSearchParams } from "@/lib/flights/types";
+import {
+  CABIN_CLASSES,
+  CABIN_LABELS,
+  type FlightSearchParams,
+  type FlightSearchSnapshot,
+} from "@/lib/flights/types";
 import { analyzeFlightPrices } from "@/lib/flights/analytics";
 import {
   organizationFailure,
@@ -68,15 +73,32 @@ const initial: FormValues = {
 function SearchPage() {
   const searchFlights = useServerFn(searchFlightsServer);
   const workspace = useOrganizationWorkspace();
-  const { selectedOrganizationId, canSearch, version } = workspace;
+  const { selectedOrganizationId, version } = workspace;
+  const personalScope =
+    workspace.status === "ready" &&
+    workspace.memberships.length === 0 &&
+    !workspace.error &&
+    !workspace.authorizationError &&
+    selectedOrganizationId === null;
+  const canSearch = workspace.canSearch || personalScope;
+  // Personal snapshots stay on this page, never in the agency workspace or storage.
+  const [personalSearch, setPersonalSearch] = useState<{
+    version: number;
+    snapshot: FlightSearchSnapshot;
+  } | null>(null);
+  const search = personalScope
+    ? personalSearch?.version === version
+      ? personalSearch.snapshot
+      : null
+    : workspace.search;
   const request = useRef(0);
   const [values, setValues] = useState<FormValues>(initial);
   const [errors, setErrors] = useState<Errors>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const offers = workspace.search?.offers ?? [];
-  const fetchedAt = workspace.search?.fetchedAt ?? null;
+  const offers = search?.offers ?? [];
+  const fetchedAt = search?.fetchedAt ?? null;
   const invalidateRequest = useCallback(() => {
     ++request.current;
   }, []);
@@ -87,6 +109,7 @@ function SearchPage() {
     invalidateRequest();
     setPending(false);
     setNotice(null);
+    setPersonalSearch(null);
     return invalidateRequest;
   }, [selectedOrganizationId, version, invalidateRequest]);
 
@@ -102,7 +125,7 @@ function SearchPage() {
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
 
-    if (pending || !canSearch || !selectedOrganizationId) {
+    if (pending || !canSearch) {
       return;
     }
 
@@ -128,7 +151,8 @@ function SearchPage() {
 
     setErrors({});
     setPending(true);
-    workspace.clearSearch();
+    if (selectedOrganizationId) workspace.clearSearch();
+    setPersonalSearch(null);
     const currentRequest = ++request.current;
     const isCurrent = () => request.current === currentRequest && workspace.isCurrentScope();
 
@@ -138,19 +162,22 @@ function SearchPage() {
     };
 
     try {
-      // The server independently verifies membership for this explicit selection.
+      // Omit organization context for a personal search; the server verifies identity.
       const result = await searchFlights({
-        data: { ...params, organizationId: selectedOrganizationId },
+        data: {
+          ...params,
+          ...(selectedOrganizationId ? { organizationId: selectedOrganizationId } : {}),
+        },
       });
       if (!isCurrent()) return;
 
       if (result.status === "ok") {
-        workspace.publishSearch({
-          organizationId: selectedOrganizationId,
-          params,
-          offers: result.offers,
-          fetchedAt: result.fetchedAt,
-        });
+        const snapshot = { params, offers: result.offers, fetchedAt: result.fetchedAt };
+        if (selectedOrganizationId) {
+          workspace.publishSearch({ ...snapshot, organizationId: selectedOrganizationId });
+        } else {
+          setPersonalSearch({ version, snapshot });
+        }
       } else {
         setNotice(result.message);
       }
@@ -174,7 +201,7 @@ function SearchPage() {
     <>
       <PageHeader
         title="Flight search"
-        description="Search and compare flights, fares and schedules for free. An account and organization access are currently required. Enter IATA airport codes, e.g. ALA or NQZ."
+        description="Search and compare flights, fares and schedules for free. Sign in to search; no organization is required. Enter IATA airport codes, e.g. ALA or NQZ."
       />
 
       {!canSearch && (
@@ -354,7 +381,7 @@ function SearchPage() {
             </div>
           )}
 
-          {workspace.search && <ComparablePrices search={workspace.search} />}
+          {search && <ComparablePrices search={search} />}
 
           <div>
             <h2 className="text-xl font-semibold">Flight offers ({offers.length})</h2>

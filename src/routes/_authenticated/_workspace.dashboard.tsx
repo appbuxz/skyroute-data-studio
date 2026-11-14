@@ -1,3 +1,4 @@
+import { requireAgencyWorkspace } from "@/lib/organizations/agency-access";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Activity, Plane, Route as RouteIcon, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,14 +6,21 @@ import { Button } from "@/components/ui/button";
 import { DemoBadge, EmptyState, PageHeader } from "@/components/common/page-header";
 
 export const Route = createFileRoute("/_authenticated/_workspace/dashboard")({
+  beforeLoad: requireAgencyWorkspace,
   head: () => ({
     meta: [
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { title: "Dashboard — Flight Analytics" },
-      { name: "description", content: "Overview of fare trends and search activity for your agency." },
+      {
+        name: "description",
+        content: "Overview of fare trends and search activity for your agency.",
+      },
       { property: "og:title", content: "Dashboard — Flight Analytics" },
-      { property: "og:description", content: "Overview of fare trends and search activity for your agency." },
+      {
+        property: "og:description",
+        content: "Overview of fare trends and search activity for your agency.",
+      },
     ],
   }),
   component: Dashboard,

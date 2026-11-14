@@ -13,13 +13,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Free flight search for travelers and advanced analytics for travel agencies. Search currently requires an account and organization access.",
+          "Free flight search for travelers and advanced analytics for travel agencies. Flight Search requires an account; Check My Flight also requires organization access.",
       },
       { property: "og:title", content: "Flight Analytics — Flight search and agency analytics" },
       {
         property: "og:description",
         content:
-          "Free flight search for travelers and advanced analytics for travel agencies. Search currently requires an account and organization access.",
+          "Free flight search for travelers and advanced analytics for travel agencies. Flight Search requires an account; Check My Flight also requires organization access.",
       },
     ],
   }),
@@ -70,7 +70,8 @@ function Landing() {
             </Button>
           </div>
           <p className="mt-6 text-xs opacity-60">
-            Free search currently requires an account and access to an organization.
+            Flight Search is free with an account. Check My Flight also requires organization
+            access.
           </p>
         </div>
       </section>
@@ -89,7 +90,8 @@ function Landing() {
                 against your travel requirements.
               </p>
               <p className="text-sm text-muted-foreground">
-                An account and access to an organization are currently required.
+                Flight Search requires an account, with no organization membership needed. Check My
+                Flight currently requires both an account and organization access.
               </p>
               <Button asChild>
                 <Link to="/search">Search flights</Link>

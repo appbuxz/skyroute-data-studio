@@ -96,6 +96,13 @@ export type FlightSearchResult =
   | { status: "ok"; offers: FlightOffer[]; fetchedAt: string; environment?: "test" | "production" }
   | { status: "error"; message: string };
 
+/** Search snapshot with no implied organization ownership. */
+export interface FlightSearchSnapshot {
+  params: FlightSearchParams;
+  offers: FlightOffer[];
+  fetchedAt: string;
+}
+
 export interface FlightDataProvider {
   searchFlights(
     params: FlightSearchParams,

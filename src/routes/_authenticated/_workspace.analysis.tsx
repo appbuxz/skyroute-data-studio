@@ -1,3 +1,4 @@
+import { requireAgencyWorkspace } from "@/lib/organizations/agency-access";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BarChart3, Plane, Clock } from "lucide-react";
 
@@ -8,6 +9,7 @@ import { useOrganizationWorkspace } from "@/lib/organizations/workspace-context"
 import { ComparablePrices } from "@/components/flights/comparable-prices";
 
 export const Route = createFileRoute("/_authenticated/_workspace/analysis")({
+  beforeLoad: requireAgencyWorkspace,
   head: () => ({
     meta: [
       { property: "og:type", content: "website" },

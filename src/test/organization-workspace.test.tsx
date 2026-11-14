@@ -176,14 +176,65 @@ describe("organization workspace", () => {
     await act(async () => loading.resolve([]));
   });
 
-  it("shows an assignment message and blocks users without organizations", async () => {
+  it("allows a traveler without an organization to search without publishing agency analysis", async () => {
+    mocks.memberships.mockResolvedValue([]);
+    const storageWrite = vi.spyOn(Storage.prototype, "setItem");
+    render(<Workspace />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Search flights" })).toBeEnabled(),
+    );
+    expect(screen.getByLabelText("Organization")).toBeDisabled();
+    submitSearch();
+    await screen.findByText(/A Airways · KC100/);
+    expect(mocks.search).toHaveBeenCalledExactlyOnceWith({
+      data: {
+        origin: "ALA",
+        destination: "IST",
+        departureDate: "2099-12-10",
+        returnDate: undefined,
+        passengers: 1,
+        cabinClass: "economy",
+      },
+    });
+    expect(storageWrite).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("Analysis tab"));
+    expect(screen.queryByText("Carrier comparison")).not.toBeInTheDocument();
+    expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Select an organization before viewing flight analysis."),
+    ).toBeInTheDocument();
+  });
+
+  it("discards pending personal results when an agency becomes selected", async () => {
+    const pending = deferred<FlightSearchResult>();
+    mocks.memberships.mockResolvedValue([]);
+    mocks.search.mockReturnValueOnce(pending.promise);
+    render(<Workspace />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Search flights" })).toBeEnabled(),
+    );
+    submitSearch();
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    fireEvent.click(screen.getByRole("button", { name: "Refresh organizations" }));
+    await ready();
+    await act(async () => pending.resolve(result("PERSONAL Airways")));
+    expect(screen.queryByText(/PERSONAL Airways/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("Analysis tab"));
+    expect(screen.queryByText("Carrier comparison")).not.toBeInTheDocument();
+  });
+
+  it("clears personal results when the authenticated account changes", async () => {
     mocks.memberships.mockResolvedValue([]);
     render(<Workspace />);
-    await screen.findAllByText(/No organization assigned/);
-    expect(screen.getByLabelText("Organization")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Search flights" })).toBeDisabled();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Search flights" })).toBeEnabled(),
+    );
     submitSearch();
-    expect(mocks.search).not.toHaveBeenCalled();
+    await screen.findByText(/A Airways · KC100/);
+    const listener = mocks.onAuthStateChange.mock.calls[0]![0];
+    act(() => listener("SIGNED_OUT", null));
+    expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Search flights" })).toBeDisabled();
   });
 
   it("automatically selects one organization and sends it to search", async () => {
