@@ -57,7 +57,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background md:flex-row">
+    <div
+      className={cn(
+        "flex min-h-screen w-full flex-col bg-background md:flex-row",
+        path === "/analysis" && "analytics-workspace",
+      )}
+    >
       <aside className="flex shrink-0 flex-col bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-screen md:w-60">
         <Link to="/" className="flex h-14 items-center px-5 text-sidebar-accent-foreground">
           <Brand />
@@ -112,7 +117,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
         </div>
       </aside>
-      <main className="flex-1 px-4 py-8 md:px-10">
+      <main className="min-w-0 flex-1 px-4 py-8 md:px-10">
         <div className="mx-auto max-w-6xl">{children}</div>
       </main>
     </div>

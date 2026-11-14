@@ -1,6 +1,6 @@
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ArrowLeft, BarChart3, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,32 +22,12 @@ import { analyzeFlightPrices } from "@/lib/flights/analytics";
 import { groupFlightSchedules } from "@/lib/flights/schedule-groups";
 import type { FlightOffer, OrganizationId } from "@/lib/flights/types";
 import { ComparablePrices } from "./comparable-prices";
+import { PriceHistogram } from "./price-histogram";
 import { FlightDateTime } from "./flight-date-time";
-
-// Scoped tokens keep the graphite palette confined to analytics, including all states.
-const palette = {
-  "--background": "oklch(0.19 0.008 260)",
-  "--foreground": "oklch(0.95 0.008 260)",
-  "--card": "oklch(0.23 0.009 260)",
-  "--card-foreground": "oklch(0.95 0.008 260)",
-  "--muted": "oklch(0.28 0.012 260)",
-  "--muted-foreground": "oklch(0.75 0.015 260)",
-  "--border": "oklch(0.35 0.015 260)",
-  "--color-border": "oklch(0.35 0.015 260)",
-  "--primary": "oklch(0.74 0.13 250)",
-  "--primary-foreground": "oklch(0.18 0.02 260)",
-  "--accent": "oklch(0.30 0.035 250)",
-  "--accent-foreground": "oklch(0.93 0.03 250)",
-  "--ring": "oklch(0.74 0.13 250)",
-} as CSSProperties;
 
 export function AnalyticsFrame({ children }: { children: ReactNode }) {
   return (
-    <section
-      aria-label="Agency analytics"
-      style={palette}
-      className="min-w-0 space-y-4 rounded-xl bg-background p-4 text-foreground md:p-6"
-    >
+    <section aria-label="Agency analytics" className="min-w-0 space-y-4 text-foreground">
       {children}
     </section>
   );
@@ -280,65 +260,6 @@ export function AnalyticsResults({ search }: { search: WorkspaceSearch }) {
           </CardContent>
         </Card>
       )}
-      <div className="grid gap-3 lg:grid-cols-2">
-        <Card className="shadow-none">
-          <CardHeader className="px-4 py-3">
-            <CardTitle className="text-base">Price distribution</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 px-4 pb-4">
-            {analysis ? (
-              [...search.offers]
-                .filter(
-                  (o) =>
-                    Number.isFinite(o.price.amount) &&
-                    o.price.amount >= 0 &&
-                    o.price.currency === analysis.currency,
-                )
-                .sort((a, b) => a.price.amount - b.price.amount)
-                .map((offer) => (
-                  <div key={offer.id}>
-                    <div className="mb-1 flex flex-wrap justify-between gap-1 text-xs">
-                      <span>{offer.carrier}</span>
-                      <span>{money(offer.price.amount, offer.price.currency)}</span>
-                    </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{
-                          width: `${analysis.mostExpensive.price.amount > 0 ? (offer.price.amount / analysis.mostExpensive.price.amount) * 100 : 0}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                A single valid currency is required to compare fare distributions.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="shadow-none">
-          <CardHeader className="px-4 py-3">
-            <CardTitle className="text-base">Carrier comparison</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 px-4 pb-4">
-            {[...carriers.entries()].map(([key, data]) => (
-              <div
-                key={key}
-                className="flex flex-wrap justify-between gap-2 border-b pb-2 text-sm last:border-0"
-              >
-                <div>
-                  {data.carrier}
-                  <span className="ml-2 text-xs text-muted-foreground">{data.count} offers</span>
-                </div>
-                <span className="font-semibold">From {money(data.minimum, data.currency)}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-      <ComparablePrices search={search} />
       <Card className="shadow-none">
         <CardHeader className="px-4 py-3">
           <CardTitle className="text-base">Flight schedules</CardTitle>
@@ -384,6 +305,36 @@ export function AnalyticsResults({ search }: { search: WorkspaceSearch }) {
           </ul>
         </CardContent>
       </Card>
+      <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        <Card className="min-w-0 shadow-none">
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-base">Price distribution</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 px-4 pb-4">
+            <PriceHistogram offers={search.offers} />
+          </CardContent>
+        </Card>
+        <Card className="shadow-none">
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-base">Carrier comparison</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 px-4 pb-4">
+            {[...carriers.entries()].map(([key, data]) => (
+              <div
+                key={key}
+                className="flex flex-wrap justify-between gap-2 border-b pb-2 text-sm last:border-0"
+              >
+                <div>
+                  {data.carrier}
+                  <span className="ml-2 text-xs text-muted-foreground">{data.count} offers</span>
+                </div>
+                <span className="font-semibold">From {money(data.minimum, data.currency)}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+      <ComparablePrices search={search} />
       <p className="text-xs leading-relaxed text-muted-foreground">
         Price spread is not guaranteed savings. Fare conditions, baggage, transfers and availability
         may differ. Prices reflect the search snapshot, not a live booking quote.
@@ -446,12 +397,25 @@ function ScheduleItinerary({ offer }: { offer: FlightOffer }) {
 }
 
 function SchedulePrices({ offers }: { offers: FlightOffer[] }) {
-  const prices = [...new Set(offers.map((o) => money(o.price.amount, o.price.currency)))];
+  const currencies = new Map<string, number[]>();
+  for (const offer of offers) {
+    const prices = currencies.get(offer.price.currency) ?? [];
+    prices.push(offer.price.amount);
+    currencies.set(offer.price.currency, prices);
+  }
   return (
     <ul className="space-y-1 text-xs tabular-nums">
-      {prices.map((price) => (
-        <li key={price}>{price}</li>
-      ))}
+      {[...currencies].map(([currency, prices]) => {
+        const minimum = Math.min(...prices);
+        const maximum = Math.max(...prices);
+        return (
+          <li key={currency}>
+            {minimum === maximum
+              ? money(minimum, currency)
+              : `${minimum.toLocaleString()}–${maximum.toLocaleString()} ${currency}`}
+          </li>
+        );
+      })}
     </ul>
   );
 }

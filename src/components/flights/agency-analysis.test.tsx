@@ -15,7 +15,11 @@ import {
   OrganizationWorkspaceContext,
   type OrganizationWorkspace,
 } from "@/lib/organizations/workspace-context";
-import { ANALYTICS_ORG, analyticsSnapshot } from "@/test/fixtures/agency-analysis";
+import {
+  ANALYTICS_ORG,
+  analyticsSnapshot,
+  analyticsSnapshot51,
+} from "@/test/fixtures/agency-analysis";
 
 function workspace(): OrganizationWorkspace {
   return {
@@ -128,11 +132,32 @@ describe("analytics presentation", () => {
     ).toHaveLength(2);
     expect(screen.getByText(/Price spread is not guaranteed savings/)).toBeInTheDocument();
   });
+  it("puts schedules before compact histograms and keeps all 51 offers represented", () => {
+    render(<AnalyticsResults search={analyticsSnapshot51()} />);
+    expect(screen.getByText("51 offers", { selector: "dd" })).toBeInTheDocument();
+    const schedules = screen.getByText("Flight schedules");
+    const histogram = screen.getByText("Price distribution");
+    expect(
+      schedules.compareDocumentPosition(histogram) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    const chart = screen.getByRole("img", { name: /Price distribution in KZT: 51 offers/ });
+    expect(chart.querySelectorAll("rect")).toHaveLength(6);
+    expect(
+      within(screen.getByRole("table", { name: "Flight schedules" })).getAllByRole("row"),
+    ).toHaveLength(4);
+  });
+
   it("retains original currencies and avoids comparing mixed-currency carrier minima", () => {
     const search = analyticsSnapshot();
     search.offers[1]!.price = { amount: 500, currency: "USD" };
     render(<AnalyticsResults search={search} />);
     expect(screen.queryByText("Lowest price")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: /Price distribution in KZT: 2 offers/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: /Price distribution in USD: 1 offers/ }),
+    ).toBeInTheDocument();
     expect(screen.getByText("From 500 USD")).toBeInTheDocument();
     expect(screen.getByText(`From ${(180000).toLocaleString()} KZT`)).toBeInTheDocument();
     const table = screen.getByRole("table", { name: "Flight schedules" });

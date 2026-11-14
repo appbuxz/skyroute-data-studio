@@ -57,3 +57,19 @@ export function analyticsSnapshot(): WorkspaceSearch {
     fetchedAt: "2026-11-14T10:35:00Z",
   };
 }
+
+/** 51 fares over three complete itineraries for density and responsive checks. */
+export function analyticsSnapshot51(): WorkspaceSearch {
+  const snapshot = analyticsSnapshot();
+  snapshot.offers = Array.from({ length: 51 }, (_, i) => {
+    const offer = structuredClone(snapshot.offers[i % 3]!);
+    offer.id = `offer-${i}`;
+    offer.price.amount = 180000 + (i % 3) * 30000 + Math.floor(i / 3) * 1500;
+    return offer;
+  });
+  // Keep a third schedule distinct by its second flight's departure time.
+  snapshot.offers.forEach((offer, i) => {
+    if (i % 3 === 1) offer.outbound!.segments[1]!.departureAt = "2099-12-10T12:00:00+05:00";
+  });
+  return snapshot;
+}
