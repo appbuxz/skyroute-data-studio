@@ -74,7 +74,9 @@ describe("agency dashboard", () => {
       "href",
       "/analysis",
     );
-    expect(screen.getByText(/Only this session’s latest search/)).toBeInTheDocument();
+    expect(
+      screen.getByText("This tab keeps the latest successful search for each organization."),
+    ).toBeInTheDocument();
   });
   it("distinguishes no snapshot from a successful search with no offers", async () => {
     const state = workspace();

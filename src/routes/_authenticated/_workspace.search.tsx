@@ -23,7 +23,12 @@ import { FlightDateTime } from "@/components/flights/flight-date-time";
 import { ComparablePrices } from "@/components/flights/comparable-prices";
 
 import { flightSearchSchema, type FlightSearchInput } from "@/lib/flights/search-schema";
-import { readSearchInputs, saveSearchInputs, searchInputsKey } from "@/lib/flights/search-session";
+import {
+  readSearchInputs,
+  readSearchSnapshot,
+  saveSearchSnapshot,
+  searchInputsKey,
+} from "@/lib/flights/search-session";
 import { searchFlightsServer } from "@/lib/flights/search.functions";
 import { KZ_AIRPORTS } from "@/lib/flights/airports";
 import {
@@ -113,11 +118,14 @@ function SearchForm({
   const searchFlights = useServerFn(searchFlightsServer);
   const { selectedOrganizationId, version } = workspace;
   const canSearch = storageKey !== null;
-  // Personal snapshots stay on this page, never in the agency workspace or storage.
+  // Personal snapshots are restored only in the personal search form.
   const [personalSearch, setPersonalSearch] = useState<{
     version: number;
     snapshot: FlightSearchSnapshot;
-  } | null>(null);
+  } | null>(() => {
+    const snapshot = personalScope ? readSearchSnapshot(workspace.userId, null) : undefined;
+    return snapshot ? { version, snapshot } : null;
+  });
   const search = personalScope
     ? personalSearch?.version === version
       ? personalSearch.snapshot
@@ -141,7 +149,6 @@ function SearchForm({
     invalidateRequest();
     setPending(false);
     setNotice(null);
-    setPersonalSearch(null);
     return invalidateRequest;
   }, [selectedOrganizationId, version, invalidateRequest]);
 
@@ -204,8 +211,8 @@ function SearchForm({
       if (!isCurrent()) return;
 
       if (result.status === "ok") {
-        saveSearchInputs(storageKey, params);
         const snapshot = { params, offers: result.offers, fetchedAt: result.fetchedAt };
+        saveSearchSnapshot(workspace.userId, selectedOrganizationId, snapshot);
         if (selectedOrganizationId) {
           workspace.publishSearch({ ...snapshot, organizationId: selectedOrganizationId });
         } else {
