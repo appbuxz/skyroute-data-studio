@@ -1,17 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireOrganization } from "../organizations/authorization.server";
-import { requireAuth } from "../supabase/auth.server";
+import { requirePriceScope } from "./flight-price-scope.server";
 import { confirmTravelportPrice } from "./travelport-price.server";
 
 const organizationIdSchema = z.string().uuid().optional();
 const tokenSchema = z.string().min(1).max(2048);
-
-async function requirePriceScope(organizationId?: string) {
-  return organizationId === undefined
-    ? { userId: (await requireAuth()).id }
-    : await requireOrganization(organizationId);
-}
 
 export const confirmFlightPriceServer = createServerFn({ method: "POST" })
   .validator(

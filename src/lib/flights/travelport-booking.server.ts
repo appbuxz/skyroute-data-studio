@@ -3,6 +3,7 @@ import { supabaseAdmin } from "../../integrations/supabase/client.server";
 import { openCheckout } from "./travelport-checkout-token.server";
 import { getTravelportCredentials, testBookingEnabled } from "./travelport-config.server";
 import { postTravelportAir } from "./travelport-http.server";
+import { testBookingKey } from "./test-booking-key.server";
 import type { PriceScope } from "./travelport-price.server";
 import type { FlightTestBooking } from "./types";
 
@@ -40,21 +41,11 @@ export async function createTravelportTestBooking(
     return { status: "unavailable" };
   }
   const flight = checkout.booking;
-  // Stable across refreshed price tokens and fare variants for the same test itinerary.
-  const key = JSON.stringify([
+  const attemptKey = await testBookingKey(
     credentials.accessGroup ?? credentials.pcc,
-    scope.userId,
-    scope.organizationId,
-    flight.carrier,
-    flight.flightNumber,
-    flight.departureDate,
-    flight.from,
-    flight.to,
-  ]);
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(key));
-  const attemptKey = Array.from(new Uint8Array(digest), (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("");
+    scope,
+    flight,
+  );
   let commitStarted = false;
   let claimed = false;
   try {

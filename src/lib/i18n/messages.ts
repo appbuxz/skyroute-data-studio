@@ -274,6 +274,18 @@ export const messages: Record<string, readonly [string, string]> = {
   ],
   "Flight offers ({count})": ["Предложения рейсов ({count})", "Рейс ұсыныстары ({count})"],
   "Select flight": ["Выбрать рейс", "Рейсті таңдау"],
+  "Open test booking": ["Открыть тестовую бронь", "Сынақ бронін ашу"],
+  "Updating booking status…": ["Обновляем статус брони…", "Бронь күйі жаңартылып жатыр…"],
+  "Booking status": ["Статус брони", "Бронь күйі"],
+  "Ticketing deadline": ["Срок выписки", "Билет рәсімдеу мерзімі"],
+  "No test booking found for this flight.": [
+    "Для этого рейса тестовая бронь не найдена.",
+    "Бұл рейске сынақ броні табылмады.",
+  ],
+  "Unable to update booking status.": [
+    "Не удалось обновить статус брони.",
+    "Бронь күйін жаңарту мүмкін болмады.",
+  ],
   "Test booking · no payment": ["Тестовая бронь · без оплаты", "Сынақ броні · төлемсіз"],
   "Confirmed booking class": ["Подтверждённый класс бронирования", "Расталған бронь класы"],
   "Use fictional passenger details.": [

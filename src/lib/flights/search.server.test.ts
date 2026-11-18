@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   requireAuth: vi.fn(),
   searchFlights: vi.fn(),
   confirmPrice: vi.fn(),
+  retrieveBooking: vi.fn(),
 }));
 
 vi.mock("../organizations/authorization.server", async (importOriginal) => ({
@@ -22,6 +23,7 @@ vi.mock("./travelport-provider.server", () => ({
   travelportProvider: { searchFlights: mocks.searchFlights },
 }));
 vi.mock("./travelport-price.server", () => ({ confirmTravelportPrice: mocks.confirmPrice }));
+vi.mock("./test-booking-status.server", () => ({ retrieveTestBooking: mocks.retrieveBooking }));
 
 // Run the actual configured validator and handler. HTTP serialization still
 // requires a separate TanStack Start integration check.
@@ -41,6 +43,7 @@ import { OrganizationAuthorizationError } from "../organizations/authorization.s
 import { UnauthorizedError } from "../supabase/auth.server";
 import { searchFlightsServer } from "./search.functions";
 import { confirmFlightPriceServer } from "./flight-price.functions";
+import { getTestBookingStatusServer } from "./test-booking-status.functions";
 import { checkFlightServer } from "./flight-check.functions";
 
 const organizationId = "f2000000-0000-4000-8000-000000000001" as OrganizationId;
@@ -95,6 +98,35 @@ describe("AirPrice authorization", () => {
       organizationId,
       role: "member",
     });
+  });
+});
+
+describe("saved test booking authorization", () => {
+  const flight = {
+    carrier: "KC",
+    flightNumber: "913",
+    from: "ALA",
+    to: "IST",
+    departureDate: "2026-12-12",
+  };
+
+  it("refuses agency lookup after membership has been revoked", async () => {
+    const error = new OrganizationAuthorizationError("ORGANIZATION_ACCESS_DENIED");
+    mocks.requireOrganization.mockRejectedValue(error);
+    await expect(getTestBookingStatusServer({ data: { organizationId, flight } })).rejects.toBe(
+      error,
+    );
+    expect(mocks.retrieveBooking).not.toHaveBeenCalled();
+  });
+
+  it("uses verified identity and never accepts a PNR from the caller", async () => {
+    const data = { flight, userId: "forged", pnr: "ABC123" };
+    mocks.retrieveBooking.mockResolvedValue({ status: "not_found" });
+    await expect(getTestBookingStatusServer({ data })).resolves.toEqual({ status: "not_found" });
+    expect(mocks.retrieveBooking).toHaveBeenCalledExactlyOnceWith(
+      { userId: "verified-user" },
+      flight,
+    );
   });
 });
 

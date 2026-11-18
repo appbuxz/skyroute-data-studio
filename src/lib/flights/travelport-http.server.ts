@@ -1,7 +1,15 @@
 import { getTravelportAccessToken } from "./travelport-auth.server";
 import { getTravelportCredentials } from "./travelport-config.server";
 
-export async function postTravelportAir(path: string, body: object) {
+export function postTravelportAir(path: string, body: object) {
+  return requestTravelportAir(path, "POST", body);
+}
+
+export function getTravelportAir(path: string) {
+  return requestTravelportAir(path, "GET");
+}
+
+async function requestTravelportAir(path: string, method: "GET" | "POST", body?: object) {
   const url = `https://api.pp.travelport.net/11/air/${path}`;
   const credentials = getTravelportCredentials();
 
@@ -12,7 +20,7 @@ export async function postTravelportAir(path: string, body: object) {
   const token = await getTravelportAccessToken();
 
   return fetch(url, {
-    method: "POST",
+    method,
     redirect: "error",
     signal: AbortSignal.timeout(30_000),
     headers: {
@@ -28,6 +36,6 @@ export async function postTravelportAir(path: string, body: object) {
         : { "TVP-PCC-CORE": credentials.pcc! }),
       TraceId: crypto.randomUUID(),
     },
-    body: JSON.stringify(body),
+    ...(body && { body: JSON.stringify(body) }),
   });
 }
