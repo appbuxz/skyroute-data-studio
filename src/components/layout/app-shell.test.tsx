@@ -140,7 +140,15 @@ it.each([
       within(drawer)
         .getAllByRole("link")
         .map((link) => link.getAttribute("href")),
-    ).toEqual(["/search", "/check-my-flight", "/dashboard", "/analysis", "/reports", "/settings"]);
+    ).toEqual([
+      "/search",
+      "/check-my-flight",
+      "/my-test-bookings",
+      "/dashboard",
+      "/analysis",
+      "/reports",
+      "/settings",
+    ]);
     const picker = within(drawer).getByRole("combobox", { name: organization });
     fireEvent.change(picker, { target: { value: "agency-a" } });
     expect(mocks.select).toHaveBeenCalledWith("agency-a");

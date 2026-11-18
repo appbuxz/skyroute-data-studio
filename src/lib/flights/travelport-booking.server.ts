@@ -3,6 +3,7 @@ import { supabaseAdmin } from "../../integrations/supabase/client.server";
 import { openCheckout } from "./travelport-checkout-token.server";
 import { getTravelportCredentials, testBookingEnabled } from "./travelport-config.server";
 import { postTravelportAir } from "./travelport-http.server";
+import { testBookingFlightSchema } from "./test-booking-flight";
 import { testBookingKey } from "./test-booking-key.server";
 import type { PriceScope } from "./travelport-price.server";
 import type { FlightTestBooking } from "./types";
@@ -50,7 +51,12 @@ export async function createTravelportTestBooking(
   let claimed = false;
   try {
     const table = () => supabaseAdmin.from("flight_test_booking_attempts");
-    const claim = await table().insert({ attempt_key: attemptKey });
+    const claim = await table().insert({
+      attempt_key: attemptKey,
+      user_id: scope.userId,
+      organization_id: scope.organizationId ?? null,
+      flight: testBookingFlightSchema.parse(flight),
+    });
     if (claim.error?.code === "23505") {
       const existing = await table().select("pnr").eq("attempt_key", attemptKey).single();
       const pnr = pnrSchema.safeParse(existing.data?.pnr);

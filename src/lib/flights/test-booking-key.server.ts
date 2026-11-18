@@ -1,15 +1,10 @@
+import type { TestBookingFlight } from "./test-booking-flight";
 import type { PriceScope } from "./travelport-price.server";
 
 export async function testBookingKey(
   routing: string | undefined,
   scope: PriceScope,
-  flight: {
-    carrier: string;
-    flightNumber: string;
-    departureDate: string;
-    from: string;
-    to: string;
-  },
+  flight: TestBookingFlight,
 ) {
   // Keep the original key format so existing bookings can be recovered.
   const key = JSON.stringify([

@@ -11,17 +11,18 @@ import {
 } from "@/components/ui/dialog";
 import { getTestBookingStatusServer } from "@/lib/flights/test-booking-status.functions";
 import type { TestBookingStatus } from "@/lib/flights/test-booking-status.server";
-import type { FlightOffer, OrganizationId } from "@/lib/flights/types";
+import type { TestBookingFlight } from "@/lib/flights/test-booking-flight";
+import type { OrganizationId } from "@/lib/flights/types";
 import { useLanguage } from "@/lib/i18n/language-context";
 
 export function TestBookingStatusDialog({
-  offer,
-  departureDate,
+  flight,
   organizationId,
+  bookingId,
 }: {
-  offer: FlightOffer;
-  departureDate: string;
+  flight: TestBookingFlight;
   organizationId: OrganizationId | null;
+  bookingId?: string;
 }) {
   const { t, dateTime } = useLanguage();
   const getStatus = useServerFn(getTestBookingStatusServer);
@@ -34,16 +35,7 @@ export function TestBookingStatusDialog({
     setResult(null);
     try {
       const response = await getStatus({
-        data: {
-          flight: {
-            carrier: offer.carrier,
-            flightNumber: offer.flightNumber,
-            from: offer.origin,
-            to: offer.destination,
-            departureDate,
-          },
-          ...(organizationId ? { organizationId } : {}),
-        },
+        data: bookingId ? { bookingId } : { flight, ...(organizationId ? { organizationId } : {}) },
       });
       if (current === request.current) setResult(response);
     } catch {
@@ -61,12 +53,12 @@ export function TestBookingStatusDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {offer.origin} → {offer.destination}
+            {flight.from} → {flight.to}
           </DialogTitle>
           <DialogDescription>{t("Test booking · no payment")}</DialogDescription>
         </DialogHeader>
         <p>
-          {offer.carrier} · {offer.flightNumber}
+          {flight.carrier} · {flight.flightNumber}
         </p>
         <div role="status" className="space-y-2 text-sm">
           {!result && t("Updating booking status…")}
