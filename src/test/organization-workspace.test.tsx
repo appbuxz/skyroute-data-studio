@@ -1,6 +1,6 @@
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 import { StrictMode, useState, type ReactNode } from "react";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FlightOffer, FlightSearchResult, OrganizationId } from "@/lib/flights/types";
 import type { OrganizationMembership } from "@/lib/organizations/session.functions";
@@ -148,6 +148,42 @@ afterEach(() => {
 });
 
 describe("organization workspace", () => {
+  it.each([
+    [
+      {
+        checked: { status: "included", pieces: 1, weight: { value: 23, unit: "kg" } },
+        cabin: { status: "included", weight: { value: 8, unit: "kg" } },
+      },
+      "1 pc · 23 kg",
+      "8 kg",
+    ],
+    [{ checked: { status: "not_included" } }, "Not included", "No data"],
+  ])(
+    "displays checked and cabin baggage from the confirmed price result",
+    async (baggage, checked, cabin) => {
+      const response = result();
+      if (response.status !== "ok") throw new Error("Expected test offers");
+      response.offers[0]!.checkoutToken = "checkout-token";
+      mocks.search.mockResolvedValue(response);
+      mocks.memberships.mockResolvedValue([agencies[0]]);
+      mocks.confirmPrice.mockResolvedValue({
+        status: "confirmed",
+        price: { amount: 250, currency: "USD" },
+        baggage,
+      });
+
+      render(<Workspace />);
+      await ready();
+      submitSearch();
+      fireEvent.click(await screen.findByRole("button", { name: "Select flight" }));
+
+      const heading = await screen.findByRole("heading", { name: "Baggage allowances" });
+      const section = within(heading.closest("section")!);
+      expect(section.getByText("Checked baggage").nextElementSibling).toHaveTextContent(checked);
+      expect(section.getByText("Cabin baggage").nextElementSibling).toHaveTextContent(cabin);
+    },
+  );
+
   it("shows unknown exchange and refund terms above the passenger form when AirPrice omits rules", async () => {
     const response = result();
     if (response.status !== "ok") throw new Error("Expected test offers");
@@ -166,7 +202,7 @@ describe("organization workspace", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Select flight" }));
 
     const heading = await screen.findByRole("heading", { name: "Exchange and refund" });
-    expect(screen.getAllByText("No data")).toHaveLength(2);
+    expect(screen.getAllByText("No data")).toHaveLength(4);
     const passenger = screen.getByLabelText("Test given name");
     expect(
       heading.compareDocumentPosition(passenger) & Node.DOCUMENT_POSITION_FOLLOWING,

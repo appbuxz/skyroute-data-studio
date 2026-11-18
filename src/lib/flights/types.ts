@@ -115,10 +115,20 @@ export type FareRule = {
   | { status: "penalty"; penalties: FareRulePenalty[] }
 );
 
+export type CheckoutBaggageAllowance =
+  | { status: "not_included" }
+  | { status: "included"; pieces?: number; weight?: { value: number; unit: "kg" | "lb" } };
+
+export interface CheckoutBaggage {
+  checked?: CheckoutBaggageAllowance;
+  cabin?: CheckoutBaggageAllowance;
+}
+
 export type FlightPriceConfirmation =
   | {
       status: "confirmed";
       price: FlightOffer["price"];
+      baggage?: CheckoutBaggage;
       fareRules?: { change: FareRule[]; refund: FareRule[] };
       bookingToken?: string;
       bookingClass?: string;

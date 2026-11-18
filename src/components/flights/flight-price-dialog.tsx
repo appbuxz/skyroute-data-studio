@@ -1,5 +1,6 @@
 import { type FormEvent, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { CheckoutBaggage } from "./checkout-baggage";
 import { CheckoutFareRules } from "./checkout-fare-rules";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -91,6 +92,7 @@ export function FlightPriceDialog({
           {result?.status === "expired" && t("This offer has expired. Refresh your search.")}
           {result?.status === "error" && t("Unable to confirm this price. Try again.")}
         </div>
+        {result?.status === "confirmed" && <CheckoutBaggage baggage={result.baggage} />}
         {result?.status === "confirmed" && <CheckoutFareRules rules={result.fareRules} />}
         {result?.status === "confirmed" && result.bookingToken && (
           <TestBookingForm

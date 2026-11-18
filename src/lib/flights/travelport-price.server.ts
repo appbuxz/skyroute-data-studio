@@ -6,6 +6,7 @@ import {
   sealCheckout,
 } from "./travelport-checkout-token.server";
 import { testBookingEnabled } from "./travelport-config.server";
+import { readTravelportCheckoutBaggage } from "./travelport-checkout-baggage.server";
 import { readTravelportFareRules } from "./travelport-fare-rules.server";
 import { postTravelportAir } from "./travelport-http.server";
 import type { TravelportPriceReference } from "./travelport-normalizer";
@@ -186,7 +187,11 @@ export async function confirmTravelportPrice(
       return { status: "changed", price };
     }
     const rules = readTravelportFareRules(OfferID[0]);
-    const fareRules = rules.change.length || rules.refund.length ? { fareRules: rules } : {};
+    const baggage = readTravelportCheckoutBaggage(OfferID[0]);
+    const fareDetails = {
+      ...(rules.change.length || rules.refund.length ? { fareRules: rules } : {}),
+      ...(baggage && { baggage }),
+    };
     const requested = checkout.requestedFlight;
     if (requested && testBookingEnabled()) {
       const parsedFlight = singlePricedFlight.safeParse(OfferID[0]);
@@ -226,7 +231,7 @@ export async function confirmTravelportPrice(
             return {
               status: "confirmed",
               price,
-              ...fareRules,
+              ...fareDetails,
               bookingToken,
               bookingClass: service.classOfService,
             };
@@ -234,7 +239,7 @@ export async function confirmTravelportPrice(
         }
       }
     }
-    return { status: "confirmed", price, ...fareRules };
+    return { status: "confirmed", price, ...fareDetails };
   } catch {
     return { status: "error" };
   }
