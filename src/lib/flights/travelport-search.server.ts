@@ -37,6 +37,10 @@ export async function searchTravelport(params: FlightSearchParams) {
         "@type": "CatalogProductOfferingsRequestAir",
         maxNumberOfUpsellsToReturn: 4,
         contentSourceList: ["GDS"],
+        PricingModifiersAir: {
+          "@type": "PricingModifiersAir",
+          currencyCode: "KZT",
+        },
         PassengerCriteria: [
           {
             "@type": "PassengerCriteria",
