@@ -63,6 +63,10 @@ it.each(["confirmed", "changed"] as const)(
         OfferQueryBuildFromCatalogProductOfferings: {
           BuildFromCatalogProductOfferingsRequest: {
             "@type": "BuildFromCatalogProductOfferingsRequestAir",
+            CustomResponseModifiersAir: {
+              "@type": "CustomResponseModifiersAir",
+              includeFullPenaltyDisclosureInd: true,
+            },
             validateInventoryInd: false,
             CatalogProductOfferingsIdentifier: { Identifier: { value: "search-catalog-id" } },
             CatalogProductOfferingSelection: [
@@ -191,3 +195,90 @@ it.each([
     }
   },
 );
+
+it("returns penalties only for the priced product and keeps departure periods distinct", async () => {
+  postAir.mockResolvedValue(
+    Response.json({
+      OfferListResponse: {
+        OfferID: [
+          {
+            Price: {
+              TotalPrice: searchPrice.amount,
+              CurrencyCode: { value: searchPrice.currency },
+            },
+            Product: [{ id: "p0", FlightSegment: [{ sequence: 1 }] }],
+            TermsAndConditionsFull: [
+              {
+                Penalties: [
+                  {
+                    PassengerTypeCodes: ["ADT"],
+                    Change: [
+                      {
+                        "@type": "ChangePermitted",
+                        penaltyTypes: ["BeforeDeparture"],
+                        ProductRefs: ["p0"],
+                        SegmentSequence: [1],
+                        Penalty: [
+                          { "@type": "PenaltyAmount", Amount: { value: 18084, code: "KZT" } },
+                        ],
+                      },
+                      {
+                        "@type": "ChangeNotPermitted",
+                        penaltyTypes: ["AfterDeparture"],
+                        ProductRefs: ["p0"],
+                      },
+                      {
+                        "@type": "ChangePermitted",
+                        penaltyTypes: ["Anytime"],
+                        ProductRefs: ["another-fare"],
+                        Penalty: [{ "@type": "PenaltyAmount", Amount: { value: 1, code: "USD" } }],
+                      },
+                    ],
+                    Cancel: [
+                      {
+                        "@type": "CancelPermitted",
+                        penaltyTypes: ["BeforeDeparture"],
+                        Penalty: [{ "@type": "PenaltyAmount", Amount: { value: 0, code: "KZT" } }],
+                      },
+                      {
+                        "@type": "CancelPermitted",
+                        penaltyTypes: ["NoShow"],
+                        Penalty: [{ "@type": "PenaltyPercent", Percent: 100 }],
+                      },
+                      { "@type": "CancelPermitted", penaltyTypes: ["AfterDeparture"] },
+                    ],
+                  },
+                  {
+                    PassengerTypeCodes: ["CNN"],
+                    Change: [{ "@type": "ChangeNotPermitted", penaltyTypes: ["Anytime"] }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    }),
+  );
+
+  await expect(confirmTravelportPrice(checkoutToken, scope)).resolves.toEqual({
+    status: "confirmed",
+    price: searchPrice,
+    fareRules: {
+      change: [
+        {
+          status: "penalty",
+          categories: ["BeforeDeparture"],
+          segments: [1],
+          penalties: [{ kind: "amount", value: 18084, currency: "KZT" }],
+        },
+        { status: "prohibited", categories: ["AfterDeparture"] },
+      ],
+      refund: [
+        { status: "free", categories: ["BeforeDeparture"] },
+        { status: "penalty", categories: ["NoShow"], penalties: [{ kind: "percent", value: 100 }] },
+        { status: "unknown", categories: ["AfterDeparture"] },
+      ],
+    },
+  });
+});

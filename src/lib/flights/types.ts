@@ -92,10 +92,34 @@ export interface FlightOffer {
   provider?: string;
 }
 
+export type FareRuleCategory =
+  | "BeforeDeparture"
+  | "AfterDeparture"
+  | "Anytime"
+  | "NoShow"
+  | "Minimum"
+  | "Maximum"
+  | "ExchangeRequired"
+  | "ExchangeNotRequired";
+
+export type FareRulePenalty =
+  { kind: "amount"; value: number; currency: string } | { kind: "percent"; value: number };
+
+export type FareRule = {
+  categories: FareRuleCategory[];
+  timeWindow?: { value: number; period: "Minutes" | "Hours" | "Days" | "Months" };
+  segments?: number[];
+  appliesTo?: "OneWay" | "RoundTrip" | "PerTicket" | "PerCoupon" | "PerDirectionOfTravel";
+} & (
+  | { status: "prohibited" | "free" | "unknown" }
+  | { status: "penalty"; penalties: FareRulePenalty[] }
+);
+
 export type FlightPriceConfirmation =
   | {
       status: "confirmed";
       price: FlightOffer["price"];
+      fareRules?: { change: FareRule[]; refund: FareRule[] };
       bookingToken?: string;
       bookingClass?: string;
     }
