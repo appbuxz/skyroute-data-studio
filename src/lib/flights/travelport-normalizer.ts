@@ -64,12 +64,19 @@ function minutes(value?: string): number | undefined {
 }
 export interface TravelportNormalization {
   offers: FlightOffer[];
+  priceReferences?: Map<string, TravelportPriceReference>;
   skipped: Array<{
     catalogIndex: number;
     optionIndex: number;
     variantIndex: number;
     reason: string;
   }>;
+}
+
+export interface TravelportPriceReference {
+  catalogId: string;
+  offerId: string;
+  productId: string;
 }
 /** One-way, single-product variants only. No payloads appear in diagnostics.
  * Optional comparison evidence is independently validated; incomplete evidence never rejects search offers.
@@ -82,7 +89,10 @@ export function normalizeTravelportFlights(
   const root = z
     .object({
       CatalogProductOfferingsResponse: z.object({
-        CatalogProductOfferings: z.object({ CatalogProductOffering: list }),
+        CatalogProductOfferings: z.object({
+          Identifier: z.unknown().optional(),
+          CatalogProductOffering: list,
+        }),
         ReferenceList: list.optional(),
       }),
     })
@@ -107,6 +117,9 @@ export function normalizeTravelportFlights(
     }
   }
   const result: TravelportNormalization = { offers: [], skipped: [] };
+  const catalogId = z.object({ value: text }).safeParse(r.CatalogProductOfferings.Identifier);
+  const references = catalogId.success ? new Map<string, TravelportPriceReference>() : undefined;
+  if (references) result.priceReferences = references;
   r.CatalogProductOfferings.CatalogProductOffering.forEach((raw, catalogIndex) => {
     const skip = (optionIndex: number, variantIndex: number, reason: string) =>
       result.skipped.push({ catalogIndex, optionIndex, variantIndex, reason });
@@ -190,9 +203,10 @@ export function normalizeTravelportFlights(
           const first = segments[0]!,
             last = segments[segments.length - 1]!;
           const duration = minutes(product.totalDuration);
+          const id = `travelport-${catalogIndex}-${optionIndex}-${variantIndex}-${product.id}`;
           result.offers.push({
             ...travelportComparison(variant, product, r.ReferenceList ?? []),
-            id: `travelport-${catalogIndex}-${optionIndex}-${variantIndex}-${product.id}`,
+            id,
             provider: "travelport",
             carrier: first.carrier,
             flightNumber: first.flightNumber,
@@ -211,6 +225,13 @@ export function normalizeTravelportFlights(
               ...(duration === undefined ? {} : { durationMinutes: duration }),
             },
           });
+          if (catalogId.success && variant.ContentSource === "GDS") {
+            references?.set(id, {
+              catalogId: catalogId.data.value,
+              offerId: catalog.data.id,
+              productId: variant.Product[0]!.productRef,
+            });
+          }
         } catch {
           skip(optionIndex, variantIndex, reason);
         }

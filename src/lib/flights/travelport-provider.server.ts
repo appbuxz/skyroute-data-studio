@@ -1,10 +1,11 @@
-import type { FlightDataProvider } from "./types";
+import type { FlightDataProvider, FlightSearchParams } from "./types";
+import { attachCheckoutTokens, type PriceScope } from "./travelport-price.server";
 import { getTravelportCredentials } from "./travelport-config.server";
 import { searchTravelport } from "./travelport-search.server";
 import { normalizeTravelportFlights } from "./travelport-normalizer";
 
-export const travelportProvider: FlightDataProvider = {
-  async searchFlights(params) {
+export const travelportProvider = {
+  async searchFlights(params: FlightSearchParams, context: Partial<PriceScope>) {
     if (!getTravelportCredentials()) {
       return {
         status: "not_connected",
@@ -15,7 +16,9 @@ export const travelportProvider: FlightDataProvider = {
       return { status: "error", message: "Round-trip search is not supported yet." };
     }
     try {
-      const result = normalizeTravelportFlights(await searchTravelport(params));
+      const result = normalizeTravelportFlights(
+        await searchTravelport(params, Boolean(context.userId)),
+      );
       if (result.skipped.length > 0) {
         const reasons = [...new Set(result.skipped.map((item) => item.reason))].join(", ");
         // Fixed reason codes only: never log payloads, credentials or headers.
@@ -28,6 +31,12 @@ export const travelportProvider: FlightDataProvider = {
           };
         }
       }
+      if (context.userId && result.priceReferences) {
+        await attachCheckoutTokens(result.offers, result.priceReferences, {
+          ...context,
+          userId: context.userId,
+        });
+      }
       return {
         status: "ok",
         offers: result.offers,
@@ -38,4 +47,4 @@ export const travelportProvider: FlightDataProvider = {
       return { status: "error", message: "Flight search is temporarily unavailable." };
     }
   },
-};
+} satisfies FlightDataProvider;

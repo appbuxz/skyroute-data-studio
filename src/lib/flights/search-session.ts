@@ -33,6 +33,7 @@ const snapshotSchema = z.object({
   offers: z.array(
     segmentSchema.extend({
       id: z.string(),
+      checkoutToken: z.string().optional(),
       stops: z.number().int().nonnegative(),
       cabinClass: z.enum(CABIN_CLASSES),
       price: z.object({

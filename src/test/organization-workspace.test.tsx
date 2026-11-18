@@ -8,6 +8,7 @@ import type { OrganizationMembership } from "@/lib/organizations/session.functio
 const mocks = vi.hoisted(() => ({
   memberships: vi.fn(),
   search: vi.fn(),
+  confirmPrice: vi.fn(),
   onAuthStateChange: vi.fn(),
   unsubscribe: vi.fn(),
 }));
@@ -16,6 +17,9 @@ vi.mock("@/lib/organizations/session.functions", () => ({
   getOrganizationMemberships: mocks.memberships,
 }));
 vi.mock("@/lib/flights/search.functions", () => ({ searchFlightsServer: mocks.search }));
+vi.mock("@/lib/flights/flight-price.functions", () => ({
+  confirmFlightPriceServer: mocks.confirmPrice,
+}));
 vi.mock("@/lib/supabase/client", () => ({
   supabase: { auth: { onAuthStateChange: mocks.onAuthStateChange } },
 }));
@@ -140,6 +144,37 @@ afterEach(() => {
 });
 
 describe("organization workspace", () => {
+  it("opens the selected offer, displays the AirPrice currency and refreshes an expired search", async () => {
+    const response = result();
+    if (response.status !== "ok") throw new Error("Expected test offers");
+    const checkoutToken = "f3000000-0000-4000-8000-000000000001";
+    response.offers[0]!.checkoutToken = checkoutToken;
+    mocks.search.mockResolvedValue(response);
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    mocks.confirmPrice
+      .mockResolvedValueOnce({ status: "changed", price: { amount: 250, currency: "USD" } })
+      .mockResolvedValueOnce({ status: "expired" });
+    render(<Workspace />);
+    await ready();
+    submitSearch();
+
+    const selectFlight = await screen.findByRole("button", { name: "Select flight" });
+    fireEvent.click(selectFlight);
+    expect(await screen.findByText("The price changed since the search.")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "ALA → IST" })).toHaveTextContent("250 USD");
+    expect(screen.getByText("Test price check · Travelport pre-production")).toBeInTheDocument();
+    expect(mocks.confirmPrice).toHaveBeenCalledExactlyOnceWith({
+      data: { checkoutToken, organizationId: A },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.change(screen.getByLabelText("Destination"), { target: { value: "LHR" } });
+    fireEvent.click(selectFlight);
+    fireEvent.click(await screen.findByRole("button", { name: "Refresh search" }));
+    await waitFor(() => expect(mocks.search).toHaveBeenCalledTimes(2));
+    expect(mocks.search.mock.calls[1]).toEqual(mocks.search.mock.calls[0]);
+    expect(screen.getByLabelText("Destination")).toHaveValue("IST");
+  });
+
   it("renders complete connecting itineraries in search results without changing the fare", async () => {
     const response = result();
     if (response.status !== "ok") throw new Error("Expected test offers");

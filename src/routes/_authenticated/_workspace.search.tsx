@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/common/page-header";
+import { FlightPriceDialog } from "@/components/flights/flight-price-dialog";
 import { FlightItinerary } from "@/components/flights/flight-itinerary";
 import { FlightDateTime } from "@/components/flights/flight-date-time";
 import { ComparablePrices } from "@/components/flights/comparable-prices";
@@ -164,9 +165,12 @@ function SearchForm({
     }));
   };
 
-  async function onSubmit(event: FormEvent) {
+  function onSubmit(event: FormEvent) {
     event.preventDefault();
+    void runSearch(values);
+  }
 
+  async function runSearch(input: FormValues) {
     if (pending || !storageKey) {
       return;
     }
@@ -174,7 +178,7 @@ function SearchForm({
     setNotice(null);
 
     // Validate the search form before calling the API.
-    const parsed = flightSearchSchema.safeParse(values);
+    const parsed = flightSearchSchema.safeParse(input);
 
     if (!parsed.success) {
       const nextErrors: Errors = {};
@@ -191,17 +195,16 @@ function SearchForm({
       return;
     }
 
+    const params: FlightSearchParams = {
+      ...parsed.data,
+      returnDate: parsed.data.returnDate || undefined,
+    };
     setErrors({});
     setPending(true);
     if (selectedOrganizationId) workspace.clearSearch();
     setPersonalSearch(null);
     const currentRequest = ++request.current;
     const isCurrent = () => request.current === currentRequest && workspace.isCurrentScope();
-
-    const params: FlightSearchParams = {
-      ...parsed.data,
-      returnDate: parsed.data.returnDate || undefined,
-    };
 
     try {
       // Omit organization context for a personal search; the server verifies identity.
@@ -490,6 +493,18 @@ function SearchForm({
                       {offer.inbound?.segments.length ? (
                         <FlightItinerary itinerary={offer.inbound} label="Return itinerary" />
                       ) : null}
+                      {offer.checkoutToken && search && (
+                        <FlightPriceDialog
+                          key={offer.checkoutToken}
+                          offer={offer}
+                          checkoutToken={offer.checkoutToken}
+                          organizationId={selectedOrganizationId}
+                          refresh={() => {
+                            setValues(search.params);
+                            void runSearch(search.params);
+                          }}
+                        />
+                      )}
                     </CardContent>
                   </Card>
                 ))}

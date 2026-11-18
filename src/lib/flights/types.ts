@@ -65,6 +65,7 @@ export interface FlightOfferComparisonEvidence {
 }
 
 export interface FlightOffer {
+  checkoutToken?: string;
   comparisonEvidence?: FlightOfferComparisonEvidence;
   id: string;
   carrier: string;
@@ -90,6 +91,10 @@ export interface FlightOffer {
   expiresAt?: string;
   provider?: string;
 }
+
+export type FlightPriceConfirmation =
+  | { status: "confirmed" | "changed"; price: FlightOffer["price"] }
+  | { status: "expired" | "unavailable" | "error" };
 
 export type FlightSearchResult =
   | { status: "not_connected"; message: string }

@@ -273,6 +273,28 @@ export const messages: Record<string, readonly [string, string]> = {
     "Ең жоғары және ең төмен баға арасындағы айырма — {percent}%",
   ],
   "Flight offers ({count})": ["Предложения рейсов ({count})", "Рейс ұсыныстары ({count})"],
+  "Select flight": ["Выбрать рейс", "Рейсті таңдау"],
+  "Test price check · Travelport pre-production": [
+    "Тестовая проверка цены · Travelport pre-production",
+    "Бағаны сынақ ортасында тексеру · Travelport pre-production",
+  ],
+  "Search price": ["Цена из поиска", "Іздеудегі баға"],
+  "Confirmed price": ["Подтверждённая цена", "Расталған баға"],
+  "Confirming the price…": ["Подтверждаем цену…", "Баға расталуда…"],
+  "The price changed since the search.": [
+    "Цена изменилась после поиска.",
+    "Іздеуден кейін баға өзгерді.",
+  ],
+  "This fare is no longer available.": ["Тариф больше недоступен.", "Бұл тариф енді қолжетімсіз."],
+  "This offer has expired. Refresh your search.": [
+    "Предложение устарело. Обновите поиск.",
+    "Ұсыныстың мерзімі өтті. Іздеуді жаңартыңыз.",
+  ],
+  "Unable to confirm this price. Try again.": [
+    "Не удалось подтвердить цену. Попробуйте ещё раз.",
+    "Бағаны растау мүмкін болмады. Қайталап көріңіз.",
+  ],
+  "Refresh search": ["Обновить поиск", "Іздеуді жаңарту"],
   "Search on Aviasales": ["Найти на Aviasales", "Aviasales-тан іздеу"],
   "Retrieved: {date}": ["Получено: {date}", "Алынған уақыты: {date}"],
   "No flights found for the selected route and date.": [
