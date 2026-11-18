@@ -1,11 +1,13 @@
 import { z } from "zod";
 import {
   bookableFlight,
+  type Checkout,
   getCheckoutKey,
   openCheckout,
   sealCheckout,
 } from "./travelport-checkout-token.server";
 import { testBookingEnabled } from "./travelport-config.server";
+import { readTravelportCheckoutBaggage } from "./travelport-checkout-baggage.server";
 import { readTravelportFareRules } from "./travelport-fare-rules.server";
 import { postTravelportAir } from "./travelport-http.server";
 import type { TravelportPriceReference } from "./travelport-normalizer";
@@ -118,21 +120,77 @@ const pricedOffer = z.object({
   }),
 });
 
+function validScope(checkout: Checkout | undefined, scope: PriceScope): checkout is Checkout {
+  return Boolean(
+    checkout &&
+    checkout.expiresAt > Date.now() &&
+    checkout.userId === scope.userId &&
+    checkout.organizationId === scope.organizationId,
+  );
+}
+
 export async function confirmTravelportPrice(
   token: string,
   scope: PriceScope,
 ): Promise<FlightPriceConfirmation> {
   const checkout = await openCheckout(token);
   if (
-    !checkout ||
-    checkout.booking ||
-    checkout.expiresAt <= Date.now() ||
-    checkout.userId !== scope.userId ||
-    checkout.organizationId !== scope.organizationId
+    !validScope(checkout, scope) ||
+    checkout.offeredPrice ||
+    checkout.acceptedPrice ||
+    checkout.booking
   ) {
     return { status: "expired" };
   }
+  return priceCheckout(checkout);
+}
 
+export async function acceptTravelportPrice(
+  token: string,
+  scope: PriceScope,
+): Promise<FlightPriceConfirmation> {
+  const checkout = await openCheckout(token);
+  if (
+    !validScope(checkout, scope) ||
+    !checkout.offeredPrice ||
+    checkout.acceptedPrice ||
+    checkout.offeredPrice.currency !== checkout.searchPrice.currency
+  ) {
+    return { status: "expired" };
+  }
+  try {
+    return await confirmQuote({
+      ...checkout,
+      acceptedPrice: checkout.offeredPrice,
+      offeredPrice: undefined,
+    });
+  } catch {
+    return { status: "error" };
+  }
+}
+
+export function recheckTravelportBookingPrice(checkout: Checkout) {
+  return priceCheckout(checkout);
+}
+
+async function confirmQuote(
+  checkout: Checkout & { acceptedPrice: FlightOffer["price"] },
+): Promise<FlightPriceConfirmation> {
+  const price = checkout.acceptedPrice;
+  if (!checkout.booking || !testBookingEnabled()) return { status: "confirmed", price };
+  const key = await getCheckoutKey();
+  if (!key) return { status: "error" };
+  return {
+    status: "confirmed",
+    price,
+    bookingToken: await sealCheckout(checkout, key),
+    bookingClass: checkout.booking.classOfService,
+  };
+}
+
+async function priceCheckout(checkout: Checkout): Promise<FlightPriceConfirmation> {
+  const previousPrice = checkout.acceptedPrice ?? checkout.searchPrice;
+  const searchExpiresAt = checkout.searchExpiresAt ?? checkout.expiresAt;
   const { catalogId, offerId, productId } = checkout.reference;
   const identifier = (value: string) => ({ Identifier: { value } });
   try {
@@ -179,63 +237,76 @@ export async function confirmTravelportPrice(
       amount: offer.data.Price.TotalPrice,
       currency: offer.data.Price.CurrencyCode.value,
     };
-    if (
-      price.amount !== checkout.searchPrice.amount ||
-      price.currency !== checkout.searchPrice.currency
-    ) {
-      return { status: "changed", price };
+    if (price.currency !== previousPrice.currency) {
+      return { status: "changed", price, ...(checkout.acceptedPrice && { previousPrice }) };
     }
     const rules = readTravelportFareRules(OfferID[0]);
-    const fareRules = rules.change.length || rules.refund.length ? { fareRules: rules } : {};
-    const requested = checkout.requestedFlight;
-    if (requested && testBookingEnabled()) {
-      const parsedFlight = singlePricedFlight.safeParse(OfferID[0]);
-      if (parsedFlight.success) {
-        const product = parsedFlight.data.Product[0];
-        const { Flight: flight } = product.FlightSegment[0];
-        const service = product.PassengerFlight[0].FlightProduct[0];
-        const booking = bookableFlight.safeParse({
-          carrier: flight.carrier,
-          flightNumber: flight.number,
-          from: flight.Departure.location,
-          to: flight.Arrival.location,
-          departureDate: flight.Departure.date,
-          departureTime: flight.Departure.time,
-          arrivalDate: flight.Arrival.date,
-          arrivalTime: flight.Arrival.time,
-          cabin: service.cabin,
-          classOfService: service.classOfService,
-        });
-        if (
-          booking.success &&
-          Object.entries(requested).every(
-            ([key, value]) => booking.data[key as keyof typeof requested] === value,
-          )
-        ) {
-          const key = await getCheckoutKey();
-          if (key) {
-            const bookingToken = await sealCheckout(
-              {
-                ...checkout,
-                requestedFlight: undefined,
-                booking: booking.data,
-                expiresAt: Math.min(checkout.expiresAt, Date.now() + 2 * 60 * 1000),
-              },
-              key,
-            );
-            return {
-              status: "confirmed",
-              price,
-              ...fareRules,
-              bookingToken,
-              bookingClass: service.classOfService,
-            };
-          }
-        }
-      }
+    const baggage = readTravelportCheckoutBaggage(OfferID[0]);
+    const fareDetails = {
+      ...(rules.change.length || rules.refund.length ? { fareRules: rules } : {}),
+      ...(baggage && { baggage }),
+    };
+    const booking = testBookingEnabled()
+      ? readBookableFlight(OfferID[0], checkout.requestedFlight)
+      : undefined;
+    const changed = price.amount !== previousPrice.amount;
+    const expiresAt = Math.min(searchExpiresAt, Date.now() + 2 * 60 * 1000);
+    if (checkout.expiresAt <= Date.now() || expiresAt <= Date.now()) return { status: "expired" };
+    const quote = { ...checkout, expiresAt, searchExpiresAt, booking };
+    if (changed) {
+      const key = await getCheckoutKey();
+      if (!key) return { status: "error" };
+      const acceptanceToken = await sealCheckout(
+        {
+          ...quote,
+          offeredPrice: price,
+          acceptedPrice: undefined,
+        },
+        key,
+      );
+      return { status: "changed", price, previousPrice, acceptanceToken, ...fareDetails };
     }
-    return { status: "confirmed", price, ...fareRules };
+    if (
+      checkout.booking &&
+      (!booking ||
+        !Object.entries(checkout.booking).every(
+          ([field, value]) => booking[field as keyof typeof booking] === value,
+        ))
+    ) {
+      return { status: "unavailable" };
+    }
+    const confirmed = await confirmQuote({ ...quote, acceptedPrice: price });
+    return confirmed.status === "confirmed" ? { ...confirmed, ...fareDetails } : confirmed;
   } catch {
     return { status: "error" };
   }
+}
+
+function readBookableFlight(offer: unknown, requested: Checkout["requestedFlight"]) {
+  if (!requested) return;
+  const parsed = singlePricedFlight.safeParse(offer);
+  if (!parsed.success) return;
+  const product = parsed.data.Product[0];
+  const { Flight: flight } = product.FlightSegment[0];
+  const service = product.PassengerFlight[0].FlightProduct[0];
+  const booking = bookableFlight.safeParse({
+    carrier: flight.carrier,
+    flightNumber: flight.number,
+    from: flight.Departure.location,
+    to: flight.Arrival.location,
+    departureDate: flight.Departure.date,
+    departureTime: flight.Departure.time,
+    arrivalDate: flight.Arrival.date,
+    arrivalTime: flight.Arrival.time,
+    cabin: service.cabin,
+    classOfService: service.classOfService,
+  });
+  if (
+    booking.success &&
+    Object.entries(requested).every(
+      ([key, value]) => booking.data[key as keyof typeof requested] === value,
+    )
+  )
+    return booking.data;
+  return undefined;
 }

@@ -16,19 +16,24 @@ export const bookableFlight = flight.extend({
   arrivalTime: z.string().regex(/^\d{2}:\d{2}:\d{2}$/),
   classOfService: z.string().regex(/^[A-Z]$/),
 });
+const money = z.object({
+  amount: z.number().finite().nonnegative(),
+  currency: z.string().regex(/^[A-Z]{3}$/),
+});
 const checkout = z.object({
   userId: text,
   organizationId: text.optional(),
   reference: z.object({ catalogId: text, offerId: text, productId: text }),
-  searchPrice: z.object({
-    amount: z.number().finite().nonnegative(),
-    currency: z.string().regex(/^[A-Z]{3}$/),
-  }),
+  searchPrice: money,
+  offeredPrice: money.optional(),
+  acceptedPrice: money.optional(),
+  // The underlying search reference can outlive an individual price quote.
+  searchExpiresAt: z.number().finite().optional(),
   requestedFlight: flight.optional(),
   booking: bookableFlight.optional(),
   expiresAt: z.number().finite(),
 });
-type Checkout = z.infer<typeof checkout>;
+export type Checkout = z.infer<typeof checkout>;
 
 const encoder = new TextEncoder();
 const nonceLength = 12;

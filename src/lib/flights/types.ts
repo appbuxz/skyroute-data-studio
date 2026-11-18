@@ -115,15 +115,35 @@ export type FareRule = {
   | { status: "penalty"; penalties: FareRulePenalty[] }
 );
 
+export type CheckoutBaggageAllowance =
+  | { status: "not_included" }
+  | { status: "included"; pieces?: number; weight?: { value: number; unit: "kg" | "lb" } };
+
+export interface CheckoutBaggage {
+  checked?: CheckoutBaggageAllowance;
+  cabin?: CheckoutBaggageAllowance;
+}
+
+interface FlightFareDetails {
+  baggage?: CheckoutBaggage;
+  fareRules?: { change: FareRule[]; refund: FareRule[] };
+}
+
+export interface ChangedFlightPrice extends FlightFareDetails {
+  status: "changed";
+  price: FlightOffer["price"];
+  previousPrice?: FlightOffer["price"];
+  acceptanceToken?: string;
+}
+
 export type FlightPriceConfirmation =
-  | {
+  | (FlightFareDetails & {
       status: "confirmed";
       price: FlightOffer["price"];
-      fareRules?: { change: FareRule[]; refund: FareRule[] };
       bookingToken?: string;
       bookingClass?: string;
-    }
-  | { status: "changed"; price: FlightOffer["price"] }
+    })
+  | ChangedFlightPrice
   | { status: "expired" | "unavailable" | "error" };
 
 export type FlightSearchResult =
@@ -146,4 +166,6 @@ export interface FlightDataProvider {
 }
 
 export type FlightTestBooking =
-  { status: "booked"; pnr: string } | { status: "unavailable" | "error" | "unknown" };
+  | { status: "booked"; pnr: string }
+  | { status: "price_review"; confirmation: ChangedFlightPrice }
+  | { status: "unavailable" | "error" | "unknown" };

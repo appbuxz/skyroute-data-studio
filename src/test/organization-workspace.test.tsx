@@ -1,14 +1,21 @@
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 import { StrictMode, useState, type ReactNode } from "react";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { FlightOffer, FlightSearchResult, OrganizationId } from "@/lib/flights/types";
+import type {
+  FlightOffer,
+  FlightPriceConfirmation,
+  FlightSearchResult,
+  OrganizationId,
+} from "@/lib/flights/types";
 import type { OrganizationMembership } from "@/lib/organizations/session.functions";
 
 const mocks = vi.hoisted(() => ({
   memberships: vi.fn(),
   search: vi.fn(),
   confirmPrice: vi.fn(),
+  acceptPrice: vi.fn(),
+  createBooking: vi.fn(),
   onAuthStateChange: vi.fn(),
   unsubscribe: vi.fn(),
 }));
@@ -22,7 +29,8 @@ vi.mock("@/lib/flights/test-booking-status.functions", () => ({
 }));
 vi.mock("@/lib/flights/flight-price.functions", () => ({
   confirmFlightPriceServer: mocks.confirmPrice,
-  createFlightTestBookingServer: vi.fn(),
+  acceptFlightPriceServer: mocks.acceptPrice,
+  createFlightTestBookingServer: mocks.createBooking,
 }));
 vi.mock("@/lib/supabase/client", () => ({
   supabase: { auth: { onAuthStateChange: mocks.onAuthStateChange } },
@@ -148,6 +156,257 @@ afterEach(() => {
 });
 
 describe("organization workspace", () => {
+  it.each([
+    [
+      {
+        checked: { status: "included", pieces: 1, weight: { value: 23, unit: "kg" } },
+        cabin: { status: "included", weight: { value: 8, unit: "kg" } },
+      },
+      "1 pc · 23 kg",
+      "8 kg",
+    ],
+    [{ checked: { status: "not_included" } }, "Not included", "No data"],
+  ])(
+    "displays checked and cabin baggage from the confirmed price result",
+    async (baggage, checked, cabin) => {
+      const response = result();
+      if (response.status !== "ok") throw new Error("Expected test offers");
+      response.offers[0]!.checkoutToken = "checkout-token";
+      mocks.search.mockResolvedValue(response);
+      mocks.memberships.mockResolvedValue([agencies[0]]);
+      mocks.confirmPrice.mockResolvedValue({
+        status: "confirmed",
+        price: { amount: 250, currency: "USD" },
+        baggage,
+      });
+
+      render(<Workspace />);
+      await ready();
+      submitSearch();
+      fireEvent.click(await screen.findByRole("button", { name: "Select flight" }));
+
+      const heading = await screen.findByRole("heading", { name: "Baggage allowances" });
+      const section = within(heading.closest("section")!);
+      expect(section.getByText("Checked baggage").nextElementSibling).toHaveTextContent(checked);
+      expect(section.getByText("Cabin baggage").nextElementSibling).toHaveTextContent(cabin);
+    },
+  );
+
+  it("keeps every selected segment and the next-day arrival above the price when AirPrice updates", async () => {
+    const response = result();
+    if (response.status !== "ok") throw new Error("Expected test offers");
+    const offer = response.offers[0]!;
+    offer.checkoutToken = "connection-token";
+    offer.stops = 1;
+    offer.departureAt = "2099-12-10T20:40:00+05:00";
+    offer.arrivalAt = "2099-12-11T00:35:00+03:00";
+    offer.outbound = {
+      segments: [
+        {
+          carrier: "KC",
+          flightNumber: "641",
+          origin: "ALA",
+          destination: "NQZ",
+          departureAt: offer.departureAt,
+          arrivalAt: "2099-12-10T22:15:00+05:00",
+        },
+        {
+          carrier: "KC",
+          flightNumber: "917",
+          origin: "NQZ",
+          destination: "IST",
+          departureAt: "2099-12-10T23:50:00+05:00",
+          arrivalAt: offer.arrivalAt,
+        },
+      ],
+    };
+    const airPrice = deferred<FlightPriceConfirmation>();
+    mocks.search.mockResolvedValue(response);
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    mocks.confirmPrice.mockReturnValue(airPrice.promise);
+
+    render(<Workspace />);
+    await ready();
+    submitSearch();
+    fireEvent.click(await screen.findByRole("button", { name: "Select flight" }));
+
+    const dialog = within(screen.getByRole("dialog", { name: "ALA → IST" }));
+    function checkSegments() {
+      const list = dialog.getByRole("list", { name: "Outbound itinerary segments" });
+      const [first, second] = within(list).getAllByRole("listitem");
+      expect(within(list).getAllByRole("listitem")).toHaveLength(2);
+      expect(first).toHaveTextContent("ALA → NQZ");
+      expect(first).toHaveTextContent("KC · 641");
+      expect(first).toHaveTextContent("10 Dec 2099 · 20:40 (UTC+05:00)");
+      expect(first).toHaveTextContent("10 Dec 2099 · 22:15 (UTC+05:00)");
+      expect(second).toHaveTextContent("NQZ → IST");
+      expect(second).toHaveTextContent("KC · 917");
+      expect(second).toHaveTextContent("10 Dec 2099 · 23:50 (UTC+05:00)");
+      expect(second).toHaveTextContent("11 Dec 2099 · 00:35 (UTC+03:00)");
+      expect(
+        list.compareDocumentPosition(dialog.getByText(/^(Search|Previous) price$/)) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+
+    checkSegments();
+    await act(async () => {
+      airPrice.resolve({
+        status: "changed",
+        previousPrice: offer.price,
+        price: { amount: 123456, currency: "KZT" },
+        acceptanceToken: "updated-quote",
+      });
+    });
+    expect(dialog.getByText("123,456 KZT")).toBeVisible();
+    checkSegments();
+    expect(mocks.search).toHaveBeenCalledOnce();
+    expect(mocks.confirmPrice).toHaveBeenCalledOnce();
+  });
+
+  it("reviews and edits passenger details without booking and submits only once on final confirmation", async () => {
+    const response = result();
+    if (response.status !== "ok") throw new Error("Expected test offers");
+    const offer = response.offers[0]!;
+    offer.checkoutToken = "checkout-token";
+    mocks.search.mockResolvedValue(response);
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    mocks.confirmPrice.mockResolvedValue({
+      status: "confirmed",
+      price: offer.price,
+      bookingToken: "accepted",
+      bookingClass: "E",
+    });
+    const booking = deferred<{ status: "booked"; pnr: string }>();
+    mocks.createBooking.mockReturnValue(booking.promise);
+
+    render(<Workspace />);
+    await ready();
+    submitSearch();
+    fireEvent.click(await screen.findByRole("button", { name: "Select flight" }));
+
+    fireEvent.change(await screen.findByLabelText("Test given name"), {
+      target: { value: "TEST" },
+    });
+    fireEvent.change(screen.getByLabelText("Test surname"), { target: { value: "SKYROUTE" } });
+    expect(screen.queryByRole("button", { name: "Create test booking" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Review details" }));
+    const heading = screen.getByRole("heading", { name: "Review your details" });
+    const review = within(heading.parentElement!);
+    expect(review.getByText("TEST SKYROUTE")).toBeVisible();
+    expect(review.getByText("A Airways · KC100 · ALA → IST")).toBeVisible();
+    expect(review.getByText("10 Dec 2099 · 10:00 (UTC+05:00)")).toBeVisible();
+    expect(review.getByText("100,000 KZT")).toBeVisible();
+    expect(review.getByText("No payment or ticket issuance")).toBeVisible();
+    expect(mocks.createBooking).not.toHaveBeenCalled();
+
+    fireEvent.click(review.getByRole("button", { name: "Edit details" }));
+    expect(screen.getByLabelText("Test given name")).toHaveValue("TEST");
+    expect(screen.getByLabelText("Test surname")).toHaveValue("SKYROUTE");
+    expect(mocks.createBooking).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("Test given name"), { target: { value: "DEMO" } });
+    fireEvent.click(screen.getByRole("button", { name: "Review details" }));
+    expect(screen.getByText("DEMO SKYROUTE")).toBeVisible();
+    expect(mocks.createBooking).not.toHaveBeenCalled();
+
+    const confirm = screen.getByRole("button", { name: "Create test booking" });
+    act(() => {
+      fireEvent.click(confirm);
+      fireEvent.click(confirm);
+    });
+    expect(mocks.createBooking).toHaveBeenCalledExactlyOnceWith({
+      data: {
+        bookingToken: "accepted",
+        organizationId: agencies[0]!.organizationId,
+        passenger: { given: "DEMO", surname: "SKYROUTE" },
+      },
+    });
+    await act(async () => {
+      booking.resolve({ status: "booked", pnr: "ABC123" });
+    });
+    expect(screen.getByText("ABC123")).toBeVisible();
+  });
+
+  it("gates the passenger form on explicit acceptance and asks again if the accepted price changes", async () => {
+    const response = result();
+    if (response.status !== "ok") throw new Error("Expected test offers");
+    response.offers[0]!.checkoutToken = "checkout-token";
+    mocks.search.mockResolvedValue(response);
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    const previousPrice = response.offers[0]!.price;
+    const price = { ...previousPrice, amount: 123456 };
+    mocks.confirmPrice.mockResolvedValue({
+      status: "changed",
+      previousPrice,
+      price,
+      acceptanceToken: "quote",
+    });
+    mocks.acceptPrice
+      .mockResolvedValueOnce({
+        status: "confirmed",
+        price,
+        bookingToken: "accepted",
+        bookingClass: "E",
+      })
+      .mockResolvedValueOnce({
+        status: "confirmed",
+        price: { ...price, amount: 234567 },
+        bookingToken: "accepted-next",
+        bookingClass: "E",
+      });
+    mocks.createBooking.mockResolvedValue({
+      status: "price_review",
+      confirmation: {
+        status: "changed",
+        previousPrice: price,
+        price: { ...price, amount: 234567 },
+        acceptanceToken: "next-quote",
+      },
+    });
+
+    render(<Workspace />);
+    await ready();
+    submitSearch();
+    fireEvent.click(await screen.findByRole("button", { name: "Select flight" }));
+    const accept = await screen.findByRole("button", { name: "Accept new price" });
+    expect(screen.getByText("Previous price")).toBeVisible();
+    expect(screen.getByText("New price")).toBeVisible();
+    expect(screen.queryByLabelText("Test given name")).not.toBeInTheDocument();
+    expect(mocks.createBooking).not.toHaveBeenCalled();
+    fireEvent.click(accept);
+    const given = await screen.findByLabelText("Test given name");
+    expect(mocks.acceptPrice).toHaveBeenCalledWith({
+      data: {
+        acceptanceToken: "quote",
+        organizationId: agencies[0]!.organizationId,
+      },
+    });
+    fireEvent.change(given, { target: { value: "TEST" } });
+    fireEvent.change(screen.getByLabelText("Test surname"), { target: { value: "SKYROUTE" } });
+    fireEvent.click(screen.getByRole("button", { name: "Review details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create test booking" }));
+    expect(await screen.findByRole("button", { name: "Accept new price" })).toBeVisible();
+    expect(screen.getByText(/234,567/)).toBeVisible();
+    expect(screen.getByText(/123,456/)).toBeVisible();
+    expect(screen.queryByLabelText("Test given name")).not.toBeInTheDocument();
+    expect(mocks.createBooking).toHaveBeenCalledExactlyOnceWith({
+      data: {
+        bookingToken: "accepted",
+        organizationId: agencies[0]!.organizationId,
+        passenger: { given: "TEST", surname: "SKYROUTE" },
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Accept new price" }));
+    const heading = await screen.findByRole("heading", { name: "Review your details" });
+    const review = within(heading.parentElement!);
+    expect(review.getByText("TEST SKYROUTE")).toBeVisible();
+    expect(review.getByText("234,567 KZT")).toBeVisible();
+    expect(mocks.createBooking).toHaveBeenCalledOnce();
+    fireEvent.click(review.getByRole("button", { name: "Edit details" }));
+    expect(screen.getByLabelText("Test given name")).toHaveValue("TEST");
+    expect(screen.getByLabelText("Test surname")).toHaveValue("SKYROUTE");
+  });
+
   it("shows unknown exchange and refund terms above the passenger form when AirPrice omits rules", async () => {
     const response = result();
     if (response.status !== "ok") throw new Error("Expected test offers");
@@ -166,7 +425,7 @@ describe("organization workspace", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Select flight" }));
 
     const heading = await screen.findByRole("heading", { name: "Exchange and refund" });
-    expect(screen.getAllByText("No data")).toHaveLength(2);
+    expect(screen.getAllByText("No data")).toHaveLength(4);
     const passenger = screen.getByLabelText("Test given name");
     expect(
       heading.compareDocumentPosition(passenger) & Node.DOCUMENT_POSITION_FOLLOWING,
