@@ -136,6 +136,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 describe("organization workspace", () => {
@@ -604,6 +605,36 @@ describe("organization workspace", () => {
     submitSearch();
     await screen.findByText(/A Airways · KC100/);
     expect(JSON.parse(window.sessionStorage.getItem(key)!).offers[0].price.currency).toBe("KZT");
+  });
+
+  it("links from the displayed search snapshot before and after reload", async () => {
+    vi.setSystemTime(new Date("2026-11-18T08:00:00Z"));
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    const first = render(<Workspace />);
+    await ready();
+    const label = "Search on Aviasales";
+    expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Origin"), { target: { value: "ALA" } });
+    fireEvent.change(screen.getByLabelText("Destination"), { target: { value: "IST" } });
+    fireEvent.change(screen.getByLabelText("Departure date"), { target: { value: "2026-12-12" } });
+    fireEvent.change(screen.getByLabelText("Passengers"), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Search flights" }));
+
+    const oneWay = "https://www.aviasales.kz/?params=ALA1212IST2";
+    expect(await screen.findByRole("link", { name: label })).toHaveAttribute("href", oneWay);
+    fireEvent.change(screen.getByLabelText("Return date (optional)"), {
+      target: { value: "2026-12-19" },
+    });
+    expect(screen.getByRole("link", { name: label })).toHaveAttribute("href", oneWay);
+    expect(mocks.search).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "Search flights" }));
+    const roundTrip = "https://www.aviasales.kz/?params=ALA1212IST19122";
+    expect(await screen.findByRole("link", { name: label })).toHaveAttribute("href", roundTrip);
+
+    first.unmount();
+    render(<Workspace />);
+    expect(await screen.findByRole("link", { name: label })).toHaveAttribute("href", roundTrip);
+    expect(mocks.search).toHaveBeenCalledTimes(2);
   });
 
   it.each([

@@ -23,6 +23,7 @@ import { FlightDateTime } from "@/components/flights/flight-date-time";
 import { ComparablePrices } from "@/components/flights/comparable-prices";
 
 import { flightSearchSchema, type FlightSearchInput } from "@/lib/flights/search-schema";
+import { aviasalesSearchLink } from "@/lib/flights/aviasales-search-link";
 import {
   readSearchInputs,
   readSearchSnapshot,
@@ -139,6 +140,8 @@ function SearchForm({
 
   const offers = search?.offers ?? [];
   const fetchedAt = search?.fetchedAt ?? null;
+  const aviasalesLink =
+    search && offers.length > 0 ? aviasalesSearchLink(search.params) : undefined;
   const invalidateRequest = useCallback(() => {
     ++request.current;
   }, []);
@@ -429,6 +432,13 @@ function SearchForm({
             <p className="text-sm text-muted-foreground">
               {t("Retrieved: {date}", { date: dateTime(fetchedAt) })}
             </p>
+            {aviasalesLink && (
+              <Button asChild variant="outline">
+                <a href={aviasalesLink} target="_blank" rel="noopener noreferrer">
+                  {t("Search on Aviasales")}
+                </a>
+              </Button>
+            )}
             {offers.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {t("No flights found for the selected route and date.")}
