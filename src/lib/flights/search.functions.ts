@@ -4,7 +4,7 @@ import { requireOrganization } from "../organizations/authorization.server";
 import { requireAuth } from "../supabase/auth.server";
 import { flightSearchSchema } from "./search-schema";
 import { travelportProvider } from "./travelport-provider.server";
-import type { FlightSearchResult, OrganizationId } from "./types";
+import type { FlightSearchResult } from "./types";
 
 // Retain the existing flat search contract and every flight-field refinement.
 const flightSearchRequestSchema = flightSearchSchema.and(
@@ -17,12 +17,11 @@ export const searchFlightsServer = createServerFn({ method: "POST" })
     const { organizationId: requestedOrganizationId, ...params } = data;
     // No organization means a personal search, never an implicit agency selection.
     // Explicit agency searches still require current, server-verified membership.
-    let organizationId: OrganizationId | undefined;
-    if (requestedOrganizationId === undefined) {
-      await requireAuth();
-    } else {
-      ({ organizationId } = await requireOrganization(requestedOrganizationId));
-    }
+    const scope =
+      requestedOrganizationId === undefined
+        ? { userId: (await requireAuth()).id }
+        : await requireOrganization(requestedOrganizationId);
+    const organizationId = "organizationId" in scope ? scope.organizationId : undefined;
 
     try {
       return await travelportProvider.searchFlights(
@@ -30,7 +29,7 @@ export const searchFlightsServer = createServerFn({ method: "POST" })
           ...params,
           returnDate: params.returnDate || undefined,
         },
-        organizationId ? { organizationId } : {},
+        { userId: scope.userId, ...(organizationId ? { organizationId } : {}) },
       );
     } catch (error) {
       console.error("Flight search failed");

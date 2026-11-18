@@ -40,6 +40,9 @@ it("keeps accurately normalized offers when the captured response also contains 
     )
     .mockResolvedValueOnce(new Response(JSON.stringify(mixedFixture)));
   const result = await travelportProvider.searchFlights(params, {});
+  expect(
+    JSON.parse(fetchMock.mock.calls[1]![1].body).CatalogProductOfferingsRequest,
+  ).not.toHaveProperty("offersPerPage");
   expect(result).toEqual({
     status: "ok",
     environment: "test",
@@ -76,13 +79,14 @@ it("recognizes complete server configuration and maps form input through existin
       new Response(JSON.stringify({ access_token: "test-token", expires_in: 0 })),
     )
     .mockResolvedValueOnce(new Response(JSON.stringify(fixture)));
-  const result = await travelportProvider.searchFlights(params, {});
+  const result = await travelportProvider.searchFlights(params, { userId: "verified-user" });
   expect(result.status).toBe("ok");
   expect(fetchMock).toHaveBeenCalledTimes(2);
   expect(fetchMock.mock.calls[0]![0]).toBe("https://auth.pp.travelport.com/oauth/token");
   const [url, request] = fetchMock.mock.calls[1]!;
   expect(url).toBe("https://api.pp.travelport.net/11/air/catalog/search/catalogproductofferings");
   const body = JSON.parse(request.body).CatalogProductOfferingsRequest;
+  expect(body.offersPerPage).toBe(1000);
   expect(body.PricingModifiersAir).toEqual({
     "@type": "PricingModifiersAir",
     currencyCode: "KZT",

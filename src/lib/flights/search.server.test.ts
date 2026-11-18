@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   requireOrganization: vi.fn(),
   requireAuth: vi.fn(),
   searchFlights: vi.fn(),
+  confirmPrice: vi.fn(),
 }));
 
 vi.mock("../organizations/authorization.server", async (importOriginal) => ({
@@ -20,6 +21,7 @@ vi.mock("../supabase/auth.server", async (importOriginal) => ({
 vi.mock("./travelport-provider.server", () => ({
   travelportProvider: { searchFlights: mocks.searchFlights },
 }));
+vi.mock("./travelport-price.server", () => ({ confirmTravelportPrice: mocks.confirmPrice }));
 
 // Run the actual configured validator and handler. HTTP serialization still
 // requires a separate TanStack Start integration check.
@@ -38,6 +40,7 @@ vi.mock("@tanstack/react-start", () => ({
 import { OrganizationAuthorizationError } from "../organizations/authorization.server";
 import { UnauthorizedError } from "../supabase/auth.server";
 import { searchFlightsServer } from "./search.functions";
+import { confirmFlightPriceServer } from "./flight-price.functions";
 import { checkFlightServer } from "./flight-check.functions";
 
 const organizationId = "f2000000-0000-4000-8000-000000000001" as OrganizationId;
@@ -73,6 +76,28 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+describe("AirPrice authorization", () => {
+  it("verifies agency membership before using a checkout token", async () => {
+    const error = new OrganizationAuthorizationError("ORGANIZATION_ACCESS_DENIED");
+    mocks.requireOrganization.mockRejectedValue(error);
+    await expect(
+      confirmFlightPriceServer({ data: { checkoutToken: "test-token", organizationId } }),
+    ).rejects.toBe(error);
+    expect(mocks.confirmPrice).not.toHaveBeenCalled();
+  });
+
+  it("uses the server-verified context and ignores the supplied user ID", async () => {
+    const input = { checkoutToken: "test-token", organizationId, userId: "forged-user" };
+    mocks.confirmPrice.mockResolvedValue({ status: "expired" });
+    await expect(confirmFlightPriceServer({ data: input })).resolves.toEqual({ status: "expired" });
+    expect(mocks.confirmPrice).toHaveBeenCalledExactlyOnceWith(input.checkoutToken, {
+      userId: "verified-user",
+      organizationId,
+      role: "member",
+    });
+  });
+});
+
 describe("searchFlightsServer authorization", () => {
   it.each([
     ["unauthenticated user", new UnauthorizedError()],
@@ -97,7 +122,7 @@ describe("searchFlightsServer authorization", () => {
   });
 
   it("waits for authorization before executing the provider", async () => {
-    let authorize!: (context: { organizationId: OrganizationId }) => void;
+    let authorize!: (context: { userId: string; organizationId: OrganizationId }) => void;
     mocks.requireOrganization.mockReturnValue(
       new Promise((resolve) => {
         authorize = resolve;
@@ -107,7 +132,7 @@ describe("searchFlightsServer authorization", () => {
     const pending = searchFlightsServer({ data: { ...params, organizationId } });
     expect(mocks.requireOrganization).toHaveBeenCalledOnce();
     expect(mocks.searchFlights).not.toHaveBeenCalled();
-    authorize({ organizationId });
+    authorize({ userId: "verified-user", organizationId });
     await expect(pending).resolves.toEqual(success);
     expect(mocks.searchFlights).toHaveBeenCalledOnce();
   });
@@ -127,7 +152,7 @@ describe("searchFlightsServer authorization", () => {
       expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith(organizationId);
       expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
         { ...params, returnDate: undefined },
-        { organizationId },
+        { userId: "verified-user", organizationId },
       );
     },
   );
@@ -143,7 +168,7 @@ describe("searchFlightsServer authorization", () => {
     expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith(organizationId);
     expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
       { ...params, returnDate: undefined },
-      { organizationId },
+      { userId: "verified-user", organizationId },
     );
   });
 
@@ -155,7 +180,7 @@ describe("searchFlightsServer authorization", () => {
     expect(mocks.requireOrganization).toHaveBeenCalledExactlyOnceWith(requestedOrganizationId);
     expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
       { ...params, returnDate: undefined },
-      { organizationId },
+      { userId: "verified-user", organizationId },
     );
   });
 
@@ -193,14 +218,17 @@ describe("searchFlightsServer authorization", () => {
     await searchFlightsServer({ data: { ...params, returnDate: "", organizationId } });
     expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
       { ...params, returnDate: undefined },
-      { organizationId },
+      { userId: "verified-user", organizationId },
     );
   });
 
   it("preserves nonempty return dates for provider handling", async () => {
     const roundTrip = { ...params, returnDate: "2026-12-20" };
     await searchFlightsServer({ data: { ...roundTrip, organizationId } });
-    expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(roundTrip, { organizationId });
+    expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(roundTrip, {
+      userId: "verified-user",
+      organizationId,
+    });
   });
 
   it.each([
@@ -233,7 +261,7 @@ describe("personal search authorization", () => {
     expect(mocks.requireOrganization).not.toHaveBeenCalled();
     expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
       { ...params, returnDate: undefined },
-      {},
+      { userId: "verified-user" },
     );
   });
 
@@ -251,7 +279,7 @@ describe("personal search authorization", () => {
     expect(mocks.requireOrganization).not.toHaveBeenCalled();
     expect(mocks.searchFlights).toHaveBeenCalledExactlyOnceWith(
       { ...params, returnDate: undefined },
-      {},
+      { userId: "verified-user" },
     );
   });
 
