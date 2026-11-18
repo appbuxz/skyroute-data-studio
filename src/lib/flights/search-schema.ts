@@ -18,7 +18,7 @@ const isoDate = z
     { message: "Select a date" },
   );
 
-function todayInKazakhstan(): string {
+export function todayInKazakhstan(): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Almaty",
     year: "numeric",

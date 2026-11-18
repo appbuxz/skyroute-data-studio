@@ -273,6 +273,7 @@ export const messages: Record<string, readonly [string, string]> = {
     "Ең жоғары және ең төмен баға арасындағы айырма — {percent}%",
   ],
   "Flight offers ({count})": ["Предложения рейсов ({count})", "Рейс ұсыныстары ({count})"],
+  "Search on Aviasales": ["Найти на Aviasales", "Aviasales-тан іздеу"],
   "Retrieved: {date}": ["Получено: {date}", "Алынған уақыты: {date}"],
   "No flights found for the selected route and date.": [
     "На выбранный маршрут и дату рейсы не найдены.",
