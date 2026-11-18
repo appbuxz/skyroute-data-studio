@@ -2,7 +2,12 @@ vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 import { StrictMode, useState, type ReactNode } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { FlightOffer, FlightSearchResult, OrganizationId } from "@/lib/flights/types";
+import type {
+  FlightOffer,
+  FlightPriceConfirmation,
+  FlightSearchResult,
+  OrganizationId,
+} from "@/lib/flights/types";
 import type { OrganizationMembership } from "@/lib/organizations/session.functions";
 
 const mocks = vi.hoisted(() => ({
@@ -186,6 +191,78 @@ describe("organization workspace", () => {
       expect(section.getByText("Cabin baggage").nextElementSibling).toHaveTextContent(cabin);
     },
   );
+
+  it("keeps every selected segment and the next-day arrival above the price when AirPrice updates", async () => {
+    const response = result();
+    if (response.status !== "ok") throw new Error("Expected test offers");
+    const offer = response.offers[0]!;
+    offer.checkoutToken = "connection-token";
+    offer.stops = 1;
+    offer.departureAt = "2099-12-10T20:40:00+05:00";
+    offer.arrivalAt = "2099-12-11T00:35:00+03:00";
+    offer.outbound = {
+      segments: [
+        {
+          carrier: "KC",
+          flightNumber: "641",
+          origin: "ALA",
+          destination: "NQZ",
+          departureAt: offer.departureAt,
+          arrivalAt: "2099-12-10T22:15:00+05:00",
+        },
+        {
+          carrier: "KC",
+          flightNumber: "917",
+          origin: "NQZ",
+          destination: "IST",
+          departureAt: "2099-12-10T23:50:00+05:00",
+          arrivalAt: offer.arrivalAt,
+        },
+      ],
+    };
+    const airPrice = deferred<FlightPriceConfirmation>();
+    mocks.search.mockResolvedValue(response);
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    mocks.confirmPrice.mockReturnValue(airPrice.promise);
+
+    render(<Workspace />);
+    await ready();
+    submitSearch();
+    fireEvent.click(await screen.findByRole("button", { name: "Select flight" }));
+
+    const dialog = within(screen.getByRole("dialog", { name: "ALA → IST" }));
+    function checkSegments() {
+      const list = dialog.getByRole("list", { name: "Outbound itinerary segments" });
+      const [first, second] = within(list).getAllByRole("listitem");
+      expect(within(list).getAllByRole("listitem")).toHaveLength(2);
+      expect(first).toHaveTextContent("ALA → NQZ");
+      expect(first).toHaveTextContent("KC · 641");
+      expect(first).toHaveTextContent("10 Dec 2099 · 20:40 (UTC+05:00)");
+      expect(first).toHaveTextContent("10 Dec 2099 · 22:15 (UTC+05:00)");
+      expect(second).toHaveTextContent("NQZ → IST");
+      expect(second).toHaveTextContent("KC · 917");
+      expect(second).toHaveTextContent("10 Dec 2099 · 23:50 (UTC+05:00)");
+      expect(second).toHaveTextContent("11 Dec 2099 · 00:35 (UTC+03:00)");
+      expect(
+        list.compareDocumentPosition(dialog.getByText(/^(Search|Previous) price$/)) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+
+    checkSegments();
+    await act(async () => {
+      airPrice.resolve({
+        status: "changed",
+        previousPrice: offer.price,
+        price: { amount: 123456, currency: "KZT" },
+        acceptanceToken: "updated-quote",
+      });
+    });
+    expect(dialog.getByText("123,456 KZT")).toBeVisible();
+    checkSegments();
+    expect(mocks.search).toHaveBeenCalledOnce();
+    expect(mocks.confirmPrice).toHaveBeenCalledOnce();
+  });
 
   it("gates the passenger form on explicit acceptance and asks again if the accepted price changes", async () => {
     const response = result();

@@ -2,6 +2,8 @@ import { type FormEvent, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckoutBaggage } from "./checkout-baggage";
 import { CheckoutFareRules } from "./checkout-fare-rules";
+import { FlightDateTime } from "./flight-date-time";
+import { FlightItinerary } from "./flight-itinerary";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -105,9 +107,25 @@ export function FlightPriceDialog({
           </DialogTitle>
           <DialogDescription>{t("Test price check · Travelport pre-production")}</DialogDescription>
         </DialogHeader>
-        <p>
-          {offer.carrier} · {offer.flightNumber}
-        </p>
+        {offer.outbound?.segments.length ? (
+          <FlightItinerary itinerary={offer.outbound} label="Outbound itinerary" />
+        ) : (
+          <div className="space-y-1 text-sm">
+            <p>
+              {offer.carrier} · {offer.flightNumber}
+            </p>
+            <p>
+              {t("Departure:")} <FlightDateTime value={offer.departureAt} />
+            </p>
+            <p>
+              {t("Arrival:")} <FlightDateTime value={offer.arrivalAt} />
+            </p>
+            {offer.stops > 0 && <p>{t("Segment details unavailable")}</p>}
+          </div>
+        )}
+        {offer.inbound?.segments.length ? (
+          <FlightItinerary itinerary={offer.inbound} label="Return itinerary" />
+        ) : null}
         <dl className="grid grid-cols-2 gap-2">
           <dt>{t(previousPrice ? "Previous price" : "Search price")}</dt>
           <dd>
