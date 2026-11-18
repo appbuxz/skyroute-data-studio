@@ -13,8 +13,8 @@ const params: FlightSearchParams = {
 beforeEach(() => vi.setSystemTime(new Date("2026-11-18T08:00:00Z")));
 afterEach(() => vi.useRealTimers());
 
-it("links to the Kazakhstan search form for a one-way trip", () => {
-  expect(aviasalesSearchLink(params)).toBe("https://www.aviasales.kz/?params=ALA1212IST2");
+it("links to the Kazakhstan search results for a one-way trip", () => {
+  expect(aviasalesSearchLink(params)).toBe("https://www.aviasales.kz/search/ALA1212IST2");
 });
 
 it.each([
@@ -24,7 +24,7 @@ it.each([
   ["first", "f"],
 ] as const)("encodes a round trip in %s", (cabinClass, code) => {
   expect(aviasalesSearchLink({ ...params, returnDate: "2026-12-19", cabinClass })).toBe(
-    `https://www.aviasales.kz/?params=ALA1212IST1912${code}2`,
+    `https://www.aviasales.kz/search/ALA1212IST1912${code}2`,
   );
 });
 

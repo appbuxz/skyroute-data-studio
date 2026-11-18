@@ -22,7 +22,6 @@ export function aviasalesSearchLink(params: FlightSearchParams): string | undefi
   const dayMonth = (date: string) => date.slice(8, 10) + date.slice(5, 7);
   const segment = origin + dayMonth(departureDate) + destination;
   const returnSegment = returnDate ? dayMonth(returnDate) : "";
-  const url = new URL("https://www.aviasales.kz/");
-  url.searchParams.set("params", segment + returnSegment + cabinCodes[cabinClass] + passengers);
-  return url.href;
+  const code = segment + returnSegment + cabinCodes[cabinClass] + passengers;
+  return `https://www.aviasales.kz/search/${code}`;
 }

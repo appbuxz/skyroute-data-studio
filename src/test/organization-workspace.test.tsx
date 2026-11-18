@@ -620,7 +620,7 @@ describe("organization workspace", () => {
     fireEvent.change(screen.getByLabelText("Passengers"), { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: "Search flights" }));
 
-    const oneWay = "https://www.aviasales.kz/?params=ALA1212IST2";
+    const oneWay = "https://www.aviasales.kz/search/ALA1212IST2";
     expect(await screen.findByRole("link", { name: label })).toHaveAttribute("href", oneWay);
     fireEvent.change(screen.getByLabelText("Return date (optional)"), {
       target: { value: "2026-12-19" },
@@ -628,7 +628,7 @@ describe("organization workspace", () => {
     expect(screen.getByRole("link", { name: label })).toHaveAttribute("href", oneWay);
     expect(mocks.search).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole("button", { name: "Search flights" }));
-    const roundTrip = "https://www.aviasales.kz/?params=ALA1212IST19122";
+    const roundTrip = "https://www.aviasales.kz/search/ALA1212IST19122";
     expect(await screen.findByRole("link", { name: label })).toHaveAttribute("href", roundTrip);
 
     first.unmount();
