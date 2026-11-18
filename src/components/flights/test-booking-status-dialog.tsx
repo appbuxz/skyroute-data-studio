@@ -71,6 +71,16 @@ export function TestBookingStatusDialog({
             <dl className="grid grid-cols-2 gap-2">
               <dt>{t("Booking status")}</dt>
               <dd>{result.bookingStatus}</dd>
+              {bookingId && (
+                <>
+                  <dt>{t("Electronic ticket")}</dt>
+                  <dd>
+                    {result.ticketNumbers?.length
+                      ? `${t("Issued")} · ${result.ticketNumbers.join(", ")}`
+                      : t("Ticket number not yet received")}
+                  </dd>
+                </>
+              )}
               {result.ticketingDeadline && (
                 <>
                   <dt>{t("Ticketing deadline")}</dt>

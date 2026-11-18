@@ -287,6 +287,12 @@ export const messages: Record<string, readonly [string, string]> = {
   "Open test booking": ["Открыть тестовую бронь", "Сынақ бронін ашу"],
   "Updating booking status…": ["Обновляем статус брони…", "Бронь күйі жаңартылып жатыр…"],
   "Booking status": ["Статус брони", "Бронь күйі"],
+  "Electronic ticket": ["Электронный билет", "Электрондық билет"],
+  Issued: ["Выписан", "Рәсімделді"],
+  "Ticket number not yet received": [
+    "Номер билета пока не получен",
+    "Билет нөмірі әлі алынған жоқ",
+  ],
   "Ticketing deadline": ["Срок выписки", "Билет рәсімдеу мерзімі"],
   "No test booking found for this flight.": [
     "Для этого рейса тестовая бронь не найдена.",

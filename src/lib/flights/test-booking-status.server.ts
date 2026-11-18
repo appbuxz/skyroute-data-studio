@@ -11,6 +11,11 @@ const ticketingTerms = z.object({
   PaymentTimeLimit: z.string().datetime({ offset: true }).optional(),
   ExpiryDate: z.string().datetime({ offset: true }).optional(),
 });
+const ticketDocument = z.object({
+  "@type": z.enum(["DocumentTicket", "DocumentTicketExchange"]),
+  Number: z.string().regex(/^\d{13}$/),
+  historicInd: z.boolean().optional(),
+});
 const reservationResponse = z.object({
   ReservationResponse: z.object({
     Result: z.object({ Error: z.array(z.unknown()).optional() }).optional(),
@@ -24,6 +29,8 @@ const reservationResponse = z.object({
         .optional(),
       Receipt: z.array(
         z.object({
+          "@type": z.string().optional(),
+          Document: z.unknown(),
           Confirmation: z
             .object({
               Locator: z.object({ value: z.string() }).optional(),
@@ -43,7 +50,13 @@ const reservationResponse = z.object({
 export type TestBookingStatus =
   | { status: "not_found" | "error" }
   | { status: "provider_error"; pnr: string }
-  | { status: "retrieved"; pnr: string; bookingStatus: string; ticketingDeadline?: string };
+  | {
+      status: "retrieved";
+      pnr: string;
+      bookingStatus: string;
+      ticketingDeadline?: string;
+      ticketNumbers?: string[];
+    };
 
 export async function retrieveTestBooking(
   scope: PriceScope,
@@ -143,11 +156,23 @@ async function refreshBookingStatus(pnr: string): Promise<TestBookingStatus> {
         return limit ? [limit] : [];
       })
       .sort((a, b) => Date.parse(a) - Date.parse(b))[0];
+    const ticketNumbers = [
+      ...new Set(
+        Receipt.flatMap((receipt) => {
+          if (receipt["@type"] !== "ReceiptPayment" || !Array.isArray(receipt.Document)) return [];
+          return receipt.Document.flatMap((document: unknown) => {
+            const parsed = ticketDocument.safeParse(document);
+            return parsed.success && !parsed.data.historicInd ? [parsed.data.Number] : [];
+          });
+        }),
+      ),
+    ];
     return {
       status: "retrieved",
       pnr,
       bookingStatus: statuses.join(", "),
       ...(deadline ? { ticketingDeadline: deadline } : {}),
+      ...(ticketNumbers.length ? { ticketNumbers } : {}),
     };
   } catch {
     return { status: "provider_error", pnr };

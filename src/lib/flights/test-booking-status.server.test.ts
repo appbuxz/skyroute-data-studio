@@ -173,3 +173,43 @@ it("requires both the current owner and personal scope when opening a list entry
   });
   expect(mocks.get).not.toHaveBeenCalled();
 });
+
+it("returns only current ticket document numbers from the matching reservation", async () => {
+  mocks.detail.mockResolvedValue({ data: { pnr } });
+  const ticket = { "@type": "DocumentTicket", Number: "0019905292727" };
+  mocks.get.mockResolvedValue(
+    Response.json({
+      ReservationResponse: {
+        Reservation: {
+          Receipt: [
+            {
+              Confirmation: {
+                Locator: { value: pnr },
+                OfferStatus: { StatusAir: [{ code: "HK" }] },
+              },
+            },
+            {
+              "@type": "ReceiptPayment",
+              Document: [
+                ticket,
+                ticket,
+                { "@type": "DocumentEMD", Number: "0019905292728" },
+                { "@type": "DocumentTicket", Number: "0019905292729", historicInd: true },
+                { "@type": "DocumentTicketExchange", Number: "0019905292730" },
+                { "@type": "DocumentTicket", Number: "" },
+                null,
+              ],
+            },
+          ],
+        },
+      },
+    }),
+  );
+  await expect(retrieveMyTestBooking(owner.userId, "attempt-key")).resolves.toEqual({
+    status: "retrieved",
+    pnr,
+    bookingStatus: "HK",
+    ticketNumbers: ["0019905292727", "0019905292730"],
+  });
+  expect(mocks.get).toHaveBeenCalledExactlyOnceWith(`book/reservation/reservations/${pnr}`);
+});
