@@ -22,6 +22,7 @@ vi.mock("@/lib/flights/test-booking-status.functions", () => ({
 }));
 vi.mock("@/lib/flights/flight-price.functions", () => ({
   confirmFlightPriceServer: mocks.confirmPrice,
+  createFlightTestBookingServer: vi.fn(),
 }));
 vi.mock("@/lib/supabase/client", () => ({
   supabase: { auth: { onAuthStateChange: mocks.onAuthStateChange } },
@@ -147,6 +148,32 @@ afterEach(() => {
 });
 
 describe("organization workspace", () => {
+  it("shows unknown exchange and refund terms above the passenger form when AirPrice omits rules", async () => {
+    const response = result();
+    if (response.status !== "ok") throw new Error("Expected test offers");
+    response.offers[0]!.checkoutToken = "checkout-token";
+    mocks.search.mockResolvedValue(response);
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    mocks.confirmPrice.mockResolvedValue({
+      status: "confirmed",
+      price: { amount: 250, currency: "USD" },
+      bookingToken: "booking-token",
+    });
+
+    render(<Workspace />);
+    await ready();
+    submitSearch();
+    fireEvent.click(await screen.findByRole("button", { name: "Select flight" }));
+
+    const heading = await screen.findByRole("heading", { name: "Exchange and refund" });
+    expect(screen.getAllByText("No data")).toHaveLength(2);
+    const passenger = screen.getByLabelText("Test given name");
+    expect(
+      heading.compareDocumentPosition(passenger) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.queryByText("No penalty")).not.toBeInTheDocument();
+  });
+
   it("opens the selected offer, displays the AirPrice currency and refreshes an expired search", async () => {
     const response = result();
     if (response.status !== "ok") throw new Error("Expected test offers");

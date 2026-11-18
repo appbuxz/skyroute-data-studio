@@ -6,6 +6,7 @@ import {
   sealCheckout,
 } from "./travelport-checkout-token.server";
 import { testBookingEnabled } from "./travelport-config.server";
+import { readTravelportFareRules } from "./travelport-fare-rules.server";
 import { postTravelportAir } from "./travelport-http.server";
 import type { TravelportPriceReference } from "./travelport-normalizer";
 import type {
@@ -139,6 +140,10 @@ export async function confirmTravelportPrice(
       OfferQueryBuildFromCatalogProductOfferings: {
         BuildFromCatalogProductOfferingsRequest: {
           "@type": "BuildFromCatalogProductOfferingsRequestAir",
+          CustomResponseModifiersAir: {
+            "@type": "CustomResponseModifiersAir",
+            includeFullPenaltyDisclosureInd: true,
+          },
           validateInventoryInd: Boolean(checkout.requestedFlight && testBookingEnabled()),
           CatalogProductOfferingsIdentifier: identifier(catalogId),
           CatalogProductOfferingSelection: [
@@ -180,6 +185,8 @@ export async function confirmTravelportPrice(
     ) {
       return { status: "changed", price };
     }
+    const rules = readTravelportFareRules(OfferID[0]);
+    const fareRules = rules.change.length || rules.refund.length ? { fareRules: rules } : {};
     const requested = checkout.requestedFlight;
     if (requested && testBookingEnabled()) {
       const parsedFlight = singlePricedFlight.safeParse(OfferID[0]);
@@ -219,6 +226,7 @@ export async function confirmTravelportPrice(
             return {
               status: "confirmed",
               price,
+              ...fareRules,
               bookingToken,
               bookingClass: service.classOfService,
             };
@@ -226,7 +234,7 @@ export async function confirmTravelportPrice(
         }
       }
     }
-    return { status: "confirmed", price };
+    return { status: "confirmed", price, ...fareRules };
   } catch {
     return { status: "error" };
   }
