@@ -14,6 +14,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      flight_test_booking_attempts: {
+        Row: { attempt_key: string; pnr: string | null }
+        Insert: { attempt_key: string; pnr?: string | null }
+        Update: { pnr?: string | null }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

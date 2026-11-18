@@ -120,3 +120,17 @@ Official references:
 - [Generic OAuth reference (different from this account onboarding)](https://developer.travelport.com/apis/flights/authentication)
 - [v11 common headers and routing alternatives](https://support.travelport.com/webhelp/JSONAPIs/Airv11/Content/Air11/General/CommonAirHeaders.htm)
 - [AirSearch endpoint and routing header schema](https://developer.travelport.com/apis/flights/searches/createairsearch)
+
+## Test booking after AirPrice
+
+Apply `supabase/migrations/20261119000100_flight_test_booking_attempts.sql` to
+the Supabase environment used for testing. Enable the flow on the application
+server with `TRAVELPORT_TEST_BOOKING=true` and configure the existing server-only
+`SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_URL`. Travelport booking requests use the
+fixed pre-production host. The form takes two fictional name fields for one
+adult and supplies fixed test contact details.
+
+The attempt table holds an itinerary key and the Travelport locator when known.
+A pending entry also covers an interrupted or ambiguous Commit. If an attempt
+remains pending, reconcile it in Travelport before clearing the entry. A refreshed
+search for the same flight and user/agency context uses the same attempt key.

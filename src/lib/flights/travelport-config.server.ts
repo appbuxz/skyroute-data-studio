@@ -29,3 +29,7 @@ export function getTravelportCredentials(): TravelportCredentials | null {
 
   return { clientId, clientSecret, username, password, pcc, accessGroup };
 }
+
+export function testBookingEnabled() {
+  return process.env["TRAVELPORT_TEST_BOOKING"] === "true";
+}

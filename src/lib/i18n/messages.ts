@@ -274,6 +274,25 @@ export const messages: Record<string, readonly [string, string]> = {
   ],
   "Flight offers ({count})": ["Предложения рейсов ({count})", "Рейс ұсыныстары ({count})"],
   "Select flight": ["Выбрать рейс", "Рейсті таңдау"],
+  "Test booking · no payment": ["Тестовая бронь · без оплаты", "Сынақ броні · төлемсіз"],
+  "Confirmed booking class": ["Подтверждённый класс бронирования", "Расталған бронь класы"],
+  "Use fictional passenger details.": [
+    "Введите вымышленные данные пассажира.",
+    "Жолаушының ойдан шығарылған деректерін енгізіңіз.",
+  ],
+  "Test given name": ["Вымышленное имя", "Ойдан шығарылған есім"],
+  "Test surname": ["Вымышленная фамилия", "Ойдан шығарылған тегі"],
+  "Create test booking": ["Создать тестовую бронь", "Сынақ бронін жасау"],
+  "Creating the test booking…": ["Создаём тестовую бронь…", "Сынақ броні жасалып жатыр…"],
+  "Booking status is unknown. Verify it in Travelport before trying again.": [
+    "Статус брони неизвестен. Проверьте его в Travelport перед новой попыткой.",
+    "Бронь күйі белгісіз. Қайта әрекет етпес бұрын Travelport жүйесінде тексеріңіз.",
+  ],
+  "Test booking is unavailable.": ["Тестовая бронь недоступна.", "Сынақ броні қолжетімсіз."],
+  "Unable to create a test booking.": [
+    "Не удалось создать тестовую бронь.",
+    "Сынақ бронін жасау мүмкін болмады.",
+  ],
   "Test price check · Travelport pre-production": [
     "Тестовая проверка цены · Travelport pre-production",
     "Бағаны сынақ ортасында тексеру · Travelport pre-production",

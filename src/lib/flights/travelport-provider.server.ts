@@ -32,10 +32,15 @@ export const travelportProvider = {
         }
       }
       if (context.userId && result.priceReferences) {
-        await attachCheckoutTokens(result.offers, result.priceReferences, {
-          ...context,
-          userId: context.userId,
-        });
+        await attachCheckoutTokens(
+          result.offers,
+          result.priceReferences,
+          {
+            ...context,
+            userId: context.userId,
+          },
+          params,
+        );
       }
       return {
         status: "ok",

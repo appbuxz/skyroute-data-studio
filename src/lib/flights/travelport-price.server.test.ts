@@ -119,3 +119,75 @@ it("rejects a modified checkout token before calling Travelport", async () => {
   await expect(confirmTravelportPrice(altered, scope)).resolves.toEqual({ status: "expired" });
   expect(postAir).not.toHaveBeenCalled();
 });
+
+it.each([
+  ["Economy", "E", true],
+  ["Business", "E", false],
+  ["Economy", undefined, false],
+] as const)(
+  "only enables booking for the matching, verified AirPrice class (%s, %s)",
+  async (cabin, code, canBook) => {
+    const { getCheckoutKey, openCheckout, sealCheckout } =
+      await import("./travelport-checkout-token.server");
+    vi.stubEnv("TRAVELPORT_TEST_BOOKING", "true");
+    const checkout = (await openCheckout(checkoutToken))!;
+    const token = await sealCheckout(
+      {
+        ...checkout,
+        requestedFlight: {
+          carrier: "KC",
+          flightNumber: "913",
+          from: "ALA",
+          to: "IST",
+          departureDate: "2026-12-12",
+          cabin: "Economy",
+        },
+      },
+      (await getCheckoutKey())!,
+    );
+    postAir.mockResolvedValue(
+      Response.json({
+        OfferListResponse: {
+          Result: { Warning: [{ Message: "Preferred/Permitted Cabin is Ignored" }] },
+          OfferID: [
+            {
+              Price: {
+                TotalPrice: searchPrice.amount,
+                CurrencyCode: { value: searchPrice.currency },
+              },
+              Product: [
+                {
+                  FlightSegment: [
+                    {
+                      sequence: 1,
+                      Flight: {
+                        carrier: "KC",
+                        number: "913",
+                        Departure: { location: "ALA", date: "2026-12-12", time: "17:00:00" },
+                        Arrival: { location: "IST", date: "2026-12-12", time: "21:00:00" },
+                      },
+                    },
+                  ],
+                  PassengerFlight: [
+                    {
+                      passengerQuantity: 1,
+                      passengerTypeCode: "ADT",
+                      FlightProduct: [{ segmentSequence: [1], cabin, classOfService: code }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+    const result = await confirmTravelportPrice(token, scope);
+    expect(result.status).toBe("confirmed");
+    if (result.status !== "confirmed") throw new Error("Expected a confirmed price");
+    expect(Boolean(result.bookingToken)).toBe(canBook);
+    if (result.bookingToken) {
+      expect((await openCheckout(result.bookingToken))?.booking?.classOfService).toBe("E");
+    }
+  },
+);

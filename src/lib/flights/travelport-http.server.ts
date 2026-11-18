@@ -13,6 +13,7 @@ export async function postTravelportAir(path: string, body: object) {
 
   return fetch(url, {
     method: "POST",
+    redirect: "error",
     signal: AbortSignal.timeout(30_000),
     headers: {
       Authorization: `Bearer ${token}`,
