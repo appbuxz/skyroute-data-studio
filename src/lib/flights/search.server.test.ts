@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   searchFlights: vi.fn(),
   confirmPrice: vi.fn(),
   retrieveBooking: vi.fn(),
+  listBookings: vi.fn(),
 }));
 
 vi.mock("../organizations/authorization.server", async (importOriginal) => ({
@@ -23,12 +24,16 @@ vi.mock("./travelport-provider.server", () => ({
   travelportProvider: { searchFlights: mocks.searchFlights },
 }));
 vi.mock("./travelport-price.server", () => ({ confirmTravelportPrice: mocks.confirmPrice }));
-vi.mock("./test-booking-status.server", () => ({ retrieveTestBooking: mocks.retrieveBooking }));
+vi.mock("./test-booking-status.server", () => ({
+  retrieveTestBooking: mocks.retrieveBooking,
+  listMyTestBookings: mocks.listBookings,
+}));
 
 // Run the actual configured validator and handler. HTTP serialization still
 // requires a separate TanStack Start integration check.
 vi.mock("@tanstack/react-start", () => ({
   createServerFn: () => ({
+    handler: (fn: () => Promise<unknown>) => fn,
     validator(schema: { parse(input: unknown): unknown }) {
       return {
         handler(fn: (args: { data: unknown }) => Promise<unknown>) {
@@ -43,7 +48,10 @@ import { OrganizationAuthorizationError } from "../organizations/authorization.s
 import { UnauthorizedError } from "../supabase/auth.server";
 import { searchFlightsServer } from "./search.functions";
 import { confirmFlightPriceServer } from "./flight-price.functions";
-import { getTestBookingStatusServer } from "./test-booking-status.functions";
+import {
+  getTestBookingStatusServer,
+  listMyTestBookingsServer,
+} from "./test-booking-status.functions";
 import { checkFlightServer } from "./flight-check.functions";
 
 const organizationId = "f2000000-0000-4000-8000-000000000001" as OrganizationId;
@@ -99,6 +107,17 @@ describe("AirPrice authorization", () => {
       role: "member",
     });
   });
+});
+
+it("lists personal bookings only for the authenticated user", async () => {
+  mocks.listBookings.mockResolvedValue([]);
+  await expect(listMyTestBookingsServer()).resolves.toEqual([]);
+  expect(mocks.listBookings).toHaveBeenCalledExactlyOnceWith("verified-user");
+
+  const error = new UnauthorizedError();
+  mocks.requireAuth.mockRejectedValue(error);
+  await expect(listMyTestBookingsServer()).rejects.toBe(error);
+  expect(mocks.listBookings).toHaveBeenCalledTimes(1);
 });
 
 describe("saved test booking authorization", () => {

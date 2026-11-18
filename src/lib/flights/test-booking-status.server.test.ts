@@ -1,8 +1,18 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { testBookingKey } from "./test-booking-key.server";
-import { retrieveTestBooking } from "./test-booking-status.server";
+import {
+  listMyTestBookings,
+  retrieveMyTestBooking,
+  retrieveTestBooking,
+} from "./test-booking-status.server";
 
-const mocks = vi.hoisted(() => ({ get: vi.fn(), lookup: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  get: vi.fn(),
+  lookup: vi.fn(),
+  list: vi.fn(),
+  detail: vi.fn(),
+  update: vi.fn(),
+}));
 vi.mock("./travelport-http.server", () => ({ getTravelportAir: mocks.get }));
 vi.mock("./travelport-config.server", () => ({
   getTravelportCredentials: () => ({ pcc: "TEST_1G" }),
@@ -11,7 +21,24 @@ vi.mock("../../integrations/supabase/client.server", () => ({
   supabaseAdmin: {
     from: () => ({
       select: () => ({
-        eq: (_column: string, key: string) => ({ maybeSingle: () => mocks.lookup(key) }),
+        eq: (column: string, value: string) => ({
+          maybeSingle: () => mocks.lookup(value),
+          eq: (ownerColumn: string, ownerId: string) => ({
+            is: (scopeColumn: string, scopeValue: null) => ({
+              maybeSingle: () =>
+                mocks.detail({ column, value, ownerColumn, ownerId, scopeColumn, scopeValue }),
+            }),
+          }),
+          is: (scopeColumn: string, scopeValue: null) => ({
+            not: (pnrColumn: string, operator: string, pnrValue: null) =>
+              mocks.list({ column, value, scopeColumn, scopeValue, pnrColumn, operator, pnrValue }),
+          }),
+        }),
+      }),
+      update: (metadata: unknown) => ({
+        eq: (_column: string, key: string) => ({
+          is: (column: string, value: null) => mocks.update(metadata, key, column, value),
+        }),
       }),
     }),
   },
@@ -32,7 +59,7 @@ beforeEach(async () => {
   vi.resetAllMocks();
   const key = await testBookingKey("TEST_1G", owner, flight);
   mocks.lookup.mockImplementation(async (requested: string) => ({
-    data: requested === key ? { pnr } : null,
+    data: requested === key ? { pnr, user_id: owner.userId, organization_id: null } : null,
   }));
 });
 
@@ -81,4 +108,68 @@ it("keeps the saved PNR and reports a refresh failure if Travelport is unavailab
     status: "provider_error",
     pnr,
   });
+});
+
+it("lists only successful personal bookings for the current user without contacting Travelport", async () => {
+  const bookingId = await testBookingKey("TEST_1G", owner, flight);
+  const records = [
+    { userId: owner.userId, organizationId: null, pnr, flight, attempt_key: bookingId },
+    { userId: "other", organizationId: null, pnr: "DEF456", flight },
+    { userId: owner.userId, organizationId: "agency", pnr: "XYZ789", flight },
+    { userId: owner.userId, organizationId: null, pnr: null, flight },
+  ];
+  mocks.list.mockImplementation(async (filters) => {
+    expect(filters).toEqual({
+      column: "user_id",
+      value: owner.userId,
+      scopeColumn: "organization_id",
+      scopeValue: null,
+      pnrColumn: "pnr",
+      operator: "is",
+      pnrValue: null,
+    });
+    return {
+      data: records.filter(
+        (r) =>
+          r.userId === filters.value &&
+          r.organizationId === filters.scopeValue &&
+          r.pnr !== filters.pnrValue,
+      ),
+    };
+  });
+  await expect(listMyTestBookings(owner.userId)).resolves.toEqual([{ id: bookingId, pnr, flight }]);
+  expect(mocks.get).not.toHaveBeenCalled();
+});
+
+it("records ownership for a legacy booking when opened by its verified owner", async () => {
+  const key = await testBookingKey("TEST_1G", owner, flight);
+  mocks.lookup.mockImplementation(async (requested: string) => ({
+    data: requested === key ? { pnr, user_id: null, organization_id: null } : null,
+  }));
+  mocks.get.mockRejectedValue(new Error("Unavailable"));
+  await expect(retrieveTestBooking(owner, flight)).resolves.toEqual({
+    status: "provider_error",
+    pnr,
+  });
+  expect(mocks.update).toHaveBeenCalledExactlyOnceWith(
+    { user_id: owner.userId, organization_id: null, flight },
+    key,
+    "user_id",
+    null,
+  );
+});
+
+it("requires both the current owner and personal scope when opening a list entry", async () => {
+  const bookingId = await testBookingKey("TEST_1G", owner, flight);
+  mocks.detail.mockResolvedValue({ data: null });
+  await expect(retrieveMyTestBooking("other", bookingId)).resolves.toEqual({ status: "not_found" });
+  expect(mocks.detail).toHaveBeenCalledExactlyOnceWith({
+    column: "attempt_key",
+    value: bookingId,
+    ownerColumn: "user_id",
+    ownerId: "other",
+    scopeColumn: "organization_id",
+    scopeValue: null,
+  });
+  expect(mocks.get).not.toHaveBeenCalled();
 });

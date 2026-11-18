@@ -508,8 +508,13 @@ function SearchForm({
                               previous.flightNumber === offer.flightNumber,
                           ) && (
                           <TestBookingStatusDialog
-                            offer={offer}
-                            departureDate={search.params.departureDate}
+                            flight={{
+                              carrier: offer.carrier,
+                              flightNumber: offer.flightNumber,
+                              from: offer.origin,
+                              to: offer.destination,
+                              departureDate: search.params.departureDate,
+                            }}
                             organizationId={selectedOrganizationId}
                           />
                         )}

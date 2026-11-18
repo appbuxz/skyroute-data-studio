@@ -15,9 +15,9 @@ export type Database = {
   public: {
     Tables: {
       flight_test_booking_attempts: {
-        Row: { attempt_key: string; pnr: string | null }
-        Insert: { attempt_key: string; pnr?: string | null }
-        Update: { pnr?: string | null }
+        Row: { attempt_key: string; pnr: string | null; user_id: string | null; organization_id: string | null; flight: Json }
+        Insert: { attempt_key: string; pnr?: string | null; user_id?: string | null; organization_id?: string | null; flight?: Json }
+        Update: { pnr?: string | null; user_id?: string | null; organization_id?: string | null; flight?: Json }
         Relationships: []
       }
       profiles: {

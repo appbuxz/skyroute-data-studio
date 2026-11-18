@@ -5,6 +5,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
   Building2,
+  CalendarCheck,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -44,6 +45,7 @@ const NAV = [
     items: [
       { to: "/search", label: "Flight Search", icon: Search },
       { to: "/check-my-flight", label: "Check My Flight", icon: Plane },
+      { to: "/my-test-bookings", label: "My bookings", icon: CalendarCheck },
     ],
   },
   {

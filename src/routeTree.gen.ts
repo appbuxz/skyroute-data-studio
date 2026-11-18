@@ -17,6 +17,7 @@ import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authentica
 import { Route as AuthenticatedWorkspaceAnalysisRouteImport } from './routes/_authenticated/_workspace.analysis'
 import { Route as AuthenticatedWorkspaceCheckMyFlightRouteImport } from './routes/_authenticated/_workspace.check-my-flight'
 import { Route as AuthenticatedWorkspaceDashboardRouteImport } from './routes/_authenticated/_workspace.dashboard'
+import { Route as AuthenticatedWorkspaceMyTestBookingsRouteImport } from './routes/_authenticated/_workspace.my-test-bookings'
 import { Route as AuthenticatedWorkspaceReportsRouteImport } from './routes/_authenticated/_workspace.reports'
 import { Route as AuthenticatedWorkspaceSearchRouteImport } from './routes/_authenticated/_workspace.search'
 import { Route as AuthenticatedWorkspaceSettingsRouteImport } from './routes/_authenticated/_workspace.settings'
@@ -62,6 +63,12 @@ const AuthenticatedWorkspaceDashboardRoute =
     path: '/dashboard',
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any)
+const AuthenticatedWorkspaceMyTestBookingsRoute =
+  AuthenticatedWorkspaceMyTestBookingsRouteImport.update({
+    id: '/my-test-bookings',
+    path: '/my-test-bookings',
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any)
 const AuthenticatedWorkspaceReportsRoute =
   AuthenticatedWorkspaceReportsRouteImport.update({
     id: '/reports',
@@ -88,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/analysis': typeof AuthenticatedWorkspaceAnalysisRoute
   '/check-my-flight': typeof AuthenticatedWorkspaceCheckMyFlightRoute
   '/dashboard': typeof AuthenticatedWorkspaceDashboardRoute
+  '/my-test-bookings': typeof AuthenticatedWorkspaceMyTestBookingsRoute
   '/reports': typeof AuthenticatedWorkspaceReportsRoute
   '/search': typeof AuthenticatedWorkspaceSearchRoute
   '/settings': typeof AuthenticatedWorkspaceSettingsRoute
@@ -99,6 +107,7 @@ export interface FileRoutesByTo {
   '/analysis': typeof AuthenticatedWorkspaceAnalysisRoute
   '/check-my-flight': typeof AuthenticatedWorkspaceCheckMyFlightRoute
   '/dashboard': typeof AuthenticatedWorkspaceDashboardRoute
+  '/my-test-bookings': typeof AuthenticatedWorkspaceMyTestBookingsRoute
   '/reports': typeof AuthenticatedWorkspaceReportsRoute
   '/search': typeof AuthenticatedWorkspaceSearchRoute
   '/settings': typeof AuthenticatedWorkspaceSettingsRoute
@@ -113,6 +122,7 @@ export interface FileRoutesById {
   '/_authenticated/_workspace/analysis': typeof AuthenticatedWorkspaceAnalysisRoute
   '/_authenticated/_workspace/check-my-flight': typeof AuthenticatedWorkspaceCheckMyFlightRoute
   '/_authenticated/_workspace/dashboard': typeof AuthenticatedWorkspaceDashboardRoute
+  '/_authenticated/_workspace/my-test-bookings': typeof AuthenticatedWorkspaceMyTestBookingsRoute
   '/_authenticated/_workspace/reports': typeof AuthenticatedWorkspaceReportsRoute
   '/_authenticated/_workspace/search': typeof AuthenticatedWorkspaceSearchRoute
   '/_authenticated/_workspace/settings': typeof AuthenticatedWorkspaceSettingsRoute
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/analysis'
     | '/check-my-flight'
     | '/dashboard'
+    | '/my-test-bookings'
     | '/reports'
     | '/search'
     | '/settings'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/analysis'
     | '/check-my-flight'
     | '/dashboard'
+    | '/my-test-bookings'
     | '/reports'
     | '/search'
     | '/settings'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_workspace/analysis'
     | '/_authenticated/_workspace/check-my-flight'
     | '/_authenticated/_workspace/dashboard'
+    | '/_authenticated/_workspace/my-test-bookings'
     | '/_authenticated/_workspace/reports'
     | '/_authenticated/_workspace/search'
     | '/_authenticated/_workspace/settings'
@@ -220,6 +233,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWorkspaceDashboardRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
+    '/_authenticated/_workspace/my-test-bookings': {
+      id: '/_authenticated/_workspace/my-test-bookings'
+      path: '/my-test-bookings'
+      fullPath: '/my-test-bookings'
+      preLoaderRoute: typeof AuthenticatedWorkspaceMyTestBookingsRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
+    }
     '/_authenticated/_workspace/reports': {
       id: '/_authenticated/_workspace/reports'
       path: '/reports'
@@ -248,6 +268,7 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceAnalysisRoute: typeof AuthenticatedWorkspaceAnalysisRoute
   AuthenticatedWorkspaceCheckMyFlightRoute: typeof AuthenticatedWorkspaceCheckMyFlightRoute
   AuthenticatedWorkspaceDashboardRoute: typeof AuthenticatedWorkspaceDashboardRoute
+  AuthenticatedWorkspaceMyTestBookingsRoute: typeof AuthenticatedWorkspaceMyTestBookingsRoute
   AuthenticatedWorkspaceReportsRoute: typeof AuthenticatedWorkspaceReportsRoute
   AuthenticatedWorkspaceSearchRoute: typeof AuthenticatedWorkspaceSearchRoute
   AuthenticatedWorkspaceSettingsRoute: typeof AuthenticatedWorkspaceSettingsRoute
@@ -259,6 +280,8 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
     AuthenticatedWorkspaceCheckMyFlightRoute:
       AuthenticatedWorkspaceCheckMyFlightRoute,
     AuthenticatedWorkspaceDashboardRoute: AuthenticatedWorkspaceDashboardRoute,
+    AuthenticatedWorkspaceMyTestBookingsRoute:
+      AuthenticatedWorkspaceMyTestBookingsRoute,
     AuthenticatedWorkspaceReportsRoute: AuthenticatedWorkspaceReportsRoute,
     AuthenticatedWorkspaceSearchRoute: AuthenticatedWorkspaceSearchRoute,
     AuthenticatedWorkspaceSettingsRoute: AuthenticatedWorkspaceSettingsRoute,
