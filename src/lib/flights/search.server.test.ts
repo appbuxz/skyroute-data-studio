@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   requireAuth: vi.fn(),
   searchFlights: vi.fn(),
   confirmPrice: vi.fn(),
+  acceptPrice: vi.fn(),
   retrieveBooking: vi.fn(),
   listBookings: vi.fn(),
 }));
@@ -23,7 +24,10 @@ vi.mock("../supabase/auth.server", async (importOriginal) => ({
 vi.mock("./travelport-provider.server", () => ({
   travelportProvider: { searchFlights: mocks.searchFlights },
 }));
-vi.mock("./travelport-price.server", () => ({ confirmTravelportPrice: mocks.confirmPrice }));
+vi.mock("./travelport-price.server", () => ({
+  confirmTravelportPrice: mocks.confirmPrice,
+  acceptTravelportPrice: mocks.acceptPrice,
+}));
 vi.mock("./test-booking-status.server", () => ({
   retrieveTestBooking: mocks.retrieveBooking,
   listMyTestBookings: mocks.listBookings,
@@ -47,7 +51,7 @@ vi.mock("@tanstack/react-start", () => ({
 import { OrganizationAuthorizationError } from "../organizations/authorization.server";
 import { UnauthorizedError } from "../supabase/auth.server";
 import { searchFlightsServer } from "./search.functions";
-import { confirmFlightPriceServer } from "./flight-price.functions";
+import { acceptFlightPriceServer, confirmFlightPriceServer } from "./flight-price.functions";
 import {
   getTestBookingStatusServer,
   listMyTestBookingsServer,
@@ -95,6 +99,32 @@ describe("AirPrice authorization", () => {
       confirmFlightPriceServer({ data: { checkoutToken: "test-token", organizationId } }),
     ).rejects.toBe(error);
     expect(mocks.confirmPrice).not.toHaveBeenCalled();
+  });
+
+  it("rechecks agency membership on acceptance and passes only the signed quote", async () => {
+    const data = {
+      organizationId,
+      acceptanceToken: "quote",
+      price: { amount: 1, currency: "USD" },
+    };
+    const error = new OrganizationAuthorizationError("ORGANIZATION_ACCESS_DENIED");
+    mocks.requireOrganization.mockRejectedValueOnce(error);
+    await expect(acceptFlightPriceServer({ data })).rejects.toBe(error);
+    expect(mocks.acceptPrice).not.toHaveBeenCalled();
+
+    mocks.acceptPrice.mockResolvedValue({
+      status: "confirmed",
+      price: { amount: 118000, currency: "KZT" },
+    });
+    await expect(acceptFlightPriceServer({ data })).resolves.toEqual({
+      status: "confirmed",
+      price: { amount: 118000, currency: "KZT" },
+    });
+    expect(mocks.acceptPrice).toHaveBeenCalledExactlyOnceWith("quote", {
+      userId: "verified-user",
+      organizationId,
+      role: "member",
+    });
   });
 
   it("uses the server-verified context and ignores the supplied user ID", async () => {

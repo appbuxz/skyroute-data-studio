@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixture from "./fixtures/travelport-core.json";
 import { normalizeTravelportFlights } from "./travelport-normalizer";
-import { attachCheckoutTokens, confirmTravelportPrice } from "./travelport-price.server";
+import {
+  acceptTravelportPrice,
+  attachCheckoutTokens,
+  confirmTravelportPrice,
+  recheckTravelportBookingPrice,
+} from "./travelport-price.server";
 import type { OrganizationId } from "./types";
 
 const postAir = vi.hoisted(() => vi.fn());
@@ -280,5 +285,103 @@ it("returns penalties only for the priced product and keeps departure periods di
         { status: "unknown", categories: ["AfterDeparture"] },
       ],
     },
+  });
+});
+
+it("binds explicit acceptance to the server quote and asks again only when the accepted amount changes", async () => {
+  const { getCheckoutKey, openCheckout, sealCheckout } =
+    await import("./travelport-checkout-token.server");
+  vi.stubEnv("TRAVELPORT_TEST_BOOKING", "true");
+  const checkout = (await openCheckout(checkoutToken))!;
+  const token = await sealCheckout(
+    {
+      ...checkout,
+      requestedFlight: {
+        carrier: "KC",
+        flightNumber: "913",
+        from: "ALA",
+        to: "IST",
+        departureDate: "2026-12-12",
+        cabin: "Economy",
+      },
+    },
+    (await getCheckoutKey())!,
+  );
+  const price = { ...searchPrice, amount: searchPrice.amount + 1000 };
+  const reply = (amount: number) =>
+    Response.json({
+      OfferListResponse: {
+        OfferID: [
+          {
+            Price: { TotalPrice: amount, CurrencyCode: { value: price.currency } },
+            Product: [
+              {
+                FlightSegment: [
+                  {
+                    sequence: 1,
+                    Flight: {
+                      carrier: "KC",
+                      number: "913",
+                      Departure: { location: "ALA", date: "2026-12-12", time: "17:00:00" },
+                      Arrival: { location: "IST", date: "2026-12-12", time: "21:00:00" },
+                    },
+                  },
+                ],
+                PassengerFlight: [
+                  {
+                    passengerQuantity: 1,
+                    passengerTypeCode: "ADT",
+                    FlightProduct: [
+                      { segmentSequence: [1], cabin: "Economy", classOfService: "E" },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+  postAir.mockResolvedValueOnce(reply(price.amount));
+  const changed = await confirmTravelportPrice(token, scope);
+  expect(changed).toEqual({
+    status: "changed",
+    price,
+    previousPrice: searchPrice,
+    acceptanceToken: expect.any(String),
+  });
+  if (changed.status !== "changed" || !changed.acceptanceToken)
+    throw new Error("Missing price quote");
+  await expect(
+    acceptTravelportPrice(changed.acceptanceToken, { ...scope, userId: "other" }),
+  ).resolves.toEqual({ status: "expired" });
+  await expect(
+    acceptTravelportPrice(changed.acceptanceToken, { userId: scope.userId }),
+  ).resolves.toEqual({ status: "expired" });
+
+  const accepted = await acceptTravelportPrice(changed.acceptanceToken, scope);
+  expect(accepted).toEqual({
+    status: "confirmed",
+    price,
+    bookingClass: "E",
+    bookingToken: expect.any(String),
+  });
+  if (accepted.status !== "confirmed" || !accepted.bookingToken)
+    throw new Error("Missing booking token");
+  const booking = (await openCheckout(accepted.bookingToken))!;
+  expect(booking).toMatchObject({ ...scope, reference: checkout.reference, acceptedPrice: price });
+  expect(booking.offeredPrice).toBeUndefined();
+
+  postAir.mockResolvedValueOnce(reply(price.amount));
+  await expect(recheckTravelportBookingPrice(booking)).resolves.toMatchObject({
+    status: "confirmed",
+    price,
+  });
+  postAir.mockResolvedValueOnce(reply(price.amount + 1000));
+  await expect(recheckTravelportBookingPrice(booking)).resolves.toEqual({
+    status: "changed",
+    previousPrice: price,
+    price: { ...price, amount: price.amount + 1000 },
+    acceptanceToken: expect.any(String),
   });
 });

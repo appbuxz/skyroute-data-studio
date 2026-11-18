@@ -124,16 +124,26 @@ export interface CheckoutBaggage {
   cabin?: CheckoutBaggageAllowance;
 }
 
+interface FlightFareDetails {
+  baggage?: CheckoutBaggage;
+  fareRules?: { change: FareRule[]; refund: FareRule[] };
+}
+
+export interface ChangedFlightPrice extends FlightFareDetails {
+  status: "changed";
+  price: FlightOffer["price"];
+  previousPrice?: FlightOffer["price"];
+  acceptanceToken?: string;
+}
+
 export type FlightPriceConfirmation =
-  | {
+  | (FlightFareDetails & {
       status: "confirmed";
       price: FlightOffer["price"];
-      baggage?: CheckoutBaggage;
-      fareRules?: { change: FareRule[]; refund: FareRule[] };
       bookingToken?: string;
       bookingClass?: string;
-    }
-  | { status: "changed"; price: FlightOffer["price"] }
+    })
+  | ChangedFlightPrice
   | { status: "expired" | "unavailable" | "error" };
 
 export type FlightSearchResult =
@@ -156,4 +166,6 @@ export interface FlightDataProvider {
 }
 
 export type FlightTestBooking =
-  { status: "booked"; pnr: string } | { status: "unavailable" | "error" | "unknown" };
+  | { status: "booked"; pnr: string }
+  | { status: "price_review"; confirmation: ChangedFlightPrice }
+  | { status: "unavailable" | "error" | "unknown" };

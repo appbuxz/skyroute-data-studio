@@ -364,6 +364,13 @@ export const messages: Record<string, readonly [string, string]> = {
     "Тестовая проверка цены · Travelport pre-production",
     "Бағаны сынақ ортасында тексеру · Travelport pre-production",
   ],
+  "Previous price": ["Предыдущая цена", "Алдыңғы баға"],
+  "New price": ["Новая цена", "Жаңа баға"],
+  "Accept new price": ["Принять новую цену", "Жаңа бағаны қабылдау"],
+  "The price changed. Review the new price.": [
+    "Цена изменилась. Проверьте новую цену.",
+    "Баға өзгерді. Жаңа бағаны тексеріңіз.",
+  ],
   "Search price": ["Цена из поиска", "Іздеудегі баға"],
   "Confirmed price": ["Подтверждённая цена", "Расталған баға"],
   "Confirming the price…": ["Подтверждаем цену…", "Баға расталуда…"],

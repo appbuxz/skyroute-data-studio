@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requirePriceScope } from "./flight-price-scope.server";
-import { confirmTravelportPrice } from "./travelport-price.server";
+import { acceptTravelportPrice, confirmTravelportPrice } from "./travelport-price.server";
 
 const organizationIdSchema = z.string().uuid().optional();
 const tokenSchema = z.string().min(1).max(2048);
@@ -16,6 +16,13 @@ export const confirmFlightPriceServer = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const scope = await requirePriceScope(data.organizationId);
     return confirmTravelportPrice(data.checkoutToken, scope);
+  });
+
+export const acceptFlightPriceServer = createServerFn({ method: "POST" })
+  .validator(z.object({ acceptanceToken: tokenSchema, organizationId: organizationIdSchema }))
+  .handler(async ({ data }) => {
+    const scope = await requirePriceScope(data.organizationId);
+    return acceptTravelportPrice(data.acceptanceToken, scope);
   });
 
 const testName = z

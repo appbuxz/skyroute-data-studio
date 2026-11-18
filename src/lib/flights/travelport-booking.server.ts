@@ -5,7 +5,7 @@ import { getTravelportCredentials, testBookingEnabled } from "./travelport-confi
 import { postTravelportAir } from "./travelport-http.server";
 import { testBookingFlightSchema } from "./test-booking-flight";
 import { testBookingKey } from "./test-booking-key.server";
-import type { PriceScope } from "./travelport-price.server";
+import { recheckTravelportBookingPrice, type PriceScope } from "./travelport-price.server";
 import type { FlightTestBooking } from "./types";
 
 const resultSchema = z.object({
@@ -34,6 +34,8 @@ export async function createTravelportTestBooking(
   const credentials = getTravelportCredentials();
   if (
     !checkout?.booking ||
+    !checkout.acceptedPrice ||
+    checkout.offeredPrice ||
     !credentials ||
     checkout.userId !== scope.userId ||
     checkout.organizationId !== scope.organizationId ||
@@ -65,6 +67,17 @@ export async function createTravelportTestBooking(
     if (claim.error) return { status: "error" };
     claimed = true;
 
+    const current = await recheckTravelportBookingPrice(checkout);
+    if (current.status === "changed") return { status: "price_review", confirmation: current };
+    if (current.status === "error") return { status: "error" };
+    if (
+      current.status !== "confirmed" ||
+      !current.bookingToken ||
+      checkout.expiresAt <= Date.now()
+    ) {
+      return { status: "unavailable" };
+    }
+
     const workbench = await bookingStep(
       "book/session/reservationworkbench",
       { ReservationID: {} },
@@ -81,7 +94,7 @@ export async function createTravelportTestBooking(
             PassengerCriteria: [{ number: 1, passengerTypeCode: "ADT" }],
             PricingModifiersAir: {
               "@type": "PricingModifiersAir",
-              currencyCode: checkout.searchPrice.currency,
+              currencyCode: checkout.acceptedPrice.currency,
             },
             ProductCriteriaAir: [{ SpecificFlightCriteria: [{ ...flight, segmentSequence: 1 }] }],
           },
@@ -159,8 +172,9 @@ export async function createTravelportTestBooking(
     }
     return { status: "booked", pnr: pnr.data };
   } catch {
-    if (commitStarted) return { status: "unknown" };
-    if (claimed) {
+    return { status: commitStarted ? "unknown" : "error" };
+  } finally {
+    if (claimed && !commitStarted) {
       try {
         await supabaseAdmin
           .from("flight_test_booking_attempts")
@@ -170,6 +184,5 @@ export async function createTravelportTestBooking(
         // A claim that cannot be released remains closed to prevent duplicate submission.
       }
     }
-    return { status: "error" };
   }
 }

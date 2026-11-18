@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   memberships: vi.fn(),
   search: vi.fn(),
   confirmPrice: vi.fn(),
+  acceptPrice: vi.fn(),
+  createBooking: vi.fn(),
   onAuthStateChange: vi.fn(),
   unsubscribe: vi.fn(),
 }));
@@ -22,7 +24,8 @@ vi.mock("@/lib/flights/test-booking-status.functions", () => ({
 }));
 vi.mock("@/lib/flights/flight-price.functions", () => ({
   confirmFlightPriceServer: mocks.confirmPrice,
-  createFlightTestBookingServer: vi.fn(),
+  acceptFlightPriceServer: mocks.acceptPrice,
+  createFlightTestBookingServer: mocks.createBooking,
 }));
 vi.mock("@/lib/supabase/client", () => ({
   supabase: { auth: { onAuthStateChange: mocks.onAuthStateChange } },
@@ -183,6 +186,69 @@ describe("organization workspace", () => {
       expect(section.getByText("Cabin baggage").nextElementSibling).toHaveTextContent(cabin);
     },
   );
+
+  it("gates the passenger form on explicit acceptance and asks again if the accepted price changes", async () => {
+    const response = result();
+    if (response.status !== "ok") throw new Error("Expected test offers");
+    response.offers[0]!.checkoutToken = "checkout-token";
+    mocks.search.mockResolvedValue(response);
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    const previousPrice = response.offers[0]!.price;
+    const price = { ...previousPrice, amount: 123456 };
+    mocks.confirmPrice.mockResolvedValue({
+      status: "changed",
+      previousPrice,
+      price,
+      acceptanceToken: "quote",
+    });
+    mocks.acceptPrice.mockResolvedValue({
+      status: "confirmed",
+      price,
+      bookingToken: "accepted",
+      bookingClass: "E",
+    });
+    mocks.createBooking.mockResolvedValue({
+      status: "price_review",
+      confirmation: {
+        status: "changed",
+        previousPrice: price,
+        price: { ...price, amount: 234567 },
+        acceptanceToken: "next-quote",
+      },
+    });
+
+    render(<Workspace />);
+    await ready();
+    submitSearch();
+    fireEvent.click(await screen.findByRole("button", { name: "Select flight" }));
+    const accept = await screen.findByRole("button", { name: "Accept new price" });
+    expect(screen.getByText("Previous price")).toBeVisible();
+    expect(screen.getByText("New price")).toBeVisible();
+    expect(screen.queryByLabelText("Test given name")).not.toBeInTheDocument();
+    expect(mocks.createBooking).not.toHaveBeenCalled();
+    fireEvent.click(accept);
+    const given = await screen.findByLabelText("Test given name");
+    expect(mocks.acceptPrice).toHaveBeenCalledWith({
+      data: {
+        acceptanceToken: "quote",
+        organizationId: agencies[0]!.organizationId,
+      },
+    });
+    fireEvent.change(given, { target: { value: "TEST" } });
+    fireEvent.change(screen.getByLabelText("Test surname"), { target: { value: "SKYROUTE" } });
+    fireEvent.submit(given.closest("form")!);
+    expect(await screen.findByRole("button", { name: "Accept new price" })).toBeVisible();
+    expect(screen.getByText(/234,567/)).toBeVisible();
+    expect(screen.getByText(/123,456/)).toBeVisible();
+    expect(screen.queryByLabelText("Test given name")).not.toBeInTheDocument();
+    expect(mocks.createBooking).toHaveBeenCalledExactlyOnceWith({
+      data: {
+        bookingToken: "accepted",
+        organizationId: agencies[0]!.organizationId,
+        passenger: { given: "TEST", surname: "SKYROUTE" },
+      },
+    });
+  });
 
   it("shows unknown exchange and refund terms above the passenger form when AirPrice omits rules", async () => {
     const response = result();

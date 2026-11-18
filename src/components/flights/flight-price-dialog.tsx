@@ -13,10 +13,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  acceptFlightPriceServer,
   confirmFlightPriceServer,
   createFlightTestBookingServer,
 } from "@/lib/flights/flight-price.functions";
 import type {
+  ChangedFlightPrice,
   FlightOffer,
   FlightPriceConfirmation,
   FlightTestBooking,
@@ -36,14 +38,17 @@ export function FlightPriceDialog({
   refresh: () => void;
 }) {
   const { t, number } = useLanguage();
+  const acceptPrice = useServerFn(acceptFlightPriceServer);
   const confirmPrice = useServerFn(confirmFlightPriceServer);
   const [result, setResult] = useState<FlightPriceConfirmation | null>(null);
   const request = useRef(0);
+  const [accepting, setAccepting] = useState(false);
 
   async function onOpenChange(open: boolean) {
     const current = ++request.current;
     if (!open) return;
     setResult(null);
+    setAccepting(false);
     try {
       const response = await confirmPrice({
         data: { checkoutToken, ...(organizationId ? { organizationId } : {}) },
@@ -53,6 +58,38 @@ export function FlightPriceDialog({
       if (request.current === current) setResult({ status: "error" });
     }
   }
+
+  async function acceptNewPrice() {
+    if (accepting || result?.status !== "changed" || !result.acceptanceToken) return;
+    const current = request.current;
+    setAccepting(true);
+    try {
+      const accepted = await acceptPrice({
+        data: {
+          acceptanceToken: result.acceptanceToken,
+          ...(organizationId ? { organizationId } : {}),
+        },
+      });
+      if (request.current === current) {
+        setResult(
+          accepted.status === "confirmed"
+            ? {
+                ...accepted,
+                ...(result.baggage && { baggage: result.baggage }),
+                ...(result.fareRules && { fareRules: result.fareRules }),
+              }
+            : accepted,
+        );
+      }
+    } catch {
+      if (request.current === current) setResult({ status: "error" });
+    } finally {
+      if (request.current === current) setAccepting(false);
+    }
+  }
+
+  const previousPrice = result?.status === "changed" ? result.previousPrice : undefined;
+  const formRequest = request.current;
 
   return (
     <Dialog onOpenChange={onOpenChange}>
@@ -72,13 +109,20 @@ export function FlightPriceDialog({
           {offer.carrier} · {offer.flightNumber}
         </p>
         <dl className="grid grid-cols-2 gap-2">
-          <dt>{t("Search price")}</dt>
+          <dt>{t(previousPrice ? "Previous price" : "Search price")}</dt>
           <dd>
-            {number(offer.price.amount)} {offer.price.currency}
+            {number((previousPrice ?? offer.price).amount)}{" "}
+            {(previousPrice ?? offer.price).currency}
           </dd>
           {result && "price" in result && (
             <>
-              <dt>{t("Confirmed price")}</dt>
+              <dt>
+                {t(
+                  result.status === "changed" && result.acceptanceToken
+                    ? "New price"
+                    : "Confirmed price",
+                )}
+              </dt>
               <dd>
                 {number(result.price.amount)} {result.price.currency}
               </dd>
@@ -87,18 +131,37 @@ export function FlightPriceDialog({
         </dl>
         <div role="status" className="text-sm">
           {!result && t("Confirming the price…")}
-          {result?.status === "changed" && t("The price changed since the search.")}
+          {result?.status === "changed" &&
+            t(
+              result.previousPrice
+                ? "The price changed. Review the new price."
+                : "The price changed since the search.",
+            )}
           {result?.status === "unavailable" && t("This fare is no longer available.")}
           {result?.status === "expired" && t("This offer has expired. Refresh your search.")}
           {result?.status === "error" && t("Unable to confirm this price. Try again.")}
         </div>
-        {result?.status === "confirmed" && <CheckoutBaggage baggage={result.baggage} />}
-        {result?.status === "confirmed" && <CheckoutFareRules rules={result.fareRules} />}
+        {result?.status === "changed" && result.acceptanceToken && (
+          <Button type="button" disabled={accepting} onClick={() => void acceptNewPrice()}>
+            {t("Accept new price")}
+          </Button>
+        )}
+        {(result?.status === "confirmed" ||
+          (result?.status === "changed" && result.acceptanceToken)) && (
+          <>
+            <CheckoutBaggage baggage={result.baggage} />
+            <CheckoutFareRules rules={result.fareRules} />
+          </>
+        )}
         {result?.status === "confirmed" && result.bookingToken && (
           <TestBookingForm
+            key={result.bookingToken}
             bookingToken={result.bookingToken}
             bookingClass={result.bookingClass}
             organizationId={organizationId}
+            onPriceReview={(confirmation) => {
+              if (request.current === formRequest) setResult(confirmation);
+            }}
           />
         )}
         {result?.status === "expired" && (
@@ -115,10 +178,12 @@ function TestBookingForm({
   bookingToken,
   bookingClass,
   organizationId,
+  onPriceReview,
 }: {
   bookingToken: string;
   bookingClass: string | undefined;
   organizationId: OrganizationId | null;
+  onPriceReview: (confirmation: ChangedFlightPrice) => void;
 }) {
   const { t } = useLanguage();
   const createBooking = useServerFn(createFlightTestBookingServer);
@@ -138,11 +203,14 @@ function TestBookingForm({
     form.reset();
     setResult("pending");
     try {
-      setResult(
-        await createBooking({
-          data: { bookingToken, passenger, ...(organizationId ? { organizationId } : {}) },
-        }),
-      );
+      const response = await createBooking({
+        data: { bookingToken, passenger, ...(organizationId ? { organizationId } : {}) },
+      });
+      if (response.status === "price_review") {
+        onPriceReview(response.confirmation);
+      } else {
+        setResult(response);
+      }
     } catch {
       setResult({ status: "unknown" });
     }
