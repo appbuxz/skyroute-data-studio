@@ -349,6 +349,15 @@ export const messages: Record<string, readonly [string, string]> = {
   ],
   "Test given name": ["Вымышленное имя", "Ойдан шығарылған есім"],
   "Test surname": ["Вымышленная фамилия", "Ойдан шығарылған тегі"],
+  "Review details": ["Проверить данные", "Деректерді тексеру"],
+  "Review your details": ["Проверьте данные", "Деректерді тексеріңіз"],
+  "Edit details": ["Изменить данные", "Деректерді өзгерту"],
+  Passenger: ["Пассажир", "Жолаушы"],
+  "Selected flight": ["Выбранный рейс", "Таңдалған рейс"],
+  "No payment or ticket issuance": [
+    "Без оплаты и выпуска билета",
+    "Төлемсіз және билет рәсімделмейді",
+  ],
   "Create test booking": ["Создать тестовую бронь", "Сынақ бронін жасау"],
   "Creating the test booking…": ["Создаём тестовую бронь…", "Сынақ броні жасалып жатыр…"],
   "Booking status is unknown. Verify it in Travelport before trying again.": [

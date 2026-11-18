@@ -28,6 +28,8 @@ import type {
 } from "@/lib/flights/types";
 import { useLanguage } from "@/lib/i18n/language-context";
 
+type TestPassenger = { given: string; surname: string };
+
 export function FlightPriceDialog({
   offer,
   checkoutToken,
@@ -44,11 +46,15 @@ export function FlightPriceDialog({
   const confirmPrice = useServerFn(confirmFlightPriceServer);
   const [result, setResult] = useState<FlightPriceConfirmation | null>(null);
   const request = useRef(0);
+  const [passenger, setPassenger] = useState<TestPassenger | null>(null);
   const [accepting, setAccepting] = useState(false);
 
   async function onOpenChange(open: boolean) {
     const current = ++request.current;
-    if (!open) return;
+    if (!open) {
+      setPassenger(null);
+      return;
+    }
     setResult(null);
     setAccepting(false);
     try {
@@ -177,6 +183,10 @@ export function FlightPriceDialog({
             bookingToken={result.bookingToken}
             bookingClass={result.bookingClass}
             organizationId={organizationId}
+            offer={offer}
+            price={result.price}
+            passenger={passenger}
+            onPassengerReview={setPassenger}
             onPriceReview={(confirmation) => {
               if (request.current === formRequest) setResult(confirmation);
             }}
@@ -196,29 +206,42 @@ function TestBookingForm({
   bookingToken,
   bookingClass,
   organizationId,
+  offer,
+  price,
+  passenger,
+  onPassengerReview,
   onPriceReview,
 }: {
   bookingToken: string;
   bookingClass: string | undefined;
   organizationId: OrganizationId | null;
+  offer: FlightOffer;
+  price: FlightOffer["price"];
+  passenger: TestPassenger | null;
+  onPassengerReview: (passenger: TestPassenger) => void;
   onPriceReview: (confirmation: ChangedFlightPrice) => void;
 }) {
-  const { t } = useLanguage();
+  const { t, number } = useLanguage();
   const createBooking = useServerFn(createFlightTestBookingServer);
   const submitted = useRef(false);
-  const [result, setResult] = useState<FlightTestBooking | "pending" | null>(null);
+  const [editing, setEditing] = useState(!passenger);
+  const [result, setResult] = useState<
+    Exclude<FlightTestBooking, { status: "price_review" }> | "pending" | null
+  >(null);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  function review(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitted.current) return;
+    const fields = new FormData(event.currentTarget);
+    onPassengerReview({
+      given: String(fields.get("given")).trim(),
+      surname: String(fields.get("surname")).trim(),
+    });
+    setEditing(false);
+  }
+
+  async function submit() {
+    if (submitted.current || editing || !passenger) return;
     submitted.current = true;
-    const form = event.currentTarget;
-    const fields = new FormData(form);
-    const passenger = {
-      given: String(fields.get("given")),
-      surname: String(fields.get("surname")),
-    };
-    form.reset();
     setResult("pending");
     try {
       const response = await createBooking({
@@ -241,18 +264,63 @@ function TestBookingForm({
         {t("Confirmed booking class")} {bookingClass}
       </p>
       {result === null ? (
-        <form className="space-y-3" autoComplete="off" onSubmit={submit}>
-          <p className="text-sm">{t("Use fictional passenger details.")}</p>
-          <label className="block space-y-1 text-sm">
-            <span>{t("Test given name")}</span>
-            <Input name="given" required maxLength={32} pattern="[A-Za-z]+(?:[ \-][A-Za-z]+)*" />
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span>{t("Test surname")}</span>
-            <Input name="surname" required maxLength={32} pattern="[A-Za-z]+(?:[ \-][A-Za-z]+)*" />
-          </label>
-          <Button type="submit">{t("Create test booking")}</Button>
-        </form>
+        editing || !passenger ? (
+          <form className="space-y-3" autoComplete="off" onSubmit={review}>
+            <p className="text-sm">{t("Use fictional passenger details.")}</p>
+            <label className="block space-y-1 text-sm">
+              <span>{t("Test given name")}</span>
+              <Input
+                name="given"
+                defaultValue={passenger?.given}
+                required
+                maxLength={32}
+                pattern="[A-Za-z]+(?:[ \-][A-Za-z]+)*"
+              />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span>{t("Test surname")}</span>
+              <Input
+                name="surname"
+                defaultValue={passenger?.surname}
+                required
+                maxLength={32}
+                pattern="[A-Za-z]+(?:[ \-][A-Za-z]+)*"
+              />
+            </label>
+            <Button type="submit">{t("Review details")}</Button>
+          </form>
+        ) : (
+          <div className="space-y-3">
+            <h3 className="font-medium">{t("Review your details")}</h3>
+            <dl className="grid grid-cols-2 gap-2 text-sm">
+              <dt>{t("Passenger")}</dt>
+              <dd>
+                {passenger.given} {passenger.surname}
+              </dd>
+              <dt>{t("Selected flight")}</dt>
+              <dd>
+                {offer.carrier} · {offer.flightNumber} · {offer.origin} → {offer.destination}
+              </dd>
+              <dt>{t("Departure:")}</dt>
+              <dd>
+                <FlightDateTime value={offer.departureAt} />
+              </dd>
+              <dt>{t("Confirmed price")}</dt>
+              <dd>
+                {number(price.amount)} {price.currency}
+              </dd>
+            </dl>
+            <p className="text-sm">{t("No payment or ticket issuance")}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={() => setEditing(true)}>
+                {t("Edit details")}
+              </Button>
+              <Button type="button" onClick={() => void submit()}>
+                {t("Create test booking")}
+              </Button>
+            </div>
+          </div>
+        )
       ) : (
         <p role="status" className="text-sm">
           {result === "pending" && t("Creating the test booking…")}

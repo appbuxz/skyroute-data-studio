@@ -264,6 +264,69 @@ describe("organization workspace", () => {
     expect(mocks.confirmPrice).toHaveBeenCalledOnce();
   });
 
+  it("reviews and edits passenger details without booking and submits only once on final confirmation", async () => {
+    const response = result();
+    if (response.status !== "ok") throw new Error("Expected test offers");
+    const offer = response.offers[0]!;
+    offer.checkoutToken = "checkout-token";
+    mocks.search.mockResolvedValue(response);
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    mocks.confirmPrice.mockResolvedValue({
+      status: "confirmed",
+      price: offer.price,
+      bookingToken: "accepted",
+      bookingClass: "E",
+    });
+    const booking = deferred<{ status: "booked"; pnr: string }>();
+    mocks.createBooking.mockReturnValue(booking.promise);
+
+    render(<Workspace />);
+    await ready();
+    submitSearch();
+    fireEvent.click(await screen.findByRole("button", { name: "Select flight" }));
+
+    fireEvent.change(await screen.findByLabelText("Test given name"), {
+      target: { value: "TEST" },
+    });
+    fireEvent.change(screen.getByLabelText("Test surname"), { target: { value: "SKYROUTE" } });
+    expect(screen.queryByRole("button", { name: "Create test booking" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Review details" }));
+    const heading = screen.getByRole("heading", { name: "Review your details" });
+    const review = within(heading.parentElement!);
+    expect(review.getByText("TEST SKYROUTE")).toBeVisible();
+    expect(review.getByText("A Airways · KC100 · ALA → IST")).toBeVisible();
+    expect(review.getByText("10 Dec 2099 · 10:00 (UTC+05:00)")).toBeVisible();
+    expect(review.getByText("100,000 KZT")).toBeVisible();
+    expect(review.getByText("No payment or ticket issuance")).toBeVisible();
+    expect(mocks.createBooking).not.toHaveBeenCalled();
+
+    fireEvent.click(review.getByRole("button", { name: "Edit details" }));
+    expect(screen.getByLabelText("Test given name")).toHaveValue("TEST");
+    expect(screen.getByLabelText("Test surname")).toHaveValue("SKYROUTE");
+    expect(mocks.createBooking).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("Test given name"), { target: { value: "DEMO" } });
+    fireEvent.click(screen.getByRole("button", { name: "Review details" }));
+    expect(screen.getByText("DEMO SKYROUTE")).toBeVisible();
+    expect(mocks.createBooking).not.toHaveBeenCalled();
+
+    const confirm = screen.getByRole("button", { name: "Create test booking" });
+    act(() => {
+      fireEvent.click(confirm);
+      fireEvent.click(confirm);
+    });
+    expect(mocks.createBooking).toHaveBeenCalledExactlyOnceWith({
+      data: {
+        bookingToken: "accepted",
+        organizationId: agencies[0]!.organizationId,
+        passenger: { given: "DEMO", surname: "SKYROUTE" },
+      },
+    });
+    await act(async () => {
+      booking.resolve({ status: "booked", pnr: "ABC123" });
+    });
+    expect(screen.getByText("ABC123")).toBeVisible();
+  });
+
   it("gates the passenger form on explicit acceptance and asks again if the accepted price changes", async () => {
     const response = result();
     if (response.status !== "ok") throw new Error("Expected test offers");
@@ -278,12 +341,19 @@ describe("organization workspace", () => {
       price,
       acceptanceToken: "quote",
     });
-    mocks.acceptPrice.mockResolvedValue({
-      status: "confirmed",
-      price,
-      bookingToken: "accepted",
-      bookingClass: "E",
-    });
+    mocks.acceptPrice
+      .mockResolvedValueOnce({
+        status: "confirmed",
+        price,
+        bookingToken: "accepted",
+        bookingClass: "E",
+      })
+      .mockResolvedValueOnce({
+        status: "confirmed",
+        price: { ...price, amount: 234567 },
+        bookingToken: "accepted-next",
+        bookingClass: "E",
+      });
     mocks.createBooking.mockResolvedValue({
       status: "price_review",
       confirmation: {
@@ -313,7 +383,8 @@ describe("organization workspace", () => {
     });
     fireEvent.change(given, { target: { value: "TEST" } });
     fireEvent.change(screen.getByLabelText("Test surname"), { target: { value: "SKYROUTE" } });
-    fireEvent.submit(given.closest("form")!);
+    fireEvent.click(screen.getByRole("button", { name: "Review details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create test booking" }));
     expect(await screen.findByRole("button", { name: "Accept new price" })).toBeVisible();
     expect(screen.getByText(/234,567/)).toBeVisible();
     expect(screen.getByText(/123,456/)).toBeVisible();
@@ -325,6 +396,15 @@ describe("organization workspace", () => {
         passenger: { given: "TEST", surname: "SKYROUTE" },
       },
     });
+    fireEvent.click(screen.getByRole("button", { name: "Accept new price" }));
+    const heading = await screen.findByRole("heading", { name: "Review your details" });
+    const review = within(heading.parentElement!);
+    expect(review.getByText("TEST SKYROUTE")).toBeVisible();
+    expect(review.getByText("234,567 KZT")).toBeVisible();
+    expect(mocks.createBooking).toHaveBeenCalledOnce();
+    fireEvent.click(review.getByRole("button", { name: "Edit details" }));
+    expect(screen.getByLabelText("Test given name")).toHaveValue("TEST");
+    expect(screen.getByLabelText("Test surname")).toHaveValue("SKYROUTE");
   });
 
   it("shows unknown exchange and refund terms above the passenger form when AirPrice omits rules", async () => {
