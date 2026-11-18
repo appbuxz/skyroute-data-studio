@@ -2,6 +2,20 @@ import { z } from "zod";
 import { getTravelportCredentials } from "./travelport-config.server";
 
 const text = z.string().min(1);
+const flight = z.object({
+  carrier: z.string().regex(/^[A-Z0-9]{2}$/),
+  flightNumber: z.string().regex(/^\d{1,4}[A-Z]?$/),
+  departureDate: z.string().date(),
+  from: z.string().regex(/^[A-Z]{3}$/),
+  to: z.string().regex(/^[A-Z]{3}$/),
+  cabin: z.enum(["Economy", "PremiumEconomy", "Business", "First"]),
+});
+export const bookableFlight = flight.extend({
+  departureTime: z.string().regex(/^\d{2}:\d{2}:\d{2}$/),
+  arrivalDate: z.string().date(),
+  arrivalTime: z.string().regex(/^\d{2}:\d{2}:\d{2}$/),
+  classOfService: z.string().regex(/^[A-Z]$/),
+});
 const checkout = z.object({
   userId: text,
   organizationId: text.optional(),
@@ -10,6 +24,8 @@ const checkout = z.object({
     amount: z.number().finite().nonnegative(),
     currency: z.string().regex(/^[A-Z]{3}$/),
   }),
+  requestedFlight: flight.optional(),
+  booking: bookableFlight.optional(),
   expiresAt: z.number().finite(),
 });
 type Checkout = z.infer<typeof checkout>;

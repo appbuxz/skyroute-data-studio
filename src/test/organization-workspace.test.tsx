@@ -17,6 +17,9 @@ vi.mock("@/lib/organizations/session.functions", () => ({
   getOrganizationMemberships: mocks.memberships,
 }));
 vi.mock("@/lib/flights/search.functions", () => ({ searchFlightsServer: mocks.search }));
+vi.mock("@/lib/flights/test-booking-status.functions", () => ({
+  getTestBookingStatusServer: vi.fn(),
+}));
 vi.mock("@/lib/flights/flight-price.functions", () => ({
   confirmFlightPriceServer: mocks.confirmPrice,
 }));

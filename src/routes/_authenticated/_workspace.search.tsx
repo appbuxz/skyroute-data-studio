@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/common/page-header";
+import { TestBookingStatusDialog } from "@/components/flights/test-booking-status-dialog";
 import { FlightPriceDialog } from "@/components/flights/flight-price-dialog";
 import { FlightItinerary } from "@/components/flights/flight-itinerary";
 import { FlightDateTime } from "@/components/flights/flight-date-time";
@@ -448,7 +449,7 @@ function SearchForm({
               </p>
             ) : (
               <div className="grid gap-3">
-                {offers.map((offer) => (
+                {offers.map((offer, index) => (
                   <Card key={offer.id}>
                     <CardContent className="space-y-2 pt-5">
                       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -493,6 +494,25 @@ function SearchForm({
                       {offer.inbound?.segments.length ? (
                         <FlightItinerary itinerary={offer.inbound} label="Return itinerary" />
                       ) : null}
+                      {search &&
+                        !search.params.returnDate &&
+                        offer.stops === 0 &&
+                        offer.checkoutToken &&
+                        !offers
+                          .slice(0, index)
+                          .some(
+                            (previous) =>
+                              previous.checkoutToken &&
+                              previous.stops === 0 &&
+                              previous.carrier === offer.carrier &&
+                              previous.flightNumber === offer.flightNumber,
+                          ) && (
+                          <TestBookingStatusDialog
+                            offer={offer}
+                            departureDate={search.params.departureDate}
+                            organizationId={selectedOrganizationId}
+                          />
+                        )}
                       {offer.checkoutToken && search && (
                         <FlightPriceDialog
                           key={offer.checkoutToken}

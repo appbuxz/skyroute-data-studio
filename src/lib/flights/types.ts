@@ -93,7 +93,13 @@ export interface FlightOffer {
 }
 
 export type FlightPriceConfirmation =
-  | { status: "confirmed" | "changed"; price: FlightOffer["price"] }
+  | {
+      status: "confirmed";
+      price: FlightOffer["price"];
+      bookingToken?: string;
+      bookingClass?: string;
+    }
+  | { status: "changed"; price: FlightOffer["price"] }
   | { status: "expired" | "unavailable" | "error" };
 
 export type FlightSearchResult =
@@ -114,3 +120,6 @@ export interface FlightDataProvider {
     ctx: { organizationId?: OrganizationId },
   ): Promise<FlightSearchResult>;
 }
+
+export type FlightTestBooking =
+  { status: "booked"; pnr: string } | { status: "unavailable" | "error" | "unknown" };
