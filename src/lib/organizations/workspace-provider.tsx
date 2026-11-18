@@ -122,6 +122,7 @@ export function OrganizationWorkspaceProvider({
   return (
     <OrganizationWorkspaceContext.Provider
       value={{
+        userId,
         memberships,
         selectedOrganizationId,
         status,

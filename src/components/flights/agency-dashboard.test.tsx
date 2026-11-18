@@ -22,6 +22,7 @@ import type { OrganizationId } from "@/lib/flights/types";
 
 function workspace(): OrganizationWorkspace {
   return {
+    userId: "test-user",
     memberships: [{ organizationId: ANALYTICS_ORG, organizationName: "Agency A", role: "member" }],
     selectedOrganizationId: ANALYTICS_ORG,
     status: "ready",

@@ -7,6 +7,7 @@ export interface WorkspaceSearch extends FlightSearchSnapshot {
 }
 
 export interface OrganizationWorkspace {
+  userId: string;
   memberships: OrganizationMembership[];
   selectedOrganizationId: OrganizationId | null;
   status: "loading" | "ready" | "error";
