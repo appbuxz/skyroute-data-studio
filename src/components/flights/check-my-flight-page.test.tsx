@@ -81,6 +81,7 @@ function result(entries = [entry], overrides: Partial<FlightCheckInput> = {}) {
 }
 function workspace(overrides: Partial<OrganizationWorkspace> = {}): OrganizationWorkspace {
   return {
+    userId: "test-user",
     memberships: [{ organizationId, organizationName: "Test organization", role: "member" }],
     selectedOrganizationId: organizationId,
     status: "ready",

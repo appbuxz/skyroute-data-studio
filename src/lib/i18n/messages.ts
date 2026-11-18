@@ -35,11 +35,10 @@ export const messages: Record<string, readonly [string, string]> = {
     "Сводка последнего поиска выбранной организации.",
     "Таңдалған ұйымның соңғы іздеу қорытындысы.",
   ],
-  "Only this session’s latest search is shown. Switching organizations or reloading clears these results.":
-    [
-      "Показан только последний поиск текущей сессии. Переключение организации или перезагрузка очищает результаты.",
-      "Тек ағымдағы сеанстағы соңғы іздеу көрсетіледі. Ұйымды ауыстыру немесе бетті қайта жүктеу нәтижелерді өшіреді.",
-    ],
+  "This tab keeps the latest successful search for each organization.": [
+    "В этой вкладке хранится последний успешный поиск каждой организации.",
+    "Бұл қойындыда әр ұйымның соңғы сәтті іздеуі сақталады.",
+  ],
   "Loading search summary…": ["Загрузка сводки поиска…", "Іздеу қорытындысы жүктелуде…"],
   "Unable to verify organization access": [
     "Не удалось проверить доступ к организации",

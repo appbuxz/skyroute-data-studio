@@ -21,6 +21,7 @@ import type { OrganizationId } from "@/lib/flights/types";
 
 function page(language: Language = "en") {
   const workspace: OrganizationWorkspace = {
+    userId: "test-user",
     memberships: [
       {
         organizationId: "agency-a" as OrganizationId,

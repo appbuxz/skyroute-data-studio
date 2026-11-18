@@ -1,7 +1,11 @@
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { OrganizationId } from "../flights/types";
-import { clearLegacyFlightSearch } from "../flights/search-session";
+import {
+  clearLegacyFlightSearch,
+  clearSearchSnapshot,
+  readSearchSnapshot,
+} from "../flights/search-session";
 import { supabase } from "../supabase/client";
 import { getOrganizationMemberships, type OrganizationMembership } from "./session.functions";
 import {
@@ -9,6 +13,33 @@ import {
   organizationFailure,
   type WorkspaceSearch,
 } from "./workspace-context";
+
+function selectionKey(userId: string): string {
+  return `flight-analytics:organization:v1:${userId}`;
+}
+
+function readSelection(userId: string): string | null {
+  try {
+    return window.sessionStorage.getItem(selectionKey(userId));
+  } catch {
+    return null;
+  }
+}
+
+function saveSelection(userId: string, id: OrganizationId | null): void {
+  try {
+    const key = selectionKey(userId);
+    if (id) window.sessionStorage.setItem(key, id);
+    else window.sessionStorage.removeItem(key);
+  } catch {
+    // Selection still works when storage is unavailable.
+  }
+}
+
+function restoreAgencySearch(userId: string, organizationId: OrganizationId): WorkspaceSearch | null {
+  const snapshot = readSearchSnapshot(userId, organizationId);
+  return snapshot ? { ...snapshot, organizationId } : null;
+}
 
 export function OrganizationWorkspaceProvider({
   userId,
@@ -54,14 +85,17 @@ export function OrganizationWorkspaceProvider({
       const choices = await listMemberships();
       if (!mounted.current || request !== loadRequest.current) return;
       setMemberships(choices);
-      if (
-        selected.current &&
-        !choices.some((choice) => choice.organizationId === selected.current)
-      ) {
-        selected.current = null;
-        setSelectedOrganizationId(null);
+      const savedSelection = selectionWasMade.current ? null : readSelection(userId);
+      const requested = selected.current ?? savedSelection;
+      if (requested) {
+        selected.current =
+          choices.find((choice) => choice.organizationId === requested)?.organizationId ?? null;
+        selectionWasMade.current = true;
+        setSelectedOrganizationId(selected.current);
         setAuthorizationError(
-          "Your selected organization is no longer available. Select an organization to continue.",
+          selected.current
+            ? null
+            : "Your selected organization is no longer available. Select an organization to continue.",
         );
       } else {
         setAuthorizationError(null);
@@ -71,8 +105,10 @@ export function OrganizationWorkspaceProvider({
           selected.current = choices[0]!.organizationId;
           selectionWasMade.current = true;
           setSelectedOrganizationId(selected.current);
+          saveSelection(userId, selected.current);
         }
       }
+      if (selected.current) setSearch(restoreAgencySearch(userId, selected.current));
       setStatus("ready");
     } catch (failure) {
       if (!mounted.current || request !== loadRequest.current) return;
@@ -85,7 +121,7 @@ export function OrganizationWorkspaceProvider({
         organizationFailure(failure)?.message ?? "Unable to load organizations. Please try again.",
       );
     }
-  }, [invalidate, listMemberships]);
+  }, [invalidate, listMemberships, userId]);
 
   useEffect(() => {
     mounted.current = true;
@@ -122,6 +158,7 @@ export function OrganizationWorkspaceProvider({
   return (
     <OrganizationWorkspaceContext.Provider
       value={{
+        userId,
         memberships,
         selectedOrganizationId,
         status,
@@ -135,12 +172,15 @@ export function OrganizationWorkspaceProvider({
         },
         isCurrentScope,
         selectOrganization(id) {
+          if (status !== "ready" || !isCurrentScope()) return;
           const choice = memberships.find((membership) => membership.organizationId === id);
           invalidate();
           selected.current = choice?.organizationId ?? null;
           selectionWasMade.current = true;
           setSelectedOrganizationId(selected.current);
           setAuthorizationError(null);
+          saveSelection(userId, selected.current);
+          if (selected.current) setSearch(restoreAgencySearch(userId, selected.current));
         },
         publishSearch(result) {
           if (isCurrentScope() && canSearch && result.organizationId === selectedOrganizationId)
@@ -150,6 +190,7 @@ export function OrganizationWorkspaceProvider({
           setSearch(null);
         },
         rejectSelection(message) {
+          clearSearchSnapshot(userId, selectedOrganizationId);
           invalidate();
           setAuthorizationError(message);
         },

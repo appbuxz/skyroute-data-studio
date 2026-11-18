@@ -22,6 +22,7 @@ import type { OrganizationId } from "@/lib/flights/types";
 
 function workspace(): OrganizationWorkspace {
   return {
+    userId: "test-user",
     memberships: [{ organizationId: ANALYTICS_ORG, organizationName: "Agency A", role: "member" }],
     selectedOrganizationId: ANALYTICS_ORG,
     status: "ready",
@@ -73,7 +74,9 @@ describe("agency dashboard", () => {
       "href",
       "/analysis",
     );
-    expect(screen.getByText(/Only this session’s latest search/)).toBeInTheDocument();
+    expect(
+      screen.getByText("This tab keeps the latest successful search for each organization."),
+    ).toBeInTheDocument();
   });
   it("distinguishes no snapshot from a successful search with no offers", async () => {
     const state = workspace();

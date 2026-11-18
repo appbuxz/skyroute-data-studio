@@ -64,7 +64,7 @@ export function AgencyDashboard() {
       {children}
       <p className="text-xs leading-relaxed text-muted-foreground">
         {t(
-          "Only this session’s latest search is shown. Switching organizations or reloading clears these results.",
+          "This tab keeps the latest successful search for each organization.",
         )}
       </p>
     </section>

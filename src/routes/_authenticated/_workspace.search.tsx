@@ -23,6 +23,12 @@ import { FlightDateTime } from "@/components/flights/flight-date-time";
 import { ComparablePrices } from "@/components/flights/comparable-prices";
 
 import { flightSearchSchema, type FlightSearchInput } from "@/lib/flights/search-schema";
+import {
+  readSearchInputs,
+  readSearchSnapshot,
+  saveSearchSnapshot,
+  searchInputsKey,
+} from "@/lib/flights/search-session";
 import { searchFlightsServer } from "@/lib/flights/search.functions";
 import { KZ_AIRPORTS } from "@/lib/flights/airports";
 import {
@@ -35,6 +41,7 @@ import { analyzeFlightPrices } from "@/lib/flights/analytics";
 import {
   organizationFailure,
   useOrganizationWorkspace,
+  type OrganizationWorkspace,
 } from "@/lib/organizations/workspace-context";
 
 export const Route = createFileRoute("/_authenticated/_workspace/search")({
@@ -74,13 +81,12 @@ const initial: FormValues = {
 };
 
 function SearchPage() {
-  const { t, message, number, dateTime } = useLanguage();
+  const { t } = useLanguage();
   useEffect(() => {
     document.title = `${t("Flight Search")} — Flight Analytics`;
   }, [t]);
-  const searchFlights = useServerFn(searchFlightsServer);
   const workspace = useOrganizationWorkspace();
-  const { selectedOrganizationId, version } = workspace;
+  const { selectedOrganizationId } = workspace;
   const personalScope =
     workspace.status === "ready" &&
     workspace.memberships.length === 0 &&
@@ -88,18 +94,45 @@ function SearchPage() {
     !workspace.authorizationError &&
     selectedOrganizationId === null;
   const canSearch = workspace.canSearch || personalScope;
-  // Personal snapshots stay on this page, never in the agency workspace or storage.
+  const storageKey = canSearch ? searchInputsKey(workspace.userId, selectedOrganizationId) : null;
+  return (
+    <SearchForm
+      key={storageKey}
+      workspace={workspace}
+      personalScope={personalScope}
+      storageKey={storageKey}
+    />
+  );
+}
+
+function SearchForm({
+  workspace,
+  personalScope,
+  storageKey,
+}: {
+  workspace: OrganizationWorkspace;
+  personalScope: boolean;
+  storageKey: string | null;
+}) {
+  const { t, message, number, dateTime } = useLanguage();
+  const searchFlights = useServerFn(searchFlightsServer);
+  const { selectedOrganizationId, version } = workspace;
+  const canSearch = storageKey !== null;
+  // Personal snapshots are restored only in the personal search form.
   const [personalSearch, setPersonalSearch] = useState<{
     version: number;
     snapshot: FlightSearchSnapshot;
-  } | null>(null);
+  } | null>(() => {
+    const snapshot = personalScope ? readSearchSnapshot(workspace.userId, null) : undefined;
+    return snapshot ? { version, snapshot } : null;
+  });
   const search = personalScope
     ? personalSearch?.version === version
       ? personalSearch.snapshot
       : null
     : workspace.search;
   const request = useRef(0);
-  const [values, setValues] = useState<FormValues>(initial);
+  const [values, setValues] = useState<FormValues>(() => readSearchInputs(storageKey) ?? initial);
   const [errors, setErrors] = useState<Errors>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -116,7 +149,6 @@ function SearchPage() {
     invalidateRequest();
     setPending(false);
     setNotice(null);
-    setPersonalSearch(null);
     return invalidateRequest;
   }, [selectedOrganizationId, version, invalidateRequest]);
 
@@ -132,7 +164,7 @@ function SearchPage() {
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
 
-    if (pending || !canSearch) {
+    if (pending || !storageKey) {
       return;
     }
 
@@ -180,6 +212,7 @@ function SearchPage() {
 
       if (result.status === "ok") {
         const snapshot = { params, offers: result.offers, fetchedAt: result.fetchedAt };
+        saveSearchSnapshot(workspace.userId, selectedOrganizationId, snapshot);
         if (selectedOrganizationId) {
           workspace.publishSearch({ ...snapshot, organizationId: selectedOrganizationId });
         } else {

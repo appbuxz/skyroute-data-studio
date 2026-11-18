@@ -30,6 +30,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
 
 import { OrganizationWorkspaceProvider } from "@/lib/organizations/workspace-provider";
 import { useOrganizationWorkspace } from "@/lib/organizations/workspace-context";
+import { searchInputsKey, searchSnapshotKey } from "@/lib/flights/search-session";
 import { OrganizationSelector } from "@/components/layout/organization-selector";
 import { Route as SearchRoute } from "@/routes/_authenticated/_workspace.search";
 import { analyticsSnapshot51 } from "./fixtures/agency-analysis";
@@ -76,12 +77,14 @@ function deferred<T>() {
 
 function Workspace({
   initialPage = "search",
+  userId = USER,
 }: {
   initialPage?: "search" | "analysis" | "dashboard";
+  userId?: string;
 }) {
   const [page, setPage] = useState(initialPage);
   return (
-    <OrganizationWorkspaceProvider userId={USER}>
+    <OrganizationWorkspaceProvider key={userId} userId={userId}>
       <OrganizationSelector />
       <SelectionState />
       <button onClick={() => setPage("search")}>Search tab</button>
@@ -192,8 +195,7 @@ describe("organization workspace", () => {
 
   it("allows a traveler without an organization to search without publishing agency analysis", async () => {
     mocks.memberships.mockResolvedValue([]);
-    const storageWrite = vi.spyOn(Storage.prototype, "setItem");
-    render(<Workspace />);
+    const first = render(<Workspace />);
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Search flights" })).toBeEnabled(),
     );
@@ -210,13 +212,25 @@ describe("organization workspace", () => {
         cabinClass: "economy",
       },
     });
-    expect(storageWrite).not.toHaveBeenCalled();
+    expect(window.sessionStorage.getItem(searchInputsKey(USER, A))).toBeNull();
     fireEvent.click(screen.getByText("Analysis tab"));
     expect(screen.queryByText("Carrier comparison")).not.toBeInTheDocument();
+    expect(window.sessionStorage.getItem(searchSnapshotKey(USER, A))).toBeNull();
     expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
     expect(
       await screen.findByText("Analytics isn’t available for your account"),
     ).toBeInTheDocument();
+    first.unmount();
+    render(<Workspace />);
+    await waitFor(() => expect(screen.getByLabelText("Origin")).toHaveValue("ALA"));
+    expect(mocks.search).toHaveBeenCalledOnce();
+    expect(screen.getByText(/A Airways · KC100/)).toBeInTheDocument();
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    fireEvent.click(screen.getByRole("button", { name: "Refresh organizations" }));
+    await ready();
+    expect(screen.getByLabelText("Organization")).toHaveValue(A);
+    expect(screen.getByLabelText("Origin")).toHaveValue("");
+    expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
   });
 
   it("discards pending personal results when an agency becomes selected", async () => {
@@ -292,7 +306,7 @@ describe("organization workspace", () => {
     expect(screen.getAllByText("Enter a 3-letter airport code")).toHaveLength(2);
   });
 
-  it("keeps analysis in React memory and clears both views when switching", async () => {
+  it("only shows results for the currently selected agency", async () => {
     render(<Workspace />);
     await ready();
     select(A);
@@ -304,9 +318,9 @@ describe("organization workspace", () => {
     expect(screen.queryByText("Carrier comparison")).not.toBeInTheDocument();
     expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
     select(A);
-    expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
+    expect(await screen.findByText("Carrier comparison")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Search tab"));
-    expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
+    expect(screen.getByText(/A Airways · KC100/)).toBeInTheDocument();
   });
 
   it("immediately clears visible offers on a search-page organization switch", async () => {
@@ -317,8 +331,7 @@ describe("organization workspace", () => {
     await screen.findByText(/A Airways · KC100/);
     select(B);
     expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
-    // Flight input values are preserved even though tenant results are cleared.
-    expect(screen.getByLabelText("Origin")).toHaveValue("ALA");
+    expect(screen.getByLabelText("Origin")).toHaveValue("");
   });
 
   it("ignores an old response without clearing a newer pending search", async () => {
@@ -423,6 +436,7 @@ describe("organization workspace", () => {
     expect(mocks.search).toHaveBeenCalledTimes(2);
     fireEvent.click(screen.getByText("Analysis tab"));
     expect(screen.queryByText("Carrier comparison")).not.toBeInTheDocument();
+    expect(window.sessionStorage.getItem(searchSnapshotKey(USER, A))).toBeNull();
   });
 
   it("does not automatically substitute the only remaining organization after revocation", async () => {
@@ -514,19 +528,103 @@ describe("organization workspace", () => {
     expect(screen.queryByText("Carrier comparison")).not.toBeInTheDocument();
   });
 
-  it("does not persist selection or successful searches and requires selection after remount", async () => {
-    const sessionWrite = vi.spyOn(Storage.prototype, "setItem");
+  it("restores only successful searches after remount and isolates them by agency and account", async () => {
     const first = render(<Workspace />);
     await ready();
     select(A);
     submitSearch();
     await screen.findByText(/A Airways · KC100/);
-    expect(sessionWrite).not.toHaveBeenCalled();
+    expect(JSON.parse(window.sessionStorage.getItem(searchInputsKey(USER, A))!)).toEqual({
+      origin: "ALA",
+      destination: "IST",
+      departureDate: "2099-12-10",
+      passengers: 1,
+      cabinClass: "economy",
+    });
+
+    const failureMessage = "Flight search is temporarily unavailable.";
+    mocks.search.mockResolvedValueOnce({ status: "error", message: failureMessage });
+    fireEvent.change(screen.getByLabelText("Destination"), { target: { value: "NQZ" } });
+    fireEvent.click(screen.getByRole("button", { name: "Search flights" }));
+    await screen.findByText(failureMessage);
+
     first.unmount();
+    const second = render(<Workspace />);
+    await ready();
+    expect(screen.getByLabelText("Organization")).toHaveValue(A);
+    expect(screen.getByLabelText("Origin")).toHaveValue("ALA");
+    expect(screen.getByLabelText("Destination")).toHaveValue("IST");
+    expect(screen.getByLabelText("Departure date")).toHaveValue("10/12/2099");
+    expect(screen.getByLabelText("Passengers")).toHaveValue(1);
+    expect(screen.getByLabelText("Cabin class")).toHaveTextContent("Economy");
+    expect(screen.getByText(/A Airways · KC100/)).toBeInTheDocument();
+    select(B);
+    expect(screen.getByLabelText("Origin")).toHaveValue("");
+    fireEvent.change(screen.getByLabelText("Origin"), { target: { value: "NQZ" } });
+    fireEvent.change(screen.getByLabelText("Destination"), { target: { value: "LHR" } });
+    fireEvent.change(screen.getByLabelText("Departure date"), { target: { value: "2099-12-11" } });
+    fireEvent.change(screen.getByLabelText("Return date (optional)"), {
+      target: { value: "2099-12-18" },
+    });
+    fireEvent.change(screen.getByLabelText("Passengers"), { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("button", { name: "Search flights" }));
+    await screen.findByText(/A Airways · KC100/);
+    select(A);
+    expect(screen.getByLabelText("Origin")).toHaveValue("ALA");
+    expect(screen.getByLabelText("Return date (optional)")).toHaveValue("");
+    select(B);
+    expect(screen.getByLabelText("Origin")).toHaveValue("NQZ");
+    expect(screen.getByLabelText("Return date (optional)")).toHaveValue("18/12/2099");
+    expect(screen.getByLabelText("Passengers")).toHaveValue(3);
+    second.rerender(<Workspace userId="another-user" />);
+    await ready();
+    select(A);
+    expect(screen.getByLabelText("Origin")).toHaveValue("");
+    expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
+    expect(mocks.search).toHaveBeenCalledTimes(3);
+  });
+
+  it("keeps saved inputs editable when a stored offer is corrupted", async () => {
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    const first = render(<Workspace />);
+    await ready();
+    submitSearch();
+    await screen.findByText(/A Airways · KC100/);
+    first.unmount();
+    const key = searchSnapshotKey(USER, A);
+    const saved = JSON.parse(window.sessionStorage.getItem(key)!);
+    saved.offers[0].price = null;
+    window.sessionStorage.setItem(key, JSON.stringify(saved));
+
     render(<Workspace />);
     await ready();
-    expect(screen.getByLabelText("Organization")).toHaveValue("");
+    expect(screen.getByLabelText("Origin")).toHaveValue("ALA");
     expect(screen.queryByText(/A Airways/)).not.toBeInTheDocument();
+    expect(mocks.search).toHaveBeenCalledOnce();
+    submitSearch();
+    await screen.findByText(/A Airways · KC100/);
+    expect(JSON.parse(window.sessionStorage.getItem(key)!).offers[0].price.currency).toBe("KZT");
+  });
+
+  it.each([
+    "{",
+    JSON.stringify({
+      origin: "ALA",
+      destination: "IST",
+      departureDate: "2000-01-01",
+      passengers: 1,
+      cabinClass: "economy",
+    }),
+  ])("opens an editable default form when saved inputs are invalid or expired", async (stored) => {
+    window.sessionStorage.setItem(searchInputsKey(USER, A), stored);
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    render(<Workspace />);
+    await ready();
+    expect(screen.getByLabelText("Origin")).toHaveValue("");
+    expect(screen.getByLabelText("Departure date")).toHaveValue("");
+    expect(mocks.search).not.toHaveBeenCalled();
+    submitSearch();
+    await screen.findByText(/A Airways · KC100/);
   });
 
   it("invalidates outstanding results when the authenticated account changes", async () => {
@@ -563,7 +661,7 @@ describe("organization workspace", () => {
   });
 });
 
-it("shares the latest agency snapshot across search, dashboard and analytics and clears it on organization changes", async () => {
+it("restores the same agency snapshot across search, dashboard and analytics after membership verification", async () => {
   const snapshot = analyticsSnapshot51();
   snapshot.offers.forEach((offer, i) => {
     if (i % 3 === 1) offer.price = { amount: 500 + Math.floor(i / 3) * 5, currency: "USD" };
@@ -573,18 +671,38 @@ it("shares the latest agency snapshot across search, dashboard and analytics and
     offers: snapshot.offers,
     fetchedAt: snapshot.fetchedAt,
   });
-  render(<Workspace />);
+  const first = render(<Workspace />);
   await ready();
   select(A);
   submitSearch();
   await screen.findByText("Flight offers (51)");
+  const originalTime = screen.getByText(/^Retrieved:/).textContent;
+  first.unmount();
+
+  const membershipCheck = deferred<OrganizationMembership[]>();
+  mocks.memberships.mockReturnValueOnce(membershipCheck.promise);
+  const second = render(<Workspace />);
+  expect(screen.queryByText("Flight offers (51)")).not.toBeInTheDocument();
+  await act(async () => membershipCheck.resolve(agencies));
+  await screen.findByText("Flight offers (51)");
+  expect(screen.getByText(/^Retrieved:/)).toHaveTextContent(originalTime!);
+  expect(screen.getAllByText("500 USD").length).toBeGreaterThan(0);
+  expect(mocks.search).toHaveBeenCalledOnce();
   fireEvent.click(screen.getByText("Dashboard tab"));
   await screen.findByRole("link", { name: "Open analytics" });
   expect(screen.getByText("180,000 KZT")).toBeInTheDocument();
   expect(screen.getByText("500 USD")).toBeInTheDocument();
+  expect(screen.getByText(/UTC\+00:00/, { selector: "time" })).toHaveAttribute(
+    "datetime",
+    snapshot.fetchedAt,
+  );
   fireEvent.click(screen.getByText("Analysis tab"));
   await screen.findByText("Carrier comparison");
   expect(screen.getByText("51 offers", { selector: "dd" })).toBeInTheDocument();
+  expect(screen.getByText(/UTC\+00:00/, { selector: "time" })).toHaveAttribute(
+    "datetime",
+    snapshot.fetchedAt,
+  );
   fireEvent.click(screen.getByText("Dashboard tab"));
   await screen.findByRole("link", { name: "Open analytics" });
   select(B);
@@ -598,6 +716,15 @@ it("shares the latest agency snapshot across search, dashboard and analytics and
   await screen.findByText("The latest search returned no offers");
   expect(screen.queryByRole("link", { name: "Open analytics" })).not.toBeInTheDocument();
   select(A);
-  await screen.findByText("No search results in this session");
+  expect(await screen.findByText("180,000 KZT")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByText("Search tab"));
+  mocks.search.mockResolvedValueOnce({ status: "ok", offers: [], fetchedAt: snapshot.fetchedAt });
+  submitSearch();
+  await screen.findByText("No flights found for the selected route and date.");
+  second.unmount();
+  render(<Workspace initialPage="dashboard" />);
+  await screen.findByText("The latest search returned no offers");
   expect(screen.queryByText("180,000 KZT")).not.toBeInTheDocument();
+  expect(mocks.search).toHaveBeenCalledTimes(3);
 });
