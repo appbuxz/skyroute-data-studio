@@ -664,7 +664,7 @@ describe("organization workspace", () => {
 it("restores the same agency snapshot across search, dashboard and analytics after membership verification", async () => {
   const snapshot = analyticsSnapshot51();
   snapshot.offers.forEach((offer, i) => {
-    if (i % 3 === 1) offer.price = { amount: 500 + Math.floor(i / 3) * 5, currency: "USD" };
+    if (i % 3 === 1) offer.price = { amount: 500.25 + Math.floor(i / 3) * 5, currency: "GBP" };
   });
   mocks.search.mockResolvedValueOnce({
     status: "ok",
@@ -676,6 +676,7 @@ it("restores the same agency snapshot across search, dashboard and analytics aft
   select(A);
   submitSearch();
   await screen.findByText("Flight offers (51)");
+  expect(screen.getAllByText("500.25 GBP").length).toBeGreaterThan(0);
   const originalTime = screen.getByText(/^Retrieved:/).textContent;
   first.unmount();
 
@@ -686,12 +687,13 @@ it("restores the same agency snapshot across search, dashboard and analytics aft
   await act(async () => membershipCheck.resolve(agencies));
   await screen.findByText("Flight offers (51)");
   expect(screen.getByText(/^Retrieved:/)).toHaveTextContent(originalTime!);
-  expect(screen.getAllByText("500 USD").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("500.25 GBP").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("180,000 KZT").length).toBeGreaterThan(0);
   expect(mocks.search).toHaveBeenCalledOnce();
   fireEvent.click(screen.getByText("Dashboard tab"));
   await screen.findByRole("link", { name: "Open analytics" });
   expect(screen.getByText("180,000 KZT")).toBeInTheDocument();
-  expect(screen.getByText("500 USD")).toBeInTheDocument();
+  expect(screen.getByText("500.25 GBP")).toBeInTheDocument();
   expect(screen.getByText(/UTC\+00:00/, { selector: "time" })).toHaveAttribute(
     "datetime",
     snapshot.fetchedAt,
@@ -699,6 +701,7 @@ it("restores the same agency snapshot across search, dashboard and analytics aft
   fireEvent.click(screen.getByText("Analysis tab"));
   await screen.findByText("Carrier comparison");
   expect(screen.getByText("51 offers", { selector: "dd" })).toBeInTheDocument();
+  expect(screen.getByText("From 500.25 GBP")).toBeInTheDocument();
   expect(screen.getByText(/UTC\+00:00/, { selector: "time" })).toHaveAttribute(
     "datetime",
     snapshot.fetchedAt,

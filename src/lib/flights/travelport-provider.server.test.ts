@@ -83,6 +83,18 @@ it("recognizes complete server configuration and maps form input through existin
   const [url, request] = fetchMock.mock.calls[1]!;
   expect(url).toBe("https://api.pp.travelport.net/11/air/catalog/search/catalogproductofferings");
   const body = JSON.parse(request.body).CatalogProductOfferingsRequest;
+  expect(body.PricingModifiersAir).toEqual({
+    "@type": "PricingModifiersAir",
+    currencyCode: "KZT",
+  });
+  const price =
+    fixture.CatalogProductOfferingsResponse.CatalogProductOfferings.CatalogProductOffering[0]!
+      .ProductBrandOptions[0]!.ProductBrandOffering[0]!.BestCombinablePrice;
+  expect(result).toMatchObject({
+    offers: expect.arrayContaining([
+      expect.objectContaining({ price: { amount: price.TotalPrice, currency: "GBP" } }),
+    ]),
+  });
   expect(body.PassengerCriteria[0].number).toBe(2);
   expect(body.SearchCriteriaFlight[0]).toEqual({
     "@type": "SearchCriteriaFlight",
