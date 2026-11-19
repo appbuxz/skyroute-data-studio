@@ -30,7 +30,7 @@ vi.mock("./travelport-price.server", () => ({
 }));
 vi.mock("./test-booking-status.server", () => ({
   retrieveTestBooking: mocks.retrieveBooking,
-  listMyTestBookings: mocks.listBookings,
+  listSavedTestBookings: mocks.listBookings,
 }));
 
 // Run the actual configured validator and handler. HTTP serialization still
@@ -142,7 +142,7 @@ describe("AirPrice authorization", () => {
 it("lists personal bookings only for the authenticated user", async () => {
   mocks.listBookings.mockResolvedValue([]);
   await expect(listMyTestBookingsServer()).resolves.toEqual([]);
-  expect(mocks.listBookings).toHaveBeenCalledExactlyOnceWith("verified-user");
+  expect(mocks.listBookings).toHaveBeenCalledExactlyOnceWith({ userId: "verified-user" });
 
   const error = new UnauthorizedError();
   mocks.requireAuth.mockRejectedValue(error);

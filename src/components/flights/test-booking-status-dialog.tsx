@@ -35,7 +35,10 @@ export function TestBookingStatusDialog({
     setResult(null);
     try {
       const response = await getStatus({
-        data: bookingId ? { bookingId } : { flight, ...(organizationId ? { organizationId } : {}) },
+        data: {
+          ...(bookingId ? { bookingId } : { flight }),
+          ...(organizationId ? { organizationId } : {}),
+        },
       });
       if (current === request.current) setResult(response);
     } catch {

@@ -105,18 +105,21 @@ export async function retrieveTestBooking(
   return refreshBookingStatus(pnr);
 }
 
-export async function retrieveMyTestBooking(
-  userId: string,
+export async function retrieveSavedTestBooking(
+  scope: PriceScope,
   bookingId: string,
 ): Promise<TestBookingStatus> {
   try {
-    const { data, error } = await supabaseAdmin
+    const query = supabaseAdmin
       .from("flight_test_booking_attempts")
       .select("pnr")
       .eq("attempt_key", bookingId)
-      .eq("user_id", userId)
-      .is("organization_id", null)
-      .maybeSingle();
+      .eq("user_id", scope.userId);
+    const { data, error } = await (
+      scope.organizationId
+        ? query.eq("organization_id", scope.organizationId)
+        : query.is("organization_id", null)
+    ).maybeSingle();
     if (error) return { status: "error" };
     if (!data?.pnr) return { status: "not_found" };
     return refreshBookingStatus(locatorSchema.parse(data.pnr));
@@ -179,13 +182,16 @@ async function refreshBookingStatus(pnr: string): Promise<TestBookingStatus> {
   }
 }
 
-export async function listMyTestBookings(userId: string) {
-  const { data, error } = await supabaseAdmin
+export async function listSavedTestBookings(scope: PriceScope) {
+  const query = supabaseAdmin
     .from("flight_test_booking_attempts")
     .select("attempt_key,pnr,flight")
-    .eq("user_id", userId)
-    .is("organization_id", null)
-    .not("pnr", "is", null);
+    .eq("user_id", scope.userId);
+  const { data, error } = await (
+    scope.organizationId
+      ? query.eq("organization_id", scope.organizationId)
+      : query.is("organization_id", null)
+  ).not("pnr", "is", null);
   if (error) throw new Error("Unable to load saved test bookings");
   return z
     .array(
