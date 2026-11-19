@@ -54,6 +54,7 @@ const NAV = [
       { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/analysis", label: "Analytics", icon: BarChart3 },
       { to: "/reports", label: "Reports", icon: FileText },
+      { to: "/agency-test-bookings", label: "Agency bookings", icon: CalendarCheck },
     ],
   },
 ] as const;

@@ -274,6 +274,11 @@ export const messages: Record<string, readonly [string, string]> = {
   ],
   "Flight offers ({count})": ["Предложения рейсов ({count})", "Рейс ұсыныстары ({count})"],
   "Select flight": ["Выбрать рейс", "Рейсті таңдау"],
+  "Agency bookings": ["Бронирования агентства", "Агенттік броньдары"],
+  "No agency test bookings yet.": [
+    "У агентства пока нет тестовых бронирований.",
+    "Агенттіктің тестілік броньдары әлі жоқ.",
+  ],
   "My bookings": ["Мои бронирования", "Менің броньдарым"],
   "Loading test bookings…": ["Загружаем тестовые брони…", "Сынақ броньдары жүктеліп жатыр…"],
   "No personal test bookings yet.": [

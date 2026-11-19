@@ -2,8 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { PageHeader } from "@/components/common/page-header";
-import { TestBookingStatusDialog } from "@/components/flights/test-booking-status-dialog";
-import { Card, CardContent } from "@/components/ui/card";
+import { TestBookingsList } from "@/components/flights/test-bookings-list";
 import { listMyTestBookingsServer } from "@/lib/flights/test-booking-status.functions";
 import { useLanguage } from "@/lib/i18n/language-context";
 
@@ -30,26 +29,7 @@ function MyTestBookings() {
         <p>{t("No personal test bookings yet.")}</p>
       )}
       {bookings.isSuccess && bookings.data.length > 0 && (
-        <ul className="grid gap-3">
-          {bookings.data.map(({ id, pnr, flight }) => (
-            <li key={id}>
-              <Card>
-                <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
-                  <div>
-                    <h2 className="font-medium">
-                      {flight.from} → {flight.to}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      {flight.carrier}
-                      {flight.flightNumber} · {flight.departureDate} · PNR {pnr}
-                    </p>
-                  </div>
-                  <TestBookingStatusDialog flight={flight} organizationId={null} bookingId={id} />
-                </CardContent>
-              </Card>
-            </li>
-          ))}
-        </ul>
+        <TestBookingsList bookings={bookings.data} organizationId={null} />
       )}
     </>
   );

@@ -147,6 +147,7 @@ it.each([
       "/dashboard",
       "/analysis",
       "/reports",
+      "/agency-test-bookings",
       "/settings",
     ]);
     const picker = within(drawer).getByRole("combobox", { name: organization });

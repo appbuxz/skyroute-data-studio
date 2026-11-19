@@ -7,14 +7,17 @@ export const getTestBookingStatusServer = createServerFn({ method: "POST" })
   .validator(
     z.union([
       z.object({ flight: testBookingFlightSchema, organizationId: z.string().uuid().optional() }),
-      z.object({ bookingId: z.string().regex(/^[0-9a-f]{64}$/) }),
+      z.object({
+        bookingId: z.string().regex(/^[0-9a-f]{64}$/),
+        organizationId: z.string().uuid().optional(),
+      }),
     ]),
   )
   .handler(async ({ data }) => {
     if ("bookingId" in data) {
-      const { userId } = await requirePriceScope();
-      const { retrieveMyTestBooking } = await import("./test-booking-status.server");
-      return retrieveMyTestBooking(userId, data.bookingId);
+      const scope = await requirePriceScope(data.organizationId);
+      const { retrieveSavedTestBooking } = await import("./test-booking-status.server");
+      return retrieveSavedTestBooking(scope, data.bookingId);
     }
     const scope = await requirePriceScope(data.organizationId);
     const { retrieveTestBooking } = await import("./test-booking-status.server");
@@ -22,7 +25,15 @@ export const getTestBookingStatusServer = createServerFn({ method: "POST" })
   });
 
 export const listMyTestBookingsServer = createServerFn({ method: "POST" }).handler(async () => {
-  const { userId } = await requirePriceScope();
-  const { listMyTestBookings } = await import("./test-booking-status.server");
-  return listMyTestBookings(userId);
+  const scope = await requirePriceScope();
+  const { listSavedTestBookings } = await import("./test-booking-status.server");
+  return listSavedTestBookings(scope);
 });
+
+export const listAgencyTestBookingsServer = createServerFn({ method: "POST" })
+  .validator(z.object({ organizationId: z.string().uuid() }))
+  .handler(async ({ data }) => {
+    const scope = await requirePriceScope(data.organizationId);
+    const { listSavedTestBookings } = await import("./test-booking-status.server");
+    return listSavedTestBookings(scope);
+  });
