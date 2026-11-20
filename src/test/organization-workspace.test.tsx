@@ -1080,6 +1080,117 @@ it("prints only selected agency offers and includes a photo after it loads", asy
   }
 });
 
+it("restores and prints saved shortlist snapshots without searching and isolates them by scope", async () => {
+  const response = result();
+  if (response.status !== "ok") throw new Error("Expected test offers");
+  const [offer] = response.offers;
+  mocks.search.mockResolvedValueOnce({
+    ...response,
+    environment: "test",
+    offers: ["KC100", "KC101", "KC102"].map((flightNumber) => ({
+      ...offer,
+      id: flightNumber,
+      flightNumber,
+      checkoutToken: "temporary-token",
+      price: flightNumber === "KC101" ? { amount: 500.25, currency: "GBP" } : offer.price,
+      baggage: { checked: { pieces: 1, weightKg: 23 } },
+      comparisonEvidence: { baggageScope: "all_passengers_all_segments" },
+    })),
+  });
+  const first = render(<Workspace />);
+  await ready();
+  select(A);
+  submitSearch();
+  const options = await screen.findAllByRole("checkbox", { name: /in the shortlist/ });
+  const savedAt = screen.getByText(/^Retrieved:/).textContent!;
+  const save = screen.getByRole("button", { name: "Save shortlist", exact: true });
+  expect(save).toBeDisabled();
+  options.slice(0, 2).forEach((option) => fireEvent.click(option));
+  fireEvent.click(save);
+  expect(screen.getByText("Shortlist saved.")).toBeInTheDocument();
+  const key = Object.keys(window.localStorage).find((name) => name.includes(":saved-shortlists:"))!;
+  expect(window.localStorage.getItem(key)).not.toContain("temporary-token");
+  first.unmount();
+  window.sessionStorage.clear();
+
+  const print = vi.spyOn(window, "print").mockImplementation(() => {});
+  const reopened = render(<Workspace />);
+  await ready();
+  select(A);
+  expect(screen.getByText("Options: 2")).toBeInTheDocument();
+  function openSavedShortlist() {
+    fireEvent.click(screen.getByRole("button", { name: /^Open shortlist for ALA → IST/ }));
+  }
+  openSavedShortlist();
+  const dialog = within(await screen.findByRole("dialog"));
+  const preview = dialog.getByRole("region", { name: "PDF preview" });
+  fireEvent.click(dialog.getByRole("button", { name: "Save as PDF" }));
+  expect(print).toHaveBeenCalledOnce();
+  const printable = document.querySelector(".flight-shortlist-print");
+  for (const content of [preview, printable]) {
+    expect(content).toHaveTextContent("KC100");
+    expect(content).toHaveTextContent("KC101");
+    expect(content).not.toHaveTextContent("KC102");
+    expect(content).toHaveTextContent("100,000 KZT");
+    expect(content).toHaveTextContent("500.25 GBP");
+    expect(content).toHaveTextContent("Checked baggage · 1 pc · 23 kg");
+    expect(content).toHaveTextContent(savedAt);
+    expect(content).toHaveTextContent("Test data · Travelport Preproduction");
+    expect(content).toHaveTextContent("Prices were saved at the time of the search.");
+  }
+  expect(mocks.search).toHaveBeenCalledOnce();
+
+  select(B);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(document.querySelector(".flight-shortlist-print")).toBeNull();
+  expect(screen.getByText("No saved shortlists yet.")).toBeInTheDocument();
+
+  select(A);
+  openSavedShortlist();
+  const listener = mocks.onAuthStateChange.mock.lastCall?.[0] as (
+    event: string,
+    session: null,
+  ) => void;
+  act(() => listener("SIGNED_OUT", null));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(screen.queryByText("Saved shortlists")).not.toBeInTheDocument();
+
+  reopened.rerender(<Workspace userId="other-user" />);
+  await ready();
+  select(A);
+  expect(screen.getByText("No saved shortlists yet.")).toBeInTheDocument();
+
+  reopened.rerender(<Workspace />);
+  await ready();
+  select(A);
+  fireEvent.click(screen.getByRole("button", { name: /^Delete shortlist for ALA → IST/ }));
+  expect(screen.getByText("No saved shortlists yet.")).toBeInTheDocument();
+  expect(window.localStorage.getItem(key)).toBeNull();
+  expect(mocks.search).toHaveBeenCalledOnce();
+});
+
+it("keeps agency search working with corrupt or unwritable shortlist storage", async () => {
+  window.localStorage.setItem(
+    `flight-analytics:saved-shortlists:v1:${JSON.stringify([USER, A])}:corrupt`,
+    "{",
+  );
+  render(<Workspace />);
+  await ready();
+  select(A);
+  expect(screen.getByText("No saved shortlists yet.")).toBeInTheDocument();
+  submitSearch();
+  fireEvent.click(await screen.findByRole("checkbox", { name: /in the shortlist/ }));
+  const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    throw new DOMException("Storage is full", "QuotaExceededError");
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Save shortlist", exact: true }));
+  expect(screen.getByText("Could not save the shortlist.")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Preview flight shortlist" })).toBeEnabled();
+  write.mockRestore();
+  fireEvent.click(screen.getByRole("button", { name: "Save shortlist", exact: true }));
+  expect(screen.getByText("Options: 1")).toBeInTheDocument();
+});
+
 it("reuses recent search parameters after reopening the browser and scopes them to the user and agency", async () => {
   const first = render(<Workspace />);
   await ready();

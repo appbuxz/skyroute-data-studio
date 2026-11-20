@@ -12,10 +12,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/lib/i18n/language-context";
+import { FLIGHT_SHORTLIST_LIMIT } from "@/lib/flights/search-session";
 import { CABIN_LABELS, type FlightOffer, type FlightSearchSnapshot } from "@/lib/flights/types";
 import { FlightDateTime } from "./flight-date-time";
 
-export const FLIGHT_SHORTLIST_LIMIT = 3;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
@@ -23,14 +23,18 @@ export function FlightShortlist({
   search,
   offers,
   onRemove,
+  onSave,
+  onClose,
 }: {
   search: FlightSearchSnapshot;
   offers: FlightOffer[];
-  onRemove: (id: string) => void;
+  onRemove?: (id: string) => void;
+  onSave?: () => void;
+  onClose?: () => void;
 }) {
   const { t, number } = useLanguage();
   const photoInputId = useId();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(Boolean(onClose));
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [loadedPhoto, setLoadedPhoto] = useState<string | null>(null);
@@ -61,20 +65,33 @@ export function FlightShortlist({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <div className="flex flex-wrap items-center gap-3">
-        <DialogTrigger asChild>
-          <Button type="button" disabled={offers.length === 0}>
-            {t("Preview flight shortlist")}
-          </Button>
-        </DialogTrigger>
-        <p className="text-sm text-muted-foreground" role="status">
-          {t("{count} of {limit} flights selected", {
-            count: number(offers.length),
-            limit: number(FLIGHT_SHORTLIST_LIMIT),
-          })}
-        </p>
-      </div>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && onClose) onClose();
+        else setOpen(nextOpen);
+      }}
+    >
+      {!onClose && (
+        <div className="flex flex-wrap items-center gap-3">
+          <DialogTrigger asChild>
+            <Button type="button" disabled={offers.length === 0}>
+              {t("Preview flight shortlist")}
+            </Button>
+          </DialogTrigger>
+          {onSave && (
+            <Button type="button" variant="outline" disabled={offers.length === 0} onClick={onSave}>
+              {t("Save shortlist")}
+            </Button>
+          )}
+          <p className="text-sm text-muted-foreground" role="status">
+            {t("{count} of {limit} flights selected", {
+              count: number(offers.length),
+              limit: number(FLIGHT_SHORTLIST_LIMIT),
+            })}
+          </p>
+        </div>
+      )}
       <DialogContent className="max-h-[90dvh] max-w-[min(96vw,64rem)] overflow-y-auto">
         <DialogHeader className="pr-7">
           <DialogTitle>{t("Flight shortlist")}</DialogTitle>
@@ -96,16 +113,18 @@ export function FlightShortlist({
                       {number(offer.price.amount)} {offer.price.currency}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={t("Remove {flight} from the shortlist", {
-                      flight: `${offer.carrier} ${offer.flightNumber}`,
-                    })}
-                    onClick={() => onRemove(offer.id)}
-                  >
-                    {t("Remove")}
-                  </Button>
+                  {onRemove && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={t("Remove {flight} from the shortlist", {
+                        flight: `${offer.carrier} ${offer.flightNumber}`,
+                      })}
+                      onClick={() => onRemove(offer.id)}
+                    >
+                      {t("Remove")}
+                    </Button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -152,6 +171,7 @@ export function FlightShortlist({
           </div>
           <section aria-label={t("PDF preview")} className="min-w-0 rounded-lg bg-muted p-3 sm:p-5">
             <ShortlistDocument
+              saved={Boolean(onClose)}
               search={search}
               offers={offers}
               photoUrl={photoUrl}
@@ -170,6 +190,7 @@ export function FlightShortlist({
         createPortal(
           <div className="flight-shortlist-print" aria-hidden="true">
             <ShortlistDocument
+              saved={Boolean(onClose)}
               search={search}
               offers={offers}
               photoUrl={loadedPhoto === photoUrl ? photoUrl : null}
@@ -182,6 +203,7 @@ export function FlightShortlist({
 }
 
 function ShortlistDocument({
+  saved,
   search,
   offers,
   photoUrl,
@@ -190,6 +212,7 @@ function ShortlistDocument({
 }: {
   search: FlightSearchSnapshot;
   offers: FlightOffer[];
+  saved: boolean;
   photoUrl: string | null;
   onPhotoLoad?: () => void;
   onPhotoError?: () => void;
@@ -235,6 +258,7 @@ function ShortlistDocument({
       </ul>
       <footer className="space-y-1 border-t border-slate-300 pt-3 text-xs text-slate-700">
         <p>{t("Retrieved: {date}", { date: dateTime(search.fetchedAt) })}</p>
+        {saved && <p>{t("Prices were saved at the time of the search.")}</p>}
         <p>{t("Search prices and availability may change.")}</p>
       </footer>
     </article>

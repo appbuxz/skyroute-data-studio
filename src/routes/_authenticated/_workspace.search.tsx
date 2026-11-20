@@ -23,15 +23,20 @@ import { FlightPriceDialog } from "@/components/flights/flight-price-dialog";
 import { FlightItinerary } from "@/components/flights/flight-itinerary";
 import { FlightDateTime } from "@/components/flights/flight-date-time";
 import { ComparablePrices } from "@/components/flights/comparable-prices";
-import { FLIGHT_SHORTLIST_LIMIT, FlightShortlist } from "@/components/flights/flight-shortlist";
+import { FlightShortlist } from "@/components/flights/flight-shortlist";
 
 import { flightSearchSchema, type FlightSearchInput } from "@/lib/flights/search-schema";
 import { aviasalesSearchLink } from "@/lib/flights/aviasales-search-link";
 import {
+  deleteShortlist,
+  FLIGHT_SHORTLIST_LIMIT,
   readRecentSearches,
+  readSavedShortlists,
   readSearchInputs,
   readSearchSnapshot,
   saveRecentSearch,
+  saveShortlist,
+  type SavedShortlist,
   saveSearchSnapshot,
   searchInputsKey,
   searchParamsKey,
@@ -146,6 +151,12 @@ function SearchForm({
       ? readRecentSearches(workspace.userId, selectedOrganizationId)
       : [],
   );
+  const agencyId = canSearch ? selectedOrganizationId : null;
+  const [savedShortlists, setSavedShortlists] = useState(() =>
+    agencyId ? readSavedShortlists(workspace.userId, agencyId) : [],
+  );
+  const [openedShortlist, setOpenedShortlist] = useState<SavedShortlist>();
+  const [shortlistMessage, setShortlistMessage] = useState<string>();
   const [errors, setErrors] = useState<Errors>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -180,6 +191,25 @@ function SearchForm({
       if (ids.length < FLIGHT_SHORTLIST_LIMIT) return { search, ids: [...ids, id] };
       return previous;
     });
+  }
+
+  function saveSelectedFlights() {
+    if (!agencyId || !search || shortlistedOffers.length === 0 || !workspace.isCurrentScope()) {
+      return;
+    }
+    const entries = saveShortlist(workspace.userId, agencyId, {
+      ...search,
+      offers: shortlistedOffers,
+    });
+    if (entries) setSavedShortlists(entries);
+    setShortlistMessage(entries ? "Shortlist saved." : "Could not save the shortlist.");
+  }
+
+  function removeSavedShortlist(id: string) {
+    if (!agencyId || !workspace.isCurrentScope()) return;
+    const entries = deleteShortlist(workspace.userId, agencyId, id);
+    if (entries) setSavedShortlists(entries);
+    setShortlistMessage(entries ? "Shortlist deleted." : "Could not delete the shortlist.");
   }
 
   const set = <K extends keyof FormValues>(key: K, value: FormValues[K]) => {
@@ -430,6 +460,69 @@ function SearchForm({
         )}
       </WorkspaceSection>
 
+      {agencyId && (
+        <WorkspaceSection title={t("Saved shortlists")}>
+          {savedShortlists.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("No saved shortlists yet.")}</p>
+          ) : (
+            <ul className="space-y-2">
+              {savedShortlists.map((entry) => {
+                const { origin, destination, departureDate } = entry.params;
+                const label = `${origin} → ${destination} · ${date(new Date(departureDate), "UTC")}`;
+                return (
+                  <li
+                    key={entry.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{label}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t("Options: {count}", { count: number(entry.offers.length) })}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        aria-label={t("Open shortlist for {route}", { route: label })}
+                        onClick={() => {
+                          if (workspace.isCurrentScope()) setOpenedShortlist(entry);
+                        }}
+                      >
+                        {t("Open shortlist")}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        aria-label={t("Delete shortlist for {route}", { route: label })}
+                        onClick={() => removeSavedShortlist(entry.id)}
+                      >
+                        {t("Delete shortlist")}
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {shortlistMessage && (
+            <p role="status" className="text-sm">
+              {t(shortlistMessage)}
+            </p>
+          )}
+          {openedShortlist && (
+            <FlightShortlist
+              key={openedShortlist.id}
+              search={openedShortlist}
+              offers={openedShortlist.offers}
+              onClose={() => setOpenedShortlist(undefined)}
+            />
+          )}
+        </WorkspaceSection>
+      )}
+
       {notice && (
         <div
           role="status"
@@ -501,6 +594,7 @@ function SearchForm({
                 search={search}
                 offers={shortlistedOffers}
                 onRemove={toggleShortlistedOffer}
+                onSave={saveSelectedFlights}
               />
             )}
             {aviasalesLink && (
