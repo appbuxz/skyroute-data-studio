@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AppearanceOptions } from "@/components/common/appearance-options";
 import { PageHeader } from "@/components/common/page-header";
 import { TestBookingStatusDialog } from "@/components/flights/test-booking-status-dialog";
 import { FlightPriceDialog } from "@/components/flights/flight-price-dialog";
@@ -331,13 +332,20 @@ function SearchForm({
   }
 
   return (
-    <>
-      <PageHeader
-        title={t("Flight search")}
-        description={t(
-          "Search and compare flights, fares and schedules for free. Sign in to search; no organization is required. Enter IATA airport codes, e.g. ALA or NQZ.",
-        )}
-      />
+    <div className={agencyId ? "agency-search" : undefined}>
+      {agencyId && (
+        <div className="agency-search-appearance mb-4 flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3">
+          <AppearanceOptions />
+        </div>
+      )}
+      <div className="agency-search-heading">
+        <PageHeader
+          title={t("Flight search")}
+          description={t(
+            "Search and compare flights, fares and schedules for free. Sign in to search; no organization is required. Enter IATA airport codes, e.g. ALA or NQZ.",
+          )}
+        />
+      </div>
 
       {!canSearch && (
         <p
@@ -488,7 +496,7 @@ function SearchForm({
       </WorkspaceSection>
 
       {agencyId && (
-        <WorkspaceSection title={t("Saved shortlists")}>
+        <WorkspaceSection title={t("Saved shortlists")} className="agency-saved-shortlists">
           {savedShortlists.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("No saved shortlists yet.")}</p>
           ) : (
@@ -575,7 +583,7 @@ function SearchForm({
                 <CardContent className="pt-5">
                   <p className="text-sm text-muted-foreground">{t("Lowest price")}</p>
 
-                  <p className="mt-2 text-2xl font-bold">
+                  <p className="agency-price mt-2 text-2xl font-bold">
                     {number(priceAnalysis.cheapest.price.amount)} {priceAnalysis.currency}
                   </p>
                 </CardContent>
@@ -585,7 +593,7 @@ function SearchForm({
                 <CardContent className="pt-5">
                   <p className="text-sm text-muted-foreground">{t("Average price")}</p>
 
-                  <p className="mt-2 text-2xl font-bold">
+                  <p className="agency-price mt-2 text-2xl font-bold">
                     {number(Math.round(priceAnalysis.averagePrice))} {priceAnalysis.currency}
                   </p>
                 </CardContent>
@@ -595,7 +603,7 @@ function SearchForm({
                 <CardContent className="pt-5">
                   <p className="text-sm text-muted-foreground">{t("Price spread")}</p>
 
-                  <p className="mt-2 text-2xl font-bold">
+                  <p className="agency-price mt-2 text-2xl font-bold">
                     {number(priceAnalysis.priceSpread)} {priceAnalysis.currency}
                   </p>
 
@@ -642,7 +650,7 @@ function SearchForm({
             ) : (
               <div className="grid gap-3">
                 {offers.map((offer, index) => (
-                  <Card key={offer.id}>
+                  <Card key={offer.id} className="agency-offer">
                     <CardContent className="space-y-2 pt-5">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
@@ -655,7 +663,7 @@ function SearchForm({
                           </p>
                         </div>
 
-                        <p className="text-lg font-bold">
+                        <p className="agency-price text-lg font-bold">
                           {number(offer.price.amount)} {offer.price.currency}
                         </p>
                       </div>
@@ -748,7 +756,7 @@ function SearchForm({
           </WorkspaceSection>
         </section>
       )}
-    </>
+    </div>
   );
 }
 

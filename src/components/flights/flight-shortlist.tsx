@@ -1,5 +1,6 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { AppearanceOptions } from "@/components/common/appearance-options";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,8 +38,9 @@ export function FlightShortlist({
   onSave?: () => boolean;
   onClose?: () => void;
 }) {
-  const { t, number } = useLanguage();
+  const { t, number, date } = useLanguage();
   const photoInputId = useId();
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const [open, setOpen] = useState(Boolean(onClose));
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -93,7 +95,7 @@ export function FlightShortlist({
       }}
     >
       {!onClose && (
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="shortlist-actions flex flex-wrap items-center gap-3">
           <DialogTrigger asChild>
             <Button type="button" disabled={offers.length === 0}>
               {t("Preview flight shortlist")}
@@ -112,24 +114,40 @@ export function FlightShortlist({
           </p>
         </div>
       )}
-      <DialogContent className="max-h-[90dvh] max-w-[min(96vw,64rem)] overflow-y-auto">
-        <DialogHeader className="pr-7">
-          <DialogTitle>{t("Flight shortlist")}</DialogTitle>
+      <DialogContent
+        className="flight-shortlist-dialog max-h-[90dvh] max-w-[min(96vw,64rem)] overflow-y-auto"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          headingRef.current?.focus({ preventScroll: true });
+        }}
+      >
+        <div className="shortlist-appearance rounded-lg border bg-card p-3">
+          <AppearanceOptions />
+        </div>
+        <DialogHeader className="shortlist-heading pr-7">
+          <DialogTitle ref={headingRef} tabIndex={-1} className="outline-none">
+            {t("Flight shortlist")}
+          </DialogTitle>
+          <p className="shortlist-route hidden text-sm text-muted-foreground">
+            {search.params.origin} → {search.params.destination} ·{" "}
+            {date(new Date(search.params.departureDate), "UTC")}
+          </p>
           <DialogDescription>{t("Review the options before saving the PDF.")}</DialogDescription>
         </DialogHeader>
-        <div className="grid min-w-0 gap-5 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-          <div className="space-y-4">
+        <div className="shortlist-layout grid min-w-0 gap-5 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+          <div className="min-w-0 space-y-4">
+            <h3 className="shortlist-panel-title hidden">{t("Flight options")}</h3>
             <ul className="space-y-2">
               {offers.map((offer) => (
                 <li
                   key={offer.id}
-                  className="flex flex-wrap items-center justify-between gap-1 rounded-lg border p-2.5"
+                  className="shortlist-option flex flex-wrap items-center justify-between gap-1 rounded-lg border p-2.5"
                 >
-                  <div>
+                  <div className="shortlist-option-details">
                     <p className="text-sm font-semibold">
                       {offer.carrier} · {offer.flightNumber}
                     </p>
-                    <p className="text-sm">
+                    <p className="shortlist-price text-sm">
                       {number(offer.price.amount)} {offer.price.currency}
                     </p>
                   </div>
@@ -216,43 +234,49 @@ export function FlightShortlist({
                 </Button>
               )}
             </div>
-            {onSave && (
+            <div className="flex flex-wrap gap-2">
+              {onSave && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={editingHotel || offers.length === 0}
+                  onClick={() => {
+                    if (onSave()) {
+                      setSaveError(false);
+                      setOpen(false);
+                    } else {
+                      setSaveError(true);
+                    }
+                  }}
+                >
+                  {t("Save shortlist")}
+                </Button>
+              )}
               <Button
-                type="button"
-                variant="outline"
-                disabled={editingHotel || offers.length === 0}
-                onClick={() => {
-                  if (onSave()) {
-                    setSaveError(false);
-                    setOpen(false);
-                  } else {
-                    setSaveError(true);
-                  }
-                }}
+                onClick={() => window.print()}
+                disabled={
+                  editingHotel ||
+                  offers.length === 0 ||
+                  (!!photoFile && (!photoUrl || loadedPhoto !== photoUrl))
+                }
               >
-                {t("Save shortlist")}
+                {t("Save as PDF")}
               </Button>
-            )}
+            </div>
             {saveError && (
               <p role="alert" className="text-sm text-destructive">
                 {t("Could not save the shortlist.")}
               </p>
             )}
-            <Button
-              onClick={() => window.print()}
-              disabled={
-                editingHotel ||
-                offers.length === 0 ||
-                (!!photoFile && (!photoUrl || loadedPhoto !== photoUrl))
-              }
-            >
-              {t("Save as PDF")}
-            </Button>
             <p className="text-xs text-muted-foreground">
               {t("Choose Save as PDF in the print dialog.")}
             </p>
           </div>
-          <section aria-label={t("PDF preview")} className="min-w-0 rounded-lg bg-muted p-3 sm:p-5">
+          <section
+            aria-label={t("PDF preview")}
+            className="shortlist-preview min-w-0 rounded-lg bg-muted p-3 sm:p-5"
+          >
+            <h3 className="shortlist-panel-title hidden">{t("PDF preview")}</h3>
             <ShortlistDocument
               saved={Boolean(onClose)}
               search={search}
@@ -312,9 +336,9 @@ function ShortlistDocument({
     (!search.environment && offers.some((offer) => offer.provider === "travelport"));
 
   return (
-    <article className="space-y-4 bg-white p-4 text-sm text-slate-900 sm:p-6">
+    <article className="shortlist-document space-y-4 bg-white p-4 text-sm text-slate-900 sm:p-6">
       <header className="space-y-1">
-        <p className="text-xs font-semibold tracking-widest text-slate-600">Flight Analytics</p>
+        <p className="shortlist-brand text-xs font-semibold tracking-widest text-slate-600">Flight Analytics</p>
         <h2 className="text-2xl font-semibold text-slate-900">
           {params.origin} → {params.destination}
         </h2>
@@ -360,7 +384,7 @@ function ShortlistDocument({
           {hotel.comment && <p className="whitespace-pre-wrap break-words">{hotel.comment}</p>}
         </section>
       )}
-      <footer className="space-y-1 border-t border-slate-300 pt-3 text-xs text-slate-700">
+      <footer className="shortlist-document-footer space-y-1 border-t border-slate-300 pt-3 text-xs text-slate-700">
         <p>{t("Retrieved: {date}", { date: dateTime(search.fetchedAt) })}</p>
         {saved && (
           <p>
@@ -406,7 +430,7 @@ function ShortlistOffer({ offer, showPriceLabel }: { offer: FlightOffer; showPri
         </p>
         <p>
           {showPriceLabel && `${t("Flight price")} · `}
-          <span className="whitespace-nowrap">
+          <span className="shortlist-price whitespace-nowrap">
             {number(offer.price.amount)} {offer.price.currency}
           </span>
         </p>
