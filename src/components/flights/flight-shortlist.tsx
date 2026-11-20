@@ -12,9 +12,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/lib/i18n/language-context";
-import { FLIGHT_SHORTLIST_LIMIT } from "@/lib/flights/search-session";
+import { FLIGHT_SHORTLIST_LIMIT, type ShortlistHotel } from "@/lib/flights/search-session";
 import { CABIN_LABELS, type FlightOffer, type FlightSearchSnapshot } from "@/lib/flights/types";
 import { FlightDateTime } from "./flight-date-time";
+import { ShortlistHotelForm } from "./shortlist-hotel-form";
 
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
@@ -22,14 +23,18 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 export function FlightShortlist({
   search,
   offers,
+  hotel,
+  onHotelChange,
   onRemove,
   onSave,
   onClose,
 }: {
   search: FlightSearchSnapshot;
   offers: FlightOffer[];
+  hotel: ShortlistHotel | undefined;
+  onHotelChange: (hotel: ShortlistHotel | undefined) => boolean;
   onRemove?: (id: string) => void;
-  onSave?: () => void;
+  onSave?: () => boolean;
   onClose?: () => void;
 }) {
   const { t, number } = useLanguage();
@@ -39,6 +44,9 @@ export function FlightShortlist({
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [loadedPhoto, setLoadedPhoto] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [editingHotel, setEditingHotel] = useState(false);
+  const [hotelError, setHotelError] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
     if (!photoFile) return;
@@ -64,10 +72,22 @@ export function FlightShortlist({
     setPhotoError(null);
   }
 
+  function applyHotel(nextHotel: ShortlistHotel | undefined) {
+    if (!onHotelChange(nextHotel)) return false;
+    setEditingHotel(false);
+    setHotelError(false);
+    return true;
+  }
+
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          setEditingHotel(false);
+          setHotelError(false);
+          setSaveError(false);
+        }
         if (!nextOpen && onClose) onClose();
         else setOpen(nextOpen);
       }}
@@ -131,6 +151,45 @@ export function FlightShortlist({
             {offers.length === 0 && (
               <p className="text-sm">{t("Select at least one flight to export.")}</p>
             )}
+            <section className="space-y-2 border-t pt-3">
+              <h3 className="text-sm font-semibold">{t("Hotel")}</h3>
+              {editingHotel ? (
+                <ShortlistHotelForm
+                  hotel={hotel}
+                  onApply={applyHotel}
+                  onCancel={() => setEditingHotel(false)}
+                />
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setHotelError(false);
+                      setEditingHotel(true);
+                    }}
+                  >
+                    {t(hotel ? "Edit hotel" : "Add hotel")}
+                  </Button>
+                  {hotel && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setHotelError(!applyHotel(undefined))}
+                    >
+                      {t("Remove hotel")}
+                    </Button>
+                  )}
+                </div>
+              )}
+              {hotelError && (
+                <p role="alert" className="text-sm text-destructive">
+                  {t("Could not update the hotel.")}
+                </p>
+              )}
+            </section>
             <div className="space-y-2">
               <Label htmlFor={photoInputId}>{t("Cover photo (optional)")}</Label>
               <Input
@@ -157,10 +216,34 @@ export function FlightShortlist({
                 </Button>
               )}
             </div>
+            {onSave && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={editingHotel || offers.length === 0}
+                onClick={() => {
+                  if (onSave()) {
+                    setSaveError(false);
+                    setOpen(false);
+                  } else {
+                    setSaveError(true);
+                  }
+                }}
+              >
+                {t("Save shortlist")}
+              </Button>
+            )}
+            {saveError && (
+              <p role="alert" className="text-sm text-destructive">
+                {t("Could not save the shortlist.")}
+              </p>
+            )}
             <Button
               onClick={() => window.print()}
               disabled={
-                offers.length === 0 || (!!photoFile && (!photoUrl || loadedPhoto !== photoUrl))
+                editingHotel ||
+                offers.length === 0 ||
+                (!!photoFile && (!photoUrl || loadedPhoto !== photoUrl))
               }
             >
               {t("Save as PDF")}
@@ -174,6 +257,7 @@ export function FlightShortlist({
               saved={Boolean(onClose)}
               search={search}
               offers={offers}
+              hotel={hotel}
               photoUrl={photoUrl}
               onPhotoLoad={() => setLoadedPhoto(photoUrl)}
               onPhotoError={() => {
@@ -193,6 +277,7 @@ export function FlightShortlist({
               saved={Boolean(onClose)}
               search={search}
               offers={offers}
+              hotel={hotel}
               photoUrl={loadedPhoto === photoUrl ? photoUrl : null}
             />
           </div>,
@@ -206,6 +291,7 @@ function ShortlistDocument({
   saved,
   search,
   offers,
+  hotel,
   photoUrl,
   onPhotoLoad,
   onPhotoError,
@@ -213,6 +299,7 @@ function ShortlistDocument({
   search: FlightSearchSnapshot;
   offers: FlightOffer[];
   saved: boolean;
+  hotel: ShortlistHotel | undefined;
   photoUrl: string | null;
   onPhotoLoad?: () => void;
   onPhotoError?: () => void;
@@ -253,19 +340,44 @@ function ShortlistDocument({
       )}
       <ul className="space-y-3">
         {offers.map((offer) => (
-          <ShortlistOffer key={offer.id} offer={offer} />
+          <ShortlistOffer key={offer.id} offer={offer} showPriceLabel={Boolean(hotel)} />
         ))}
       </ul>
+      {hotel && (
+        <section className="break-inside-avoid space-y-1 border-t border-slate-300 pt-3">
+          <h3 className="text-base font-semibold">{t("Hotel")}</h3>
+          <p className="break-words font-semibold">{hotel.name}</p>
+          <p>
+            {t("Check-in")} · {formatDate(hotel.checkIn)}
+          </p>
+          <p>
+            {t("Check-out")} · {formatDate(hotel.checkOut)}
+          </p>
+          <p className="font-semibold">
+            {t("Total stay price")} · {number(hotel.amount, { maximumFractionDigits: 20 })}{" "}
+            {hotel.currency}
+          </p>
+          {hotel.comment && <p className="whitespace-pre-wrap break-words">{hotel.comment}</p>}
+        </section>
+      )}
       <footer className="space-y-1 border-t border-slate-300 pt-3 text-xs text-slate-700">
         <p>{t("Retrieved: {date}", { date: dateTime(search.fetchedAt) })}</p>
-        {saved && <p>{t("Prices were saved at the time of the search.")}</p>}
+        {saved && (
+          <p>
+            {t(
+              hotel
+                ? "Flight prices were saved at the time of the search."
+                : "Prices were saved at the time of the search.",
+            )}
+          </p>
+        )}
         <p>{t("Search prices and availability may change.")}</p>
       </footer>
     </article>
   );
 }
 
-function ShortlistOffer({ offer }: { offer: FlightOffer }) {
+function ShortlistOffer({ offer, showPriceLabel }: { offer: FlightOffer; showPriceLabel: boolean }) {
   const { t, number } = useLanguage();
   const outbound = offer.outbound?.segments ?? [];
   const inbound = offer.inbound?.segments ?? [];
@@ -292,8 +404,11 @@ function ShortlistOffer({ offer }: { offer: FlightOffer }) {
         <p>
           {offer.carrier} · {offer.flightNumber}
         </p>
-        <p className="whitespace-nowrap">
-          {number(offer.price.amount)} {offer.price.currency}
+        <p>
+          {showPriceLabel && `${t("Flight price")} · `}
+          <span className="whitespace-nowrap">
+            {number(offer.price.amount)} {offer.price.currency}
+          </span>
         </p>
       </div>
       <p>

@@ -7,7 +7,7 @@ const iata = z
   .toUpperCase()
   .regex(/^[A-Z]{3}$/, { message: "Enter a 3-letter airport code" });
 
-const isoDate = z
+export const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Select a date" })
   .refine(

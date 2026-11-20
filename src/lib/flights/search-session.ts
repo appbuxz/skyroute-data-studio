@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { flightSearchSchema, searchParamsSchema } from "./search-schema";
+import { flightSearchSchema, isoDate, searchParamsSchema } from "./search-schema";
 import {
   CABIN_CLASSES,
   type FlightSearchParams,
@@ -121,13 +121,29 @@ const snapshotSchema = z.object({
   offers: z.array(offerSchema),
 });
 
+export const shortlistHotelSchema = z
+  .object({
+    name: z.string().trim().min(1),
+    checkIn: isoDate,
+    checkOut: isoDate,
+    amount: z.number().finite().nonnegative(),
+    currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/),
+    comment: z.string().trim().optional(),
+  })
+  .refine((hotel) => hotel.checkOut > hotel.checkIn, { path: ["checkOut"] });
+
+export type ShortlistHotel = z.infer<typeof shortlistHotelSchema>;
+
 const savedShortlistSchema = snapshotSchema.extend({
   params: searchParamsSchema,
   offers: z.array(offerSchema.omit({ checkoutToken: true })).min(1).max(FLIGHT_SHORTLIST_LIMIT),
   savedAt: z.number().finite(),
+  hotel: shortlistHotelSchema.optional(),
 });
 
-export type SavedShortlist = FlightSearchSnapshot & { id: string; savedAt: number };
+type ShortlistSnapshot = FlightSearchSnapshot & { hotel?: ShortlistHotel | undefined };
+
+export type SavedShortlist = ShortlistSnapshot & { id: string; savedAt: number };
 
 function savedShortlistsPrefix(userId: string, organizationId: OrganizationId): string {
   return `flight-analytics:saved-shortlists:v1:${JSON.stringify([userId, organizationId])}:`;
@@ -163,7 +179,7 @@ export function readSavedShortlists(userId: string, organizationId: Organization
 export function saveShortlist(
   userId: string,
   organizationId: OrganizationId,
-  snapshot: FlightSearchSnapshot,
+  snapshot: ShortlistSnapshot,
 ): SavedShortlist[] | undefined {
   try {
     const storage = window.localStorage;
@@ -173,6 +189,26 @@ export function saveShortlist(
     const entries = readShortlists(storage, prefix);
     storage.setItem(prefix + id, JSON.stringify(entry));
     return [{ ...entry, id } as SavedShortlist, ...entries];
+  } catch {
+    return undefined;
+  }
+}
+
+export function updateShortlistHotel(
+  userId: string,
+  organizationId: OrganizationId,
+  id: string,
+  hotel: ShortlistHotel | undefined,
+): SavedShortlist | undefined {
+  try {
+    const storage = window.localStorage;
+    const key = savedShortlistsPrefix(userId, organizationId) + id;
+    const raw = storage.getItem(key);
+    if (!raw) return;
+    const current = savedShortlistSchema.parse(JSON.parse(raw));
+    const updated = savedShortlistSchema.parse({ ...current, hotel });
+    storage.setItem(key, JSON.stringify(updated));
+    return { ...updated, id } as SavedShortlist;
   } catch {
     return undefined;
   }
