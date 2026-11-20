@@ -4,7 +4,7 @@ import { useAppearance } from "@/lib/appearance/appearance-context";
 import { INTERFACE_STYLES, parseAppearance, parseInterfaceStyle } from "@/lib/appearance/theme";
 import { useLanguage } from "@/lib/i18n/language-context";
 
-const STYLE_LABELS = { current: "Current", "client-first": "Client First" } as const;
+const STYLE_LABELS = { current: "Current", "client-first": "Client First", analyst: "Analyst", "agency-desk": "Agency Desk" } as const;
 const MODE_LABELS = { system: "System", light: "Light", dark: "Dark" } as const;
 const MODES = ["system", "light", "dark"] as const;
 

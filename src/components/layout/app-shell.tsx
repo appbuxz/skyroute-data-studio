@@ -1,3 +1,4 @@
+import { AppearanceOptions } from "@/components/common/appearance-options";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { terminateSession } from "@/lib/auth/session";
@@ -12,6 +13,7 @@ import {
   LayoutDashboard,
   Menu,
   Plane,
+  Palette,
   Search,
   Settings,
 } from "lucide-react";
@@ -110,9 +112,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background text-foreground md:flex-row">
+    <div className="workspace-shell flex min-h-dvh w-full flex-col bg-background text-foreground md:flex-row">
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <header className="sticky top-0 z-40 flex min-h-14 items-center gap-3 border-b bg-background px-4 py-2 md:hidden">
+        <header className="workspace-mobile-bar sticky top-0 z-40 flex min-h-14 items-center gap-3 border-b bg-background px-4 py-2 md:hidden">
           <SheetTrigger asChild>
             <Button
               type="button"
@@ -127,6 +129,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           <p className="min-w-0 break-words text-base font-semibold leading-snug">
             {t(currentLabel)}
           </p>
+          {path !== "/settings" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button type="button" variant="ghost" size="icon" className="ml-auto shrink-0" aria-label={t("Appearance")}>
+                  <Palette className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-[min(22rem,calc(100vw-2rem))]">
+                <AppearanceOptions />
+              </PopoverContent>
+            </Popover>
+          )}
         </header>
         <SheetContent
           side="left"
@@ -204,7 +218,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           aria-label={t("Workspace navigation")}
           data-collapsed={collapsed}
           className={cn(
-            "hidden shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex md:sticky md:top-0 md:h-screen",
+            "workspace-sidebar hidden shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex md:sticky md:top-0 md:h-dvh md:overflow-y-auto",
             collapsed ? "md:w-16" : "md:w-60",
           )}
         >
@@ -370,9 +384,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </aside>
       </TooltipProvider>
-      <main className="min-w-0 flex-1 px-4 py-8 md:px-10">
-        <div className="mx-auto max-w-6xl">{children}</div>
-      </main>
+      <div className="workspace-content flex min-w-0 flex-1 flex-col bg-background text-foreground">
+        {path !== "/settings" && (
+          <header className="workspace-appearance-bar hidden border-b bg-card px-6 py-2 md:block">
+            <div className="mx-auto flex max-w-6xl justify-end">
+              <AppearanceOptions />
+            </div>
+          </header>
+        )}
+        <main className="workspace-main min-w-0 flex-1 bg-background px-4 py-8 text-foreground md:px-10">
+          <div className="mx-auto max-w-6xl">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

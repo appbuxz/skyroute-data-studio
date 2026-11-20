@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AppearanceOptions } from "@/components/common/appearance-options";
+import { useAppearance } from "@/lib/appearance/appearance-context";
 import { PageHeader } from "@/components/common/page-header";
 import { TestBookingStatusDialog } from "@/components/flights/test-booking-status-dialog";
 import { FlightPriceDialog } from "@/components/flights/flight-price-dialog";
@@ -155,6 +155,8 @@ function SearchForm({
       : [],
   );
   const agencyId = canSearch ? selectedOrganizationId : null;
+  const { interfaceStyle } = useAppearance();
+  const compactOffers = Boolean(agencyId) && interfaceStyle === "analyst";
   const [savedShortlists, setSavedShortlists] = useState(() =>
     agencyId ? readSavedShortlists(workspace.userId, agencyId) : [],
   );
@@ -333,11 +335,6 @@ function SearchForm({
 
   return (
     <div className={agencyId ? "agency-search" : undefined}>
-      {agencyId && (
-        <div className="agency-search-appearance mb-4 flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3">
-          <AppearanceOptions />
-        </div>
-      )}
       <div className="agency-search-heading">
         <PageHeader
           title={t("Flight search")}
@@ -622,10 +619,7 @@ function SearchForm({
 
           {search && <ComparablePrices search={search} collapsible />}
 
-          <WorkspaceSection title={t("Flight offers ({count})", { count: number(offers.length) })}>
-            <p className="text-sm text-muted-foreground">
-              {t("Retrieved: {date}", { date: dateTime(fetchedAt) })}
-            </p>
+          <div className="agency-results-layout">
             {search && selectedOrganizationId && offers.length > 0 && (
               <FlightShortlist
                 search={search}
@@ -636,124 +630,145 @@ function SearchForm({
                 onSave={saveSelectedFlights}
               />
             )}
-            {aviasalesLink && (
-              <Button asChild variant="outline">
-                <a href={aviasalesLink} target="_blank" rel="noopener noreferrer">
-                  {t("Search on Aviasales")}
-                </a>
-              </Button>
-            )}
-            {offers.length === 0 ? (
+            <WorkspaceSection
+              className="agency-results"
+              title={t("Flight offers ({count})", { count: number(offers.length) })}
+            >
               <p className="text-sm text-muted-foreground">
-                {t("No flights found for the selected route and date.")}
+                {t("Retrieved: {date}", { date: dateTime(fetchedAt) })}
               </p>
-            ) : (
-              <div className="grid gap-3">
-                {offers.map((offer, index) => (
-                  <Card key={offer.id} className="agency-offer">
-                    <CardContent className="space-y-2 pt-5">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="font-semibold">
-                            {offer.origin} → {offer.destination}
-                          </p>
+              {aviasalesLink && (
+                <Button asChild variant="outline">
+                  <a href={aviasalesLink} target="_blank" rel="noopener noreferrer">
+                    {t("Search on Aviasales")}
+                  </a>
+                </Button>
+              )}
+              {offers.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t("No flights found for the selected route and date.")}
+                </p>
+              ) : (
+                <div className="grid gap-3">
+                  {offers.map((offer, index) => (
+                    <Card key={offer.id} className="agency-offer">
+                      <CardContent className="agency-offer-body space-y-2 pt-5">
+                        <div className="agency-offer-header flex flex-wrap items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-semibold">
+                              {offer.origin} → {offer.destination}
+                            </p>
 
-                          <p className="text-sm text-muted-foreground">
-                            {offer.carrier} · {offer.flightNumber}
+                            <p className="text-sm text-muted-foreground">
+                              {offer.carrier} · {offer.flightNumber}
+                            </p>
+                          </div>
+
+                          <p className="agency-price text-lg font-bold">
+                            {number(offer.price.amount)} {offer.price.currency}
                           </p>
                         </div>
 
-                        <p className="agency-price text-lg font-bold">
-                          {number(offer.price.amount)} {offer.price.currency}
-                        </p>
-                      </div>
+                        <details className="agency-offer-itinerary" open={!compactOffers}>
+                          <summary className="analyst-itinerary-summary hidden cursor-pointer text-xs text-muted-foreground">
+                            <span className="font-mono font-medium text-foreground">
+                              <FlightDateTime value={offer.departureAt} compact /> –{" "}
+                              <FlightDateTime value={offer.arrivalAt} compact />
+                            </span>{" "}
+                            · {t("Flight details")}
+                          </summary>
+                          <div className="space-y-2">
+                            <p className="text-sm">
+                              {offer.stops === 0
+                                ? t("Direct flight")
+                                : offer.stops === 1
+                                  ? t("1 stop")
+                                  : t("{count} stops", { count: number(offer.stops) })}
+                            </p>
 
-                      <p className="text-sm">
-                        {offer.stops === 0
-                          ? t("Direct flight")
-                          : offer.stops === 1
-                            ? t("1 stop")
-                            : t("{count} stops", { count: number(offer.stops) })}
-                      </p>
-
-                      {offer.outbound?.segments.length ? (
-                        <FlightItinerary itinerary={offer.outbound} label="Outbound itinerary" />
-                      ) : (
-                        <>
-                          <p className="text-sm text-muted-foreground">
-                            {t("Departure:")} <FlightDateTime value={offer.departureAt} />
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {t("Arrival:")} <FlightDateTime value={offer.arrivalAt} />
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {t("Segment details unavailable")}
-                          </p>
-                        </>
-                      )}
-                      {offer.inbound?.segments.length ? (
-                        <FlightItinerary itinerary={offer.inbound} label="Return itinerary" />
-                      ) : null}
-                      {selectedOrganizationId && (
-                        <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={shortlistedIds.includes(offer.id)}
-                            disabled={
-                              shortlistedIds.length >= FLIGHT_SHORTLIST_LIMIT &&
-                              !shortlistedIds.includes(offer.id)
-                            }
-                            onChange={() => toggleShortlistedOffer(offer.id)}
-                            aria-label={t("Include {flight} in the shortlist", {
-                              flight: `${offer.carrier} ${offer.flightNumber}`,
-                            })}
-                            className="size-4 accent-primary"
-                          />
-                          {t("Include in shortlist")}
-                        </label>
-                      )}
-                      {search &&
-                        !search.params.returnDate &&
-                        offer.stops === 0 &&
-                        offer.checkoutToken &&
-                        !offers
-                          .slice(0, index)
-                          .some(
-                            (previous) =>
-                              previous.checkoutToken &&
-                              previous.stops === 0 &&
-                              previous.carrier === offer.carrier &&
-                              previous.flightNumber === offer.flightNumber,
-                          ) && (
-                          <TestBookingStatusDialog
-                            flight={{
-                              carrier: offer.carrier,
-                              flightNumber: offer.flightNumber,
-                              from: offer.origin,
-                              to: offer.destination,
-                              departureDate: search.params.departureDate,
-                            }}
-                            organizationId={selectedOrganizationId}
-                          />
+                            {offer.outbound?.segments.length ? (
+                              <FlightItinerary itinerary={offer.outbound} label="Outbound itinerary" />
+                            ) : (
+                              <>
+                                <p className="text-sm text-muted-foreground">
+                                  {t("Departure:")} <FlightDateTime value={offer.departureAt} />
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {t("Arrival:")} <FlightDateTime value={offer.arrivalAt} />
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {t("Segment details unavailable")}
+                                </p>
+                              </>
+                            )}
+                            {offer.inbound?.segments.length ? (
+                              <FlightItinerary itinerary={offer.inbound} label="Return itinerary" />
+                            ) : null}
+                          </div>
+                        </details>
+                        {selectedOrganizationId && (
+                          <label className="agency-offer-check flex w-fit cursor-pointer items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={shortlistedIds.includes(offer.id)}
+                              disabled={
+                                shortlistedIds.length >= FLIGHT_SHORTLIST_LIMIT &&
+                                !shortlistedIds.includes(offer.id)
+                              }
+                              onChange={() => toggleShortlistedOffer(offer.id)}
+                              aria-label={t("Include {flight} in the shortlist", {
+                                flight: `${offer.carrier} ${offer.flightNumber}`,
+                              })}
+                              className="size-4 accent-primary"
+                            />
+                            <span>{t("Include in shortlist")}</span>
+                          </label>
                         )}
-                      {offer.checkoutToken && search && (
-                        <FlightPriceDialog
-                          key={offer.checkoutToken}
-                          offer={offer}
-                          checkoutToken={offer.checkoutToken}
-                          organizationId={selectedOrganizationId}
-                          refresh={() => {
-                            setValues(search.params);
-                            void runSearch(search.params);
-                          }}
-                        />
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </WorkspaceSection>
+                        <div className="agency-offer-tools flex flex-wrap gap-2 empty:hidden">
+                          {search &&
+                            !search.params.returnDate &&
+                            offer.stops === 0 &&
+                            offer.checkoutToken &&
+                            !offers
+                              .slice(0, index)
+                              .some(
+                                (previous) =>
+                                  previous.checkoutToken &&
+                                  previous.stops === 0 &&
+                                  previous.carrier === offer.carrier &&
+                                  previous.flightNumber === offer.flightNumber,
+                              ) && (
+                              <TestBookingStatusDialog
+                                flight={{
+                                  carrier: offer.carrier,
+                                  flightNumber: offer.flightNumber,
+                                  from: offer.origin,
+                                  to: offer.destination,
+                                  departureDate: search.params.departureDate,
+                                }}
+                                organizationId={selectedOrganizationId}
+                              />
+                            )}
+                          {offer.checkoutToken && search && (
+                            <FlightPriceDialog
+                              key={offer.checkoutToken}
+                              offer={offer}
+                              checkoutToken={offer.checkoutToken}
+                              organizationId={selectedOrganizationId}
+                              refresh={() => {
+                                setValues(search.params);
+                                void runSearch(search.params);
+                              }}
+                            />
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </WorkspaceSection>
+          </div>
         </section>
       )}
     </div>

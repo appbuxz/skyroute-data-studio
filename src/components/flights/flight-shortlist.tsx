@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useAppearance } from "@/lib/appearance/appearance-context";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { FLIGHT_SHORTLIST_LIMIT, type ShortlistHotel } from "@/lib/flights/search-session";
 import { CABIN_LABELS, type FlightOffer, type FlightSearchSnapshot } from "@/lib/flights/types";
@@ -39,6 +40,8 @@ export function FlightShortlist({
   onClose?: () => void;
 }) {
   const { t, number, date } = useLanguage();
+  const { interfaceStyle } = useAppearance();
+  const themedPanel = interfaceStyle !== "current" && !onClose;
   const photoInputId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [open, setOpen] = useState(Boolean(onClose));
@@ -96,6 +99,7 @@ export function FlightShortlist({
     >
       {!onClose && (
         <div className="shortlist-actions flex flex-wrap items-center gap-3">
+          {themedPanel && <h2 className="w-full font-semibold">{t("Flight shortlist")}</h2>}
           <DialogTrigger asChild>
             <Button type="button" disabled={offers.length === 0}>
               {t("Preview flight shortlist")}
@@ -112,6 +116,14 @@ export function FlightShortlist({
               limit: number(FLIGHT_SHORTLIST_LIMIT),
             })}
           </p>
+          {themedPanel && interfaceStyle === "analyst" && offers.length > 0 && (
+            <section className="analyst-shortlist-preview w-full min-w-0 space-y-2">
+              <h3 className="text-sm font-semibold">{t("PDF preview")}</h3>
+              <div className="analyst-shortlist-paper" role="region" tabIndex={0} aria-label={t("PDF preview")}>
+                <ShortlistDocument saved={false} search={search} offers={offers} hotel={hotel} photoUrl={photoUrl} />
+              </div>
+            </section>
+          )}
         </div>
       )}
       <DialogContent

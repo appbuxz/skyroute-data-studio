@@ -55,8 +55,11 @@ export function AgencyDashboard() {
     };
   }, [checkMemberships, selectedOrganizationId, version]);
 
-  const frame = (children: ReactNode) => (
-    <section aria-label={t("Latest agency search")} className="space-y-5">
+  const frame = (children: ReactNode, hasSearch = false) => (
+    <section
+      aria-label={t("Latest agency search")}
+      className={hasSearch ? "workspace-dashboard-results space-y-5" : "space-y-5"}
+    >
       <PageHeader
         title={t("Dashboard")}
         description={t("Summary of the latest search for the selected organization.")}
@@ -198,7 +201,7 @@ export function AgencyDashboard() {
           )}
         </CardContent>
       </Card>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="workspace-dashboard-metrics grid gap-3 sm:grid-cols-2">
         <Metric
           title={t("Offers")}
           value={number(summary.offerCount)}
@@ -248,6 +251,7 @@ export function AgencyDashboard() {
         </Card>
       )}
     </>,
+    true,
   );
 }
 

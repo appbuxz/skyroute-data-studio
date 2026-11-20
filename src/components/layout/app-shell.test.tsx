@@ -1,3 +1,4 @@
+import { AppearanceProvider } from "@/lib/appearance/appearance-provider";
 import type { ComponentProps } from "react";
 import { act, cleanup, fireEvent, render, screen, within, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -47,9 +48,11 @@ function page(language: Language = "en") {
     <QueryClientProvider client={new QueryClient()}>
       <LanguageContext.Provider value={{ ...createTranslator(language), setLanguage: vi.fn() }}>
         <OrganizationWorkspaceContext.Provider value={workspace}>
-          <AppShell>
-            <p>Workspace content</p>
-          </AppShell>
+          <AppearanceProvider>
+            <AppShell>
+              <p>Workspace content</p>
+            </AppShell>
+          </AppearanceProvider>
         </OrganizationWorkspaceContext.Provider>
       </LanguageContext.Provider>
     </QueryClientProvider>,

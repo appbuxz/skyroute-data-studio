@@ -143,8 +143,8 @@ export function CheckMyFlightPage() {
       ? completed.result
       : null;
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <header className="space-y-3">
+    <div className="workspace-flight-check mx-auto max-w-4xl space-y-6">
+      <header className="workspace-page-heading space-y-3">
         <p className="flex items-center gap-2 text-sm font-medium text-accent-foreground">
           <Plane className="h-4 w-4" aria-hidden="true" /> Check My Flight · One-way
         </p>
@@ -171,7 +171,7 @@ export function CheckMyFlightPage() {
                 : "No organization assigned. Ask your administrator to arrange access."))}
         </p>
       )}
-      <WorkspaceSection title="Flight details and requirements" className="shadow-card" keepMounted>
+      <WorkspaceSection title="Flight details and requirements" className="workspace-check-form shadow-card" keepMounted>
         <form aria-label="Check My Flight" onSubmit={submit} noValidate aria-busy={pending}>
           <fieldset disabled={pending} className="min-w-0 space-y-6">
             <legend className="mb-4 text-lg font-semibold">The flight you found</legend>
@@ -356,7 +356,11 @@ export function CheckMyFlightPage() {
           {notice}
         </p>
       )}
-      {result && <FlightCheckResults result={result} />}
+      {result && (
+        <div className="workspace-check-result min-w-0">
+          <FlightCheckResults result={result} />
+        </div>
+      )}
     </div>
   );
 }

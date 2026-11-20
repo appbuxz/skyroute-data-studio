@@ -72,7 +72,7 @@ export function AnalyticsState({
 
 function AnalyticsHeading() {
   return (
-    <header className="flex flex-wrap items-center justify-between gap-2">
+    <header className="workspace-page-heading flex flex-wrap items-center justify-between gap-2">
       <h1 className="flex items-center gap-2 text-xl font-semibold">
         <BarChart3 className="h-5 w-5 text-primary" />
         Agency analytics
@@ -266,7 +266,7 @@ export function AnalyticsResults({ search }: { search: WorkspaceSearch }) {
           {schedules.length} itineraries · One entry per complete route, across fare offers.
         </p>
 
-        <div className="hidden md:block">
+        <div className="workspace-analysis-table hidden md:block">
           <Table aria-label="Flight schedules">
             <TableHeader>
               <TableRow>
@@ -290,7 +290,7 @@ export function AnalyticsResults({ search }: { search: WorkspaceSearch }) {
             </TableBody>
           </Table>
         </div>
-        <ul aria-label="Flight schedules mobile" className="space-y-3 md:hidden">
+        <ul aria-label="Flight schedules mobile" className="workspace-analysis-list space-y-3 md:hidden">
           {schedules.map((group) => (
             <li key={group.key} className="space-y-3 rounded-lg border p-3">
               <ScheduleItinerary offer={group.offer} />

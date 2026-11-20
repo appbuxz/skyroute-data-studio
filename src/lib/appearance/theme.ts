@@ -1,10 +1,10 @@
 export const APPEARANCE_KEY = "flight-analytics:appearance";
 export const INTERFACE_STYLE_KEY = "flight-analytics:interface-style";
-export const INTERFACE_STYLES = ["current", "client-first"] as const;
+export const INTERFACE_STYLES = ["current", "client-first", "analyst", "agency-desk"] as const;
 export type InterfaceStyle = (typeof INTERFACE_STYLES)[number];
 
 export function parseInterfaceStyle(value: string | null): InterfaceStyle {
-  return value === "client-first" ? value : "current";
+  return INTERFACE_STYLES.includes(value as InterfaceStyle) ? (value as InterfaceStyle) : "current";
 }
 
 export function readInterfaceStyle(): InterfaceStyle {
@@ -55,5 +55,5 @@ export const APPEARANCE_INIT_SCRIPT = `(()=>{
   const root=document.documentElement;
   root.classList.toggle('dark',dark);
   root.style.colorScheme=dark?'dark':'light';
-  root.dataset.interfaceStyle=style==='client-first'?style:'current';
+  root.dataset.interfaceStyle=${JSON.stringify(INTERFACE_STYLES)}.includes(style)?style:'current';
 })();`;

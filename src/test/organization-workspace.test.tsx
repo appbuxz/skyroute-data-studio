@@ -1198,11 +1198,16 @@ it("saves, restores, prints, edits and removes a shortlist hotel", async () => {
   expect(dialog.getByRole("button", { name: "Save shortlist" })).toBeDisabled();
   enter("Check-out", "2099-12-14");
   fireEvent.click(dialog.getByRole("button", { name: "Save hotel" }));
+  fireEvent.click(dialog.getByRole("radio", { name: "Analyst" }));
+  expect(document.documentElement.dataset.interfaceStyle).toBe("analyst");
+  expect(dialog.getByRole("region", { name: "PDF preview" })).toHaveTextContent("Bosphorus Hotel");
+  expect(dialog.getByRole("region", { name: "PDF preview" })).toHaveTextContent("KC100");
   fireEvent.click(dialog.getByRole("radio", { name: "Client First" }));
   fireEvent.click(dialog.getByRole("radio", { name: "Dark" }));
   expect(dialog.getByRole("region", { name: "PDF preview" })).toHaveTextContent("Bosphorus Hotel");
   expect(dialog.getByRole("region", { name: "PDF preview" })).toHaveTextContent("KC100");
   expect(document.documentElement).toHaveClass("dark");
+  fireEvent.click(dialog.getByRole("radio", { name: "Analyst" }));
   fireEvent.click(dialog.getByRole("button", { name: "Save shortlist" }));
   expect(screen.getByText("Shortlist saved.")).toBeInTheDocument();
   first.unmount();
@@ -1220,7 +1225,7 @@ it("saves, restores, prints, edits and removes a shortlist hotel", async () => {
   }
 
   const preview = await openSaved();
-  expect(dialog.getByRole("radio", { name: "Client First", checked: true })).toBeInTheDocument();
+  expect(dialog.getByRole("radio", { name: "Analyst", checked: true })).toBeInTheDocument();
   expect(dialog.getByRole("radio", { name: "Dark", checked: true })).toBeInTheDocument();
   fireEvent.click(dialog.getByRole("button", { name: "Save as PDF" }));
   expect(print).toHaveBeenCalledOnce();

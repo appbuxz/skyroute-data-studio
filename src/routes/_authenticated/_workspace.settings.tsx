@@ -24,54 +24,56 @@ function Settings() {
         title={t("Settings")}
         description={t("Personal preferences for your workspace.")}
       />
-      <Card className="max-w-3xl">
-        <CardHeader>
-          <CardTitle>{t("Appearance")}</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {t(
-              "Choose how Flight Analytics looks. Your choice applies immediately and is saved in this browser.",
-            )}
-          </p>
-        </CardHeader>
-        <CardContent>
-          <AppearanceOptions />
-        </CardContent>
-      </Card>
-      <Card className="mt-6 max-w-3xl">
-        <CardHeader>
-          <CardTitle>{t("Language")}</CardTitle>
-          <p id="language-description" className="text-sm text-muted-foreground">
-            {t(
-              "Choose the language for the workspace menu, settings and flight search. Saved in this browser.",
-            )}
-          </p>
-        </CardHeader>
-        <CardContent>
-          <RadioGroup
-            aria-label={t("Language")}
-            aria-describedby="language-description"
-            value={language}
-            onValueChange={(value) => setLanguage(parseLanguage(value))}
-            className="gap-3 sm:grid-cols-3"
-          >
-            {LANGUAGES.map((value) => (
-              <Label
-                key={value}
-                htmlFor={`language-${value}`}
-                lang={value}
-                className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-background p-4 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-accent"
-              >
-                {{ kk: "Қазақша", ru: "Русский", en: "English" }[value]}
-                <RadioGroupItem
-                  id={`language-${value}`}
-                  value={value}
-                  aria-label={{ kk: "Қазақша", ru: "Русский", en: "English" }[value]}
-                />
-              </Label>
-            ))}
-          </RadioGroup>
-        </CardContent>
-      </Card>
+      <div className="workspace-settings-layout space-y-6">
+        <Card className="max-w-3xl">
+          <CardHeader>
+            <CardTitle>{t("Appearance")}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "Choose how Flight Analytics looks. Your choice applies immediately and is saved in this browser.",
+              )}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <AppearanceOptions />
+          </CardContent>
+        </Card>
+        <Card className="max-w-3xl">
+          <CardHeader>
+            <CardTitle>{t("Language")}</CardTitle>
+            <p id="language-description" className="text-sm text-muted-foreground">
+              {t(
+                "Choose the language for the workspace menu, settings and flight search. Saved in this browser.",
+              )}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <RadioGroup
+              aria-label={t("Language")}
+              aria-describedby="language-description"
+              value={language}
+              onValueChange={(value) => setLanguage(parseLanguage(value))}
+              className="gap-3 sm:grid-cols-3"
+            >
+              {LANGUAGES.map((value) => (
+                <Label
+                  key={value}
+                  htmlFor={`language-${value}`}
+                  lang={value}
+                  className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-background p-4 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-accent"
+                >
+                  {{ kk: "Қазақша", ru: "Русский", en: "English" }[value]}
+                  <RadioGroupItem
+                    id={`language-${value}`}
+                    value={value}
+                    aria-label={{ kk: "Қазақша", ru: "Русский", en: "English" }[value]}
+                  />
+                </Label>
+              ))}
+            </RadioGroup>
+          </CardContent>
+        </Card>
+      </div>
     </>
   );
 }

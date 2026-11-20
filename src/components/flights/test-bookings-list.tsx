@@ -11,18 +11,21 @@ export function TestBookingsList({
   organizationId: OrganizationId | null;
 }) {
   return (
-    <ul className="grid gap-3">
+    <ul className="workspace-bookings grid gap-3">
       {bookings.map(({ id, pnr, flight }) => (
         <li key={id}>
           <Card>
-            <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
-              <div>
+            <CardContent className="workspace-booking-row flex flex-wrap items-center justify-between gap-3 pt-5">
+              <div className="workspace-booking-details min-w-0">
                 <h2 className="font-medium">
                   {flight.from} → {flight.to}
                 </h2>
-                <p className="text-sm text-muted-foreground">
-                  {flight.carrier}
-                  {flight.flightNumber} · {flight.departureDate} · PNR {pnr}
+                <p className="workspace-booking-meta text-sm text-muted-foreground">
+                  <span>{flight.carrier}{flight.flightNumber}</span>
+                  <span className="workspace-booking-separator"> · </span>
+                  <time dateTime={flight.departureDate}>{flight.departureDate}</time>
+                  <span className="workspace-booking-separator"> · </span>
+                  <span>PNR {pnr}</span>
                 </p>
               </div>
               <TestBookingStatusDialog

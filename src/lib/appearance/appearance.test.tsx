@@ -102,17 +102,21 @@ describe("workspace appearance settings", () => {
     expectDark(true);
     expect(screen.getByRole("radio", { name: "Dark", checked: true })).toBeInTheDocument();
   });
-  it("keeps existing mode storage and restores the independently selected style", () => {
+  it.each([
+    ["Client First", "client-first"],
+    ["Analyst", "analyst"],
+    ["Agency Desk", "agency-desk"],
+  ])("restores %s independently of the existing mode", (label, style) => {
     window.localStorage.setItem(APPEARANCE_KEY, "dark");
     const first = openSettings();
     expect(screen.getByRole("radio", { name: "Current", checked: true })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("radio", { name: "Client First" }));
+    fireEvent.click(screen.getByRole("radio", { name: label }));
     expectDark(true);
     expect(window.localStorage.getItem(APPEARANCE_KEY)).toBe("dark");
 
     fireEvent.click(screen.getByRole("radio", { name: "Light" }));
-    expect(document.documentElement.dataset.interfaceStyle).toBe("client-first");
-    expect(window.localStorage.getItem(INTERFACE_STYLE_KEY)).toBe("client-first");
+    expect(document.documentElement.dataset.interfaceStyle).toBe(style);
+    expect(window.localStorage.getItem(INTERFACE_STYLE_KEY)).toBe(style);
 
     first.unmount();
     delete document.documentElement.dataset.interfaceStyle;
@@ -121,9 +125,9 @@ describe("workspace appearance settings", () => {
       window.matchMedia,
       document,
     );
-    expect(document.documentElement.dataset.interfaceStyle).toBe("client-first");
+    expect(document.documentElement.dataset.interfaceStyle).toBe(style);
     openSettings();
-    expect(screen.getByRole("radio", { name: "Client First", checked: true })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: label, checked: true })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Light", checked: true })).toBeInTheDocument();
     expectDark(false);
   });
