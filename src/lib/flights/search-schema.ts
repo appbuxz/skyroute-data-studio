@@ -27,7 +27,7 @@ export function todayInKazakhstan(): string {
   }).format(new Date());
 }
 
-export const flightSearchSchema = z
+export const searchParamsSchema = z
   .object({
     origin: iata,
     destination: iata,
@@ -40,10 +40,6 @@ export const flightSearchSchema = z
       .max(9, { message: "Maximum 9 passengers" }),
     cabinClass: z.enum(CABIN_CLASSES, { errorMap: () => ({ message: "Select a cabin class" }) }),
   })
-  .refine((v) => v.departureDate >= todayInKazakhstan(), {
-    path: ["departureDate"],
-    message: "Departure date cannot be in the past",
-  })
   .refine((v) => v.origin !== v.destination, {
     path: ["destination"],
     message: "Destination must differ from origin",
@@ -51,6 +47,12 @@ export const flightSearchSchema = z
   .refine((v) => !v.returnDate || v.returnDate >= v.departureDate, {
     path: ["returnDate"],
     message: "Return date must be on or after departure",
+  });
+
+export const flightSearchSchema = searchParamsSchema
+  .refine((v) => v.departureDate >= todayInKazakhstan(), {
+    path: ["departureDate"],
+    message: "Departure date cannot be in the past",
   });
 
 export type FlightSearchInput = z.input<typeof flightSearchSchema>;
