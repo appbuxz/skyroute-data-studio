@@ -1,9 +1,11 @@
 import { createContext, useContext } from "react";
-import type { Appearance } from "./theme";
+import type { Appearance, InterfaceStyle } from "./theme";
 
 export const AppearanceContext = createContext<{
   appearance: Appearance;
   setAppearance: (appearance: Appearance) => void;
+  interfaceStyle: InterfaceStyle;
+  setInterfaceStyle: (style: InterfaceStyle) => void;
 } | null>(null);
 
 export function useAppearance() {

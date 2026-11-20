@@ -1,4 +1,5 @@
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
+import { AppearanceProvider } from "@/lib/appearance/appearance-provider";
 import { StrictMode, useState, type ReactNode } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -107,7 +108,9 @@ function Workspace({
       <button onClick={() => setPage("analysis")}>Analysis tab</button>
       <button onClick={() => setPage("dashboard")}>Dashboard tab</button>
       {page === "search" ? (
-        <SearchPage />
+        <AppearanceProvider>
+          <SearchPage />
+        </AppearanceProvider>
       ) : page === "analysis" ? (
         <AnalysisPage />
       ) : (
@@ -1195,6 +1198,11 @@ it("saves, restores, prints, edits and removes a shortlist hotel", async () => {
   expect(dialog.getByRole("button", { name: "Save shortlist" })).toBeDisabled();
   enter("Check-out", "2099-12-14");
   fireEvent.click(dialog.getByRole("button", { name: "Save hotel" }));
+  fireEvent.click(dialog.getByRole("radio", { name: "Client First" }));
+  fireEvent.click(dialog.getByRole("radio", { name: "Dark" }));
+  expect(dialog.getByRole("region", { name: "PDF preview" })).toHaveTextContent("Bosphorus Hotel");
+  expect(dialog.getByRole("region", { name: "PDF preview" })).toHaveTextContent("KC100");
+  expect(document.documentElement).toHaveClass("dark");
   fireEvent.click(dialog.getByRole("button", { name: "Save shortlist" }));
   expect(screen.getByText("Shortlist saved.")).toBeInTheDocument();
   first.unmount();
@@ -1212,6 +1220,8 @@ it("saves, restores, prints, edits and removes a shortlist hotel", async () => {
   }
 
   const preview = await openSaved();
+  expect(dialog.getByRole("radio", { name: "Client First", checked: true })).toBeInTheDocument();
+  expect(dialog.getByRole("radio", { name: "Dark", checked: true })).toBeInTheDocument();
   fireEvent.click(dialog.getByRole("button", { name: "Save as PDF" }));
   expect(print).toHaveBeenCalledOnce();
   const printable = document.querySelector<HTMLElement>(".flight-shortlist-print")!;

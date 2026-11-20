@@ -1,4 +1,25 @@
 export const APPEARANCE_KEY = "flight-analytics:appearance";
+export const INTERFACE_STYLE_KEY = "flight-analytics:interface-style";
+export const INTERFACE_STYLES = ["current", "client-first"] as const;
+export type InterfaceStyle = (typeof INTERFACE_STYLES)[number];
+
+export function parseInterfaceStyle(value: string | null): InterfaceStyle {
+  return value === "client-first" ? value : "current";
+}
+
+export function readInterfaceStyle(): InterfaceStyle {
+  if (typeof window === "undefined") return "current";
+  try {
+    return parseInterfaceStyle(window.localStorage.getItem(INTERFACE_STYLE_KEY));
+  } catch {
+    return "current";
+  }
+}
+
+export function applyInterfaceStyle(style: InterfaceStyle) {
+  document.documentElement.dataset.interfaceStyle = style;
+}
+
 export const APPEARANCES = ["light", "dark", "system"] as const;
 export type Appearance = (typeof APPEARANCES)[number];
 
@@ -24,4 +45,15 @@ export function applyAppearance(appearance: Appearance) {
 }
 
 // Runs before the stylesheet/React hydration, including direct private-page loads.
-export const APPEARANCE_INIT_SCRIPT = `(()=>{try{const value=localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)});const dark=value==='dark'||(value!=='light'&&value!=='dark'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',dark);document.documentElement.style.colorScheme=dark?'dark':'light';}catch{const dark=matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',dark);document.documentElement.style.colorScheme=dark?'dark':'light';}})();`;
+export const APPEARANCE_INIT_SCRIPT = `(()=>{
+  let mode, style;
+  try {
+    mode=localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)});
+    style=localStorage.getItem(${JSON.stringify(INTERFACE_STYLE_KEY)});
+  } catch {}
+  const dark=mode==='dark'||(mode!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);
+  const root=document.documentElement;
+  root.classList.toggle('dark',dark);
+  root.style.colorScheme=dark?'dark':'light';
+  root.dataset.interfaceStyle=style==='client-first'?style:'current';
+})();`;

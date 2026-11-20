@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppearanceProvider } from "./appearance-provider";
-import { APPEARANCE_INIT_SCRIPT, APPEARANCE_KEY } from "./theme";
+import { APPEARANCE_INIT_SCRIPT, APPEARANCE_KEY, INTERFACE_STYLE_KEY } from "./theme";
 import { Route as SettingsRoute } from "@/routes/_authenticated/_workspace.settings";
 
 let systemDark = false;
@@ -31,6 +31,7 @@ beforeEach(() => {
   window.localStorage.clear();
   document.documentElement.classList.remove("dark");
   document.documentElement.style.colorScheme = "";
+  delete document.documentElement.dataset.interfaceStyle;
   systemDark = false;
   listeners = new Set();
   vi.spyOn(window, "matchMedia").mockImplementation(
@@ -59,6 +60,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   document.documentElement.classList.remove("dark");
   document.documentElement.style.colorScheme = "";
+  delete document.documentElement.dataset.interfaceStyle;
 });
 
 describe("workspace appearance settings", () => {
@@ -100,6 +102,32 @@ describe("workspace appearance settings", () => {
     expectDark(true);
     expect(screen.getByRole("radio", { name: "Dark", checked: true })).toBeInTheDocument();
   });
+  it("keeps existing mode storage and restores the independently selected style", () => {
+    window.localStorage.setItem(APPEARANCE_KEY, "dark");
+    const first = openSettings();
+    expect(screen.getByRole("radio", { name: "Current", checked: true })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: "Client First" }));
+    expectDark(true);
+    expect(window.localStorage.getItem(APPEARANCE_KEY)).toBe("dark");
+
+    fireEvent.click(screen.getByRole("radio", { name: "Light" }));
+    expect(document.documentElement.dataset.interfaceStyle).toBe("client-first");
+    expect(window.localStorage.getItem(INTERFACE_STYLE_KEY)).toBe("client-first");
+
+    first.unmount();
+    delete document.documentElement.dataset.interfaceStyle;
+    new Function("localStorage", "matchMedia", "document", APPEARANCE_INIT_SCRIPT)(
+      window.localStorage,
+      window.matchMedia,
+      document,
+    );
+    expect(document.documentElement.dataset.interfaceStyle).toBe("client-first");
+    openSettings();
+    expect(screen.getByRole("radio", { name: "Client First", checked: true })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Light", checked: true })).toBeInTheDocument();
+    expectDark(false);
+  });
+
   it("works when localStorage cannot be read or written", () => {
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("Blocked");

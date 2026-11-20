@@ -186,3 +186,208 @@
   body { font-family: var(--font-sans); }
   h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
 }
+
+.appearance-option[data-state="checked"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+:root[data-interface-style="client-first"] {
+  --client-sans: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  --client-serif: "Liberation Serif", Georgia, ui-serif, serif;
+  --client-paper: oklch(0.992 0.010 88);
+  --client-ink: oklch(0.294 0.027 168);
+  --client-paper-muted: oklch(0.496 0.032 173);
+  --client-paper-border: oklch(0.880 0.020 88);
+  --client-paper-accent: oklch(0.457 0.086 166);
+}
+
+:root[data-interface-style="client-first"]:has(.agency-search, .flight-shortlist-dialog) {
+  --font-sans: var(--client-sans);
+  --font-display: var(--client-sans);
+  --background: oklch(0.956 0.013 83);
+  --foreground: var(--client-ink);
+  --card: var(--client-paper);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: var(--client-paper-accent);
+  --primary-foreground: oklch(1 0 0);
+  --muted: oklch(0.908 0.021 86);
+  --muted-foreground: var(--client-paper-muted);
+  --accent: oklch(0.925 0.029 164);
+  --accent-foreground: var(--foreground);
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+  --border: var(--client-paper-border);
+  --input: oklch(0.744 0.030 151);
+  --ring: var(--primary);
+  --highlight: var(--primary);
+  --client-bar: oklch(0.321 0.049 172);
+  --client-bar-text: oklch(0.956 0.026 86);
+  --client-selected-border: oklch(0.629 0.060 164);
+  --client-paper-shadow: oklch(0.850 0.024 86);
+}
+
+:root[data-interface-style="client-first"].dark:has(.agency-search, .flight-shortlist-dialog) {
+  --background: oklch(0.194 0.024 253);
+  --foreground: oklch(0.957 0.013 239);
+  --card: oklch(0.237 0.027 251);
+  --primary: oklch(0.819 0.113 181);
+  --primary-foreground: var(--background);
+  --muted: oklch(0.268 0.033 247);
+  --muted-foreground: oklch(0.764 0.031 248);
+  --accent: oklch(0.318 0.047 200);
+  --border: oklch(0.351 0.040 248);
+  --input: oklch(0.620 0.047 247);
+  --client-bar: oklch(0.219 0.028 252);
+  --client-bar-text: var(--foreground);
+  --client-selected-border: oklch(0.560 0.065 198);
+  --client-paper-shadow: var(--background);
+}
+
+[data-interface-style="client-first"] :is(.agency-search-appearance, .shortlist-appearance) {
+  background: var(--client-bar);
+  color: var(--client-bar-text);
+}
+
+[data-interface-style="client-first"] :is(.agency-search-appearance, .shortlist-appearance)
+  .appearance-option[data-state="checked"] {
+  background: var(--client-bar-text);
+  color: var(--client-bar);
+}
+
+[data-interface-style="client-first"].dark .appearance-option[data-state="checked"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+[data-interface-style="client-first"] :is(.agency-search-heading h1, .shortlist-heading h2) {
+  font-family: var(--client-serif);
+  font-size: clamp(2rem, 4vw, 2.5rem);
+  font-weight: 400;
+  line-height: 1.08;
+}
+
+[data-interface-style="client-first"] :is(.agency-price, .shortlist-price) {
+  font-family: var(--client-serif);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-weight: 400;
+}
+
+[data-interface-style="client-first"] .agency-offer:has(input:checked) {
+  border-color: var(--client-selected-border);
+}
+
+[data-interface-style="client-first"] .agency-saved-shortlists {
+  margin-top: 1rem;
+}
+
+[data-interface-style="client-first"] .shortlist-actions {
+  padding-block: 0.625rem;
+  border-block: 1px solid var(--border);
+}
+
+[data-interface-style="client-first"] .flight-shortlist-dialog {
+  max-width: min(96vw, 74rem);
+  border-radius: 1rem;
+  padding: clamp(0.75rem, 3vw, 1.875rem);
+}
+
+[data-interface-style="client-first"] .shortlist-appearance {
+  margin-right: 2rem;
+}
+
+[data-interface-style="client-first"] .shortlist-heading {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1rem;
+  text-align: start;
+}
+
+[data-interface-style="client-first"] :is(.shortlist-route, .shortlist-panel-title) {
+  display: block;
+}
+
+[data-interface-style="client-first"] .shortlist-panel-title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+[data-interface-style="client-first"] .shortlist-option {
+  background: var(--card);
+  border-color: var(--client-selected-border);
+  padding: 0.75rem;
+}
+
+[data-interface-style="client-first"] .shortlist-option-details {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+}
+
+[data-interface-style="client-first"] .shortlist-option-details .shortlist-price {
+  font-size: 1.125rem;
+}
+
+[data-interface-style="client-first"] .shortlist-preview {
+  align-self: start;
+}
+
+[data-interface-style="client-first"] .shortlist-preview > h3 {
+  margin-bottom: 0.75rem;
+}
+
+[data-interface-style="client-first"] .shortlist-document {
+  background: var(--client-paper);
+  color: var(--client-ink);
+  font-family: var(--client-sans);
+  overflow-wrap: anywhere;
+}
+
+[data-interface-style="client-first"] .shortlist-preview .shortlist-document {
+  max-width: 28rem;
+  margin-inline: auto;
+  border: 1px solid var(--client-paper-border);
+  border-radius: 0.25rem;
+  box-shadow: 4px 5px var(--client-paper-shadow);
+}
+
+[data-interface-style="client-first"] .shortlist-document :is(header h2, .shortlist-price) {
+  color: var(--client-ink);
+  font-family: var(--client-serif);
+  font-weight: 400;
+}
+
+[data-interface-style="client-first"] .shortlist-brand {
+  color: var(--client-paper-accent);
+  font-family: ui-monospace, monospace;
+  text-transform: uppercase;
+}
+
+[data-interface-style="client-first"] .shortlist-document-footer {
+  color: var(--client-paper-muted);
+}
+
+[data-interface-style="client-first"] .shortlist-document :is(li, section, footer) {
+  border-color: var(--client-paper-border);
+}
+
+@media (min-width: 48rem) {
+  [data-interface-style="client-first"] .shortlist-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(1.25rem, 3vw, 2.5rem);
+  }
+}
+
+@media print {
+  [data-interface-style="client-first"] .flight-shortlist-print .shortlist-document {
+    background: white;
+  }
+
+  .flight-shortlist-print .shortlist-document {
+    color-scheme: light;
+  }
+}
