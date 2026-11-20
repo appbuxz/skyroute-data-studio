@@ -142,6 +142,7 @@ async function ready() {
 beforeEach(() => {
   vi.resetAllMocks();
   window.sessionStorage.clear();
+  window.localStorage.clear();
   mocks.memberships.mockResolvedValue(agencies);
   mocks.search.mockResolvedValue(result());
   mocks.onAuthStateChange.mockReturnValue({
@@ -1014,6 +1015,48 @@ describe("organization workspace", () => {
     submitSearch();
     await screen.findByText(/A Airways · KC100/);
   });
+});
+
+it("reuses recent search parameters after reopening the browser and scopes them to the user and agency", async () => {
+  const first = render(<Workspace />);
+  await ready();
+  select(A);
+  submitSearch();
+  await screen.findByRole("button", { name: /^ALA → IST/ });
+
+  fireEvent.change(screen.getByLabelText("Destination"), { target: { value: "NQZ" } });
+  fireEvent.change(screen.getByLabelText("Passengers"), { target: { value: "2" } });
+  fireEvent.click(screen.getByRole("button", { name: "Search flights" }));
+  await screen.findByRole("button", { name: /^ALA → NQZ/ });
+  first.unmount();
+  window.sessionStorage.clear();
+
+  const reopened = render(<Workspace />);
+  await ready();
+  select(B);
+  expect(screen.queryByText("Recent searches on this browser")).not.toBeInTheDocument();
+  select(A);
+  expect(screen.getByLabelText("Origin")).toHaveValue("");
+  expect(
+    screen.getAllByRole("button", { name: /^ALA →/ }).map((button) => button.textContent),
+  ).toEqual([expect.stringMatching(/^ALA → NQZ/), expect.stringMatching(/^ALA → IST/)]);
+  fireEvent.click(screen.getByRole("button", { name: /^ALA → NQZ/ }));
+  expect(screen.getByLabelText("Origin")).toHaveValue("ALA");
+  expect(screen.getByLabelText("Destination")).toHaveValue("NQZ");
+  expect(screen.getByLabelText("Passengers")).toHaveValue(2);
+  expect(mocks.search).toHaveBeenCalledTimes(2);
+
+  fireEvent.click(screen.getByRole("button", { name: "Search flights" }));
+  await screen.findByText(/A Airways · KC100/);
+  expect(screen.getAllByRole("button", { name: /^ALA → NQZ/ })).toHaveLength(1);
+  expect(mocks.search).toHaveBeenLastCalledWith({
+    data: expect.objectContaining({ organizationId: A, destination: "NQZ", passengers: 2 }),
+  });
+
+  reopened.rerender(<Workspace userId="other-user" />);
+  await ready();
+  select(A);
+  expect(screen.queryByText("Recent searches on this browser")).not.toBeInTheDocument();
 });
 
 it("restores the same agency snapshot across search, dashboard and analytics after membership verification", async () => {

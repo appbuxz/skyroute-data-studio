@@ -8,6 +8,62 @@ import {
 } from "./types";
 
 const LEGACY_STORAGE_KEY = "flight-analytics:search:v1";
+const RECENT_SEARCH_LIMIT = 10;
+
+function recentSearchesKey(userId: string, organizationId: OrganizationId): string {
+  return `flight-analytics:recent-searches:v1:${JSON.stringify([userId, organizationId])}`;
+}
+
+export function readRecentSearches(
+  userId: string,
+  organizationId: OrganizationId,
+): FlightSearchParams[] {
+  try {
+    const stored = window.localStorage.getItem(recentSearchesKey(userId, organizationId));
+    const entries: unknown = stored ? JSON.parse(stored) : [];
+    if (!Array.isArray(entries)) return [];
+    return entries.slice(0, RECENT_SEARCH_LIMIT).flatMap((entry) => {
+      const parsed = flightSearchSchema.safeParse(entry);
+      return parsed.success ? [parsed.data] : [];
+    });
+  } catch {
+    return [];
+  }
+}
+
+export function searchParamsKey(params: FlightSearchParams): string {
+  const { origin, destination, departureDate, returnDate, passengers, cabinClass } = params;
+  return JSON.stringify([
+    origin,
+    destination,
+    departureDate,
+    returnDate || null,
+    passengers,
+    cabinClass,
+  ]);
+}
+
+export function saveRecentSearch(
+  userId: string,
+  organizationId: OrganizationId,
+  params: FlightSearchParams,
+): FlightSearchParams[] {
+  const current = readRecentSearches(userId, organizationId);
+  const key = searchParamsKey(params);
+  const searches = [params, ...current.filter((search) => searchParamsKey(search) !== key)].slice(
+    0,
+    RECENT_SEARCH_LIMIT,
+  );
+  try {
+    window.localStorage.setItem(
+      recentSearchesKey(userId, organizationId),
+      JSON.stringify(searches),
+    );
+  } catch {
+    // The latest successful search is still available in the current form.
+  }
+  return searches;
+}
 
 const timestamp = z.string().refine((value) => Number.isFinite(Date.parse(value)));
 const segmentSchema = z.object({
