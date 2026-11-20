@@ -1017,6 +1017,69 @@ describe("organization workspace", () => {
   });
 });
 
+it("prints only selected agency offers and includes a photo after it loads", async () => {
+  const response = result();
+  if (response.status !== "ok") throw new Error("Expected test offers");
+  const [offer] = response.offers;
+  mocks.search.mockResolvedValue({
+    ...response,
+    environment: "test",
+    offers: ["KC100", "KC101", "KC102", "KC103"].map((flightNumber) => ({
+      ...offer,
+      id: flightNumber,
+      flightNumber,
+    })),
+  });
+  const create = vi.fn(() => "blob:cover");
+  const revoke = vi.fn();
+  const browserURL = class extends URL {
+    static override createObjectURL = create;
+    static override revokeObjectURL = revoke;
+  };
+  vi.stubGlobal("URL", browserURL);
+  const print = vi.spyOn(window, "print").mockImplementation(() => {});
+  const view = render(<Workspace />);
+  try {
+    await ready();
+    select(A);
+    submitSearch();
+    const options = await screen.findAllByRole("checkbox", { name: /in the shortlist/ });
+    const preview = screen.getByRole("button", { name: "Preview flight shortlist" });
+    expect(preview).toBeDisabled();
+    options.slice(0, 3).forEach((option) => fireEvent.click(option));
+    expect(options[3]).toBeDisabled();
+    fireEvent.click(preview);
+
+    const dialog = within(await screen.findByRole("dialog"));
+    const printButton = dialog.getByRole("button", { name: "Save as PDF" });
+    const documentPreview = dialog.getByRole("region", { name: "PDF preview" });
+    expect(documentPreview).toHaveTextContent("Test data · Travelport Preproduction");
+    expect(documentPreview).toHaveTextContent("100,000 KZT");
+    expect(documentPreview).not.toHaveTextContent("KC103");
+    const input = dialog.getByLabelText("Cover photo (optional)");
+    const photo = new File(["sample"], "cover.png", { type: "image/png" });
+    fireEvent.change(input, { target: { files: [photo] } });
+    const image = await dialog.findByRole("img", { name: "Cover photo" });
+    expect(printButton).toBeDisabled();
+    fireEvent.load(image);
+    fireEvent.click(printButton);
+    expect(print).toHaveBeenCalledOnce();
+    const printable = document.querySelector(".flight-shortlist-print");
+    expect(printable?.querySelector("img")).toHaveAttribute("src", "blob:cover");
+    expect(printable).toHaveTextContent("KC100");
+    expect(printable).not.toHaveTextContent("KC103");
+
+    fireEvent.click(dialog.getByRole("button", { name: "Close" }));
+    select(B);
+    expect(document.querySelector(".flight-shortlist-print")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Preview flight shortlist" })).toBeNull();
+    expect(revoke).toHaveBeenCalledWith("blob:cover");
+  } finally {
+    view.unmount();
+    vi.unstubAllGlobals();
+  }
+});
+
 it("reuses recent search parameters after reopening the browser and scopes them to the user and agency", async () => {
   const first = render(<Workspace />);
   await ready();
