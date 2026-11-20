@@ -391,3 +391,131 @@
     color-scheme: light;
   }
 }
+
+:root[data-interface-style="analyst"]:has(.agency-search, .flight-shortlist-dialog) {
+  --font-sans: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-sans);
+  --analyst-selection: var(--accent);
+  --analyst-selection-border: var(--ring);
+}
+
+:root[data-interface-style="analyst"].dark:has(.agency-search, .flight-shortlist-dialog) {
+  --background: oklch(0.194 0.024 253);
+  --foreground: oklch(0.957 0.013 239);
+  --card: oklch(0.237 0.027 251);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.819 0.113 181);
+  --primary-foreground: var(--background);
+  --muted: oklch(0.307 0.038 254);
+  --muted-foreground: oklch(0.764 0.031 248);
+  --border: oklch(0.351 0.040 248);
+  --input: var(--border);
+  --ring: var(--primary);
+  --highlight: var(--primary);
+  --accent: var(--muted);
+  --accent-foreground: var(--foreground);
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+  --sidebar: oklch(0.219 0.028 252);
+  --sidebar-foreground: var(--muted-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--foreground);
+  --analyst-selection: oklch(0.265 0.029 225);
+  --analyst-selection-border: oklch(0.560 0.065 198);
+}
+
+.agency-results-layout {
+  display: grid;
+  gap: 0.75rem;
+}
+
+[data-interface-style="analyst"] .agency-search .shortlist-actions {
+  min-width: 0;
+  align-self: start;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--card);
+  color: var(--card-foreground);
+}
+
+[data-interface-style="analyst"] .agency-search .shortlist-actions > [role="status"] {
+  width: 100%;
+  color: var(--primary);
+}
+
+[data-interface-style="analyst"] .agency-search .agency-results .agency-offer:has(input:checked) {
+  border-color: var(--analyst-selection-border);
+  background-color: var(--analyst-selection);
+}
+
+[data-interface-style="analyst"] .agency-search .agency-results .agency-offer-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.5rem 0.75rem;
+  padding: 0.75rem;
+}
+
+[data-interface-style="analyst"] .agency-search .agency-offer-body > * {
+  margin: 0;
+}
+
+[data-interface-style="analyst"] .agency-search .agency-offer-header,
+[data-interface-style="analyst"] .agency-search .agency-offer-itinerary,
+[data-interface-style="analyst"] .agency-search .agency-offer-tools {
+  grid-column: 2;
+}
+
+[data-interface-style="analyst"] .agency-search .agency-offer-check {
+  grid-area: 1 / 1;
+  align-self: start;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  justify-content: center;
+}
+
+[data-interface-style="analyst"] .agency-search .agency-offer-check > span {
+  display: none;
+}
+
+[data-interface-style="analyst"] .agency-search .analyst-itinerary-summary {
+  display: list-item;
+}
+
+@media (width < 72rem) {
+  .analyst-shortlist-preview {
+    display: none;
+  }
+}
+
+.analyst-shortlist-paper {
+  max-height: 16rem;
+  overflow: auto;
+  border-radius: 0.25rem;
+  overscroll-behavior: contain;
+}
+
+.analyst-shortlist-paper .shortlist-document {
+  padding: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 72rem) {
+  [data-interface-style="analyst"] .agency-search .agency-results-layout:has(> .shortlist-actions) {
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
+    align-items: start;
+    gap: 1rem;
+  }
+
+  [data-interface-style="analyst"] .agency-search .agency-results {
+    grid-area: 1 / 1;
+  }
+
+  [data-interface-style="analyst"] .agency-search .shortlist-actions {
+    grid-area: 1 / 2;
+    position: sticky;
+    top: 1rem;
+  }
+}
