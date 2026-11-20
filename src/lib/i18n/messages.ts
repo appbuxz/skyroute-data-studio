@@ -9,6 +9,10 @@ export const messages: Record<string, readonly [string, string]> = {
   "Collapse navigation": ["Свернуть меню", "Мәзірді жию"],
   "Expand navigation": ["Развернуть меню", "Мәзірді ашу"],
   "Search details": ["Параметры поиска", "Іздеу параметрлері"],
+  "Recent searches on this browser": [
+    "Недавние поиски в этом браузере",
+    "Осы браузердегі соңғы іздеулер",
+  ],
   "Flight schedules": ["Расписание рейсов", "Рейс кестесі"],
   "Price distribution": ["Распределение цен", "Бағалардың үлестірімі"],
   "Carrier comparison": ["Сравнение авиакомпаний", "Әуекомпанияларын салыстыру"],

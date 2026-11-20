@@ -27,10 +27,13 @@ import { ComparablePrices } from "@/components/flights/comparable-prices";
 import { flightSearchSchema, type FlightSearchInput } from "@/lib/flights/search-schema";
 import { aviasalesSearchLink } from "@/lib/flights/aviasales-search-link";
 import {
+  readRecentSearches,
   readSearchInputs,
   readSearchSnapshot,
+  saveRecentSearch,
   saveSearchSnapshot,
   searchInputsKey,
+  searchParamsKey,
 } from "@/lib/flights/search-session";
 import { searchFlightsServer } from "@/lib/flights/search.functions";
 import { KZ_AIRPORTS } from "@/lib/flights/airports";
@@ -117,7 +120,7 @@ function SearchForm({
   personalScope: boolean;
   storageKey: string | null;
 }) {
-  const { t, message, number, dateTime } = useLanguage();
+  const { t, message, number, date, dateTime } = useLanguage();
   const searchFlights = useServerFn(searchFlightsServer);
   const { selectedOrganizationId, version } = workspace;
   const canSearch = storageKey !== null;
@@ -135,7 +138,13 @@ function SearchForm({
       : null
     : workspace.search;
   const request = useRef(0);
+  const originInput = useRef<HTMLInputElement>(null);
   const [values, setValues] = useState<FormValues>(() => readSearchInputs(storageKey) ?? initial);
+  const [recentSearches, setRecentSearches] = useState(() =>
+    canSearch && selectedOrganizationId
+      ? readRecentSearches(workspace.userId, selectedOrganizationId)
+      : [],
+  );
   const [errors, setErrors] = useState<Errors>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -221,6 +230,7 @@ function SearchForm({
         const snapshot = { params, offers: result.offers, fetchedAt: result.fetchedAt };
         saveSearchSnapshot(workspace.userId, selectedOrganizationId, snapshot);
         if (selectedOrganizationId) {
+          setRecentSearches(saveRecentSearch(workspace.userId, selectedOrganizationId, params));
           workspace.publishSearch({ ...snapshot, organizationId: selectedOrganizationId });
         } else {
           setPersonalSearch({ version, snapshot });
@@ -278,6 +288,7 @@ function SearchForm({
           <Field id="origin" label={t("Origin")} error={errors.origin}>
             <Input
               id="origin"
+              ref={originInput}
               list="kz-airports"
               placeholder="ALA"
               maxLength={3}
@@ -368,6 +379,36 @@ function SearchForm({
             </Button>
           </div>
         </form>
+        {recentSearches.length > 0 && (
+          <div className="space-y-2 border-t pt-3">
+            <h3 className="text-sm font-medium">{t("Recent searches on this browser")}</h3>
+            <ul className="flex flex-wrap gap-2">
+              {recentSearches.map((params) => (
+                <li key={searchParamsKey(params)} className="max-w-full">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-auto min-h-8 max-w-full whitespace-normal text-left"
+                    disabled={pending}
+                    onClick={() => {
+                      setValues(params);
+                      setErrors({});
+                      setNotice(null);
+                      originInput.current?.focus();
+                    }}
+                  >
+                    {params.origin} → {params.destination} ·{" "}
+                    {date(new Date(params.departureDate), "UTC")}
+                    {params.returnDate && ` – ${date(new Date(params.returnDate), "UTC")}`} ·{" "}
+                    {t("Passengers")} {number(params.passengers)} ·{" "}
+                    {t(CABIN_LABELS[params.cabinClass])}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </WorkspaceSection>
 
       {notice && (
