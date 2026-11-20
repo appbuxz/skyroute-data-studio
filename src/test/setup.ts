@@ -1,4 +1,13 @@
+/// <reference types="vitest/jsdom" />
+
 import "@testing-library/jest-dom/vitest";
+
+// Vitest can retain the host's localStorage property instead of jsdom's storage.
+Object.defineProperty(window, "localStorage", {
+  configurable: true,
+  writable: true,
+  value: jsdom.window.localStorage,
+});
 
 Object.defineProperty(window, "scrollTo", {
   writable: true,
