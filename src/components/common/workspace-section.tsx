@@ -30,7 +30,7 @@ export function WorkspaceSection({
     <Collapsible open={open} onOpenChange={setOpen} asChild>
       <section
         aria-label={t(label ?? title)}
-        className={cn("min-w-0 rounded-lg border bg-card text-card-foreground", className)}
+        className={cn("workspace-card min-w-0 rounded-lg border bg-card text-card-foreground", className)}
       >
         <h2 className="px-4 py-3">
           <CollapsibleTrigger className="group flex w-full cursor-pointer items-center justify-between gap-3 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">

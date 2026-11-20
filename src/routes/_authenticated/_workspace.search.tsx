@@ -18,7 +18,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAppearance } from "@/lib/appearance/appearance-context";
-import { AppearanceOptions } from "@/components/common/appearance-options";
 import { PageHeader } from "@/components/common/page-header";
 import { TestBookingStatusDialog } from "@/components/flights/test-booking-status-dialog";
 import { FlightPriceDialog } from "@/components/flights/flight-price-dialog";
@@ -336,11 +335,6 @@ function SearchForm({
 
   return (
     <div className={agencyId ? "agency-search" : undefined}>
-      {agencyId && (
-        <div className="agency-search-appearance mb-4 flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3">
-          <AppearanceOptions />
-        </div>
-      )}
       <div className="agency-search-heading">
         <PageHeader
           title={t("Flight search")}

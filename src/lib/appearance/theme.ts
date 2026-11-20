@@ -1,6 +1,6 @@
 export const APPEARANCE_KEY = "flight-analytics:appearance";
 export const INTERFACE_STYLE_KEY = "flight-analytics:interface-style";
-export const INTERFACE_STYLES = ["current", "client-first", "analyst"] as const;
+export const INTERFACE_STYLES = ["current", "client-first", "analyst", "agency-desk"] as const;
 export type InterfaceStyle = (typeof INTERFACE_STYLES)[number];
 
 export function parseInterfaceStyle(value: string | null): InterfaceStyle {

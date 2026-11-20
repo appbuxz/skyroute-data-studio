@@ -202,56 +202,132 @@
   --client-paper-accent: oklch(0.457 0.086 166);
 }
 
-:root[data-interface-style="client-first"]:has(.agency-search, .flight-shortlist-dialog) {
-  --font-sans: var(--client-sans);
-  --font-display: var(--client-sans);
-  --background: oklch(0.956 0.013 83);
-  --foreground: var(--client-ink);
-  --card: var(--client-paper);
+
+/* The document-level tokens also reach portaled workspace menus and dialogs. */
+:root:has(.workspace-shell) {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+:root:is([data-interface-style="analyst"], [data-interface-style="agency-desk"], [data-interface-style="client-first"]):has(.workspace-shell) {
+  --font-sans: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-sans);
   --card-foreground: var(--foreground);
   --popover: var(--card);
   --popover-foreground: var(--foreground);
-  --primary: var(--client-paper-accent);
-  --primary-foreground: oklch(1 0 0);
-  --muted: oklch(0.908 0.021 86);
-  --muted-foreground: var(--client-paper-muted);
-  --accent: oklch(0.925 0.029 164);
-  --accent-foreground: var(--foreground);
   --secondary: var(--muted);
   --secondary-foreground: var(--foreground);
-  --border: var(--client-paper-border);
-  --input: oklch(0.744 0.030 151);
-  --ring: var(--primary);
+  --accent: var(--muted);
+  --accent-foreground: var(--foreground);
   --highlight: var(--primary);
-  --client-bar: oklch(0.321 0.049 172);
-  --client-bar-text: oklch(0.956 0.026 86);
-  --client-selected-border: oklch(0.629 0.060 164);
-  --client-paper-shadow: oklch(0.850 0.024 86);
+  --input: var(--border);
+  --ring: var(--primary);
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--muted-foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--primary);
+  --chart-1: var(--primary);
 }
 
-:root[data-interface-style="client-first"].dark:has(.agency-search, .flight-shortlist-dialog) {
-  --background: oklch(0.194 0.024 253);
-  --foreground: oklch(0.957 0.013 239);
-  --card: oklch(0.237 0.027 251);
-  --primary: oklch(0.819 0.113 181);
-  --primary-foreground: var(--background);
-  --muted: oklch(0.268 0.033 247);
-  --muted-foreground: oklch(0.764 0.031 248);
-  --accent: oklch(0.318 0.047 200);
-  --border: oklch(0.351 0.040 248);
-  --input: oklch(0.620 0.047 247);
-  --client-bar: oklch(0.219 0.028 252);
-  --client-bar-text: var(--foreground);
-  --client-selected-border: oklch(0.560 0.065 198);
+:root[data-interface-style="analyst"]:has(.workspace-shell) {
+  --background: oklch(0.959 0.009 247.9);
+  --card: oklch(1.000 0 0);
+  --muted: oklch(0.952 0.011 243.7);
+  --foreground: oklch(0.266 0.042 257.3);
+  --muted-foreground: oklch(0.497 0.042 253.7);
+  --border: oklch(0.913 0.017 256.3);
+  --primary: oklch(0.463 0.080 184.3);
+  --primary-foreground: oklch(1.000 0 0);
+  --workspace-bar: oklch(1.000 0 0);
+  --workspace-bar-foreground: oklch(0.266 0.042 257.3);
+  --analyst-selection: var(--muted);
+  --analyst-selection-border: var(--ring);
+}
+
+:root[data-interface-style="analyst"].dark:has(.workspace-shell) {
+  --background: oklch(0.193 0.024 254.4);
+  --card: oklch(0.235 0.028 251.2);
+  --muted: oklch(0.278 0.034 245.8);
+  --foreground: oklch(0.959 0.013 241.0);
+  --muted-foreground: oklch(0.765 0.030 246.6);
+  --border: oklch(0.353 0.039 249.0);
+  --primary: oklch(0.821 0.111 182.2);
+  --primary-foreground: oklch(0.245 0.030 191.8);
+  --workspace-bar: oklch(0.218 0.026 251.4);
+  --workspace-bar-foreground: oklch(0.959 0.013 241.0);
+  --analyst-selection: oklch(0.266 0.027 229.3);
+  --analyst-selection-border: oklch(0.556 0.058 200.2);
+}
+
+:root[data-interface-style="agency-desk"]:has(.workspace-shell) {
+  --background: oklch(0.959 0.009 247.9);
+  --card: oklch(1.000 0 0);
+  --muted: oklch(0.962 0.011 252.1);
+  --foreground: oklch(0.266 0.042 257.3);
+  --muted-foreground: oklch(0.497 0.042 253.7);
+  --border: oklch(0.913 0.017 256.3);
+  --primary: oklch(0.425 0.104 254.7);
+  --primary-foreground: oklch(1.000 0 0);
+  --workspace-bar: oklch(1.000 0 0);
+  --workspace-bar-foreground: oklch(0.266 0.042 257.3);
+}
+
+:root[data-interface-style="agency-desk"].dark:has(.workspace-shell) {
+  --background: oklch(0.216 0.029 257.5);
+  --card: oklch(0.266 0.038 256.7);
+  --muted: oklch(0.320 0.044 254.2);
+  --foreground: oklch(0.959 0.013 241.0);
+  --muted-foreground: oklch(0.765 0.030 246.6);
+  --border: oklch(0.353 0.039 249.0);
+  --primary: oklch(0.827 0.088 253.4);
+  --primary-foreground: oklch(0.260 0.049 253.2);
+  --workspace-bar: oklch(0.218 0.026 251.4);
+  --workspace-bar-foreground: oklch(0.959 0.013 241.0);
+}
+
+:root[data-interface-style="client-first"]:has(.workspace-shell) {
+  --background: oklch(0.957 0.013 82.4);
+  --card: oklch(0.991 0.010 87.5);
+  --muted: oklch(0.932 0.020 87.5);
+  --foreground: oklch(0.290 0.021 176.4);
+  --muted-foreground: oklch(0.494 0.029 173.7);
+  --border: oklch(0.866 0.020 84.6);
+  --primary: oklch(0.457 0.078 168.3);
+  --primary-foreground: oklch(1.000 0 0);
+  --workspace-bar: oklch(0.324 0.043 174.0);
+  --workspace-bar-foreground: oklch(0.957 0.024 85.8);
+  --client-bar: var(--workspace-bar);
+  --client-bar-text: var(--workspace-bar-foreground);
+  --client-selected-border: oklch(0.626 0.060 165.0);
+  --client-paper-shadow: oklch(0.850 0.025 85.8);
+}
+
+:root[data-interface-style="client-first"].dark:has(.workspace-shell) {
+  --background: oklch(0.193 0.024 254.4);
+  --card: oklch(0.235 0.028 251.2);
+  --muted: oklch(0.278 0.034 245.8);
+  --foreground: oklch(0.959 0.013 241.0);
+  --muted-foreground: oklch(0.765 0.030 246.6);
+  --border: oklch(0.353 0.039 249.0);
+  --primary: oklch(0.821 0.111 182.2);
+  --primary-foreground: oklch(0.245 0.030 191.8);
+  --workspace-bar: oklch(0.218 0.026 251.4);
+  --workspace-bar-foreground: oklch(0.959 0.013 241.0);
+  --client-bar: var(--workspace-bar);
+  --client-bar-text: var(--workspace-bar-foreground);
+  --client-selected-border: oklch(0.556 0.058 200.2);
   --client-paper-shadow: var(--background);
 }
 
-[data-interface-style="client-first"] :is(.agency-search-appearance, .shortlist-appearance) {
+[data-interface-style="client-first"] :is(.workspace-appearance-bar, .shortlist-appearance) {
   background: var(--client-bar);
   color: var(--client-bar-text);
 }
 
-[data-interface-style="client-first"] :is(.agency-search-appearance, .shortlist-appearance)
+[data-interface-style="client-first"] :is(.workspace-appearance-bar, .shortlist-appearance)
   .appearance-option[data-state="checked"] {
   background: var(--client-bar-text);
   color: var(--client-bar);
@@ -392,46 +468,12 @@
   }
 }
 
-:root[data-interface-style="analyst"]:has(.agency-search, .flight-shortlist-dialog) {
-  --font-sans: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-sans);
-  --analyst-selection: var(--accent);
-  --analyst-selection-border: var(--ring);
-}
-
-:root[data-interface-style="analyst"].dark:has(.agency-search, .flight-shortlist-dialog) {
-  --background: oklch(0.194 0.024 253);
-  --foreground: oklch(0.957 0.013 239);
-  --card: oklch(0.237 0.027 251);
-  --card-foreground: var(--foreground);
-  --popover: var(--card);
-  --popover-foreground: var(--foreground);
-  --primary: oklch(0.819 0.113 181);
-  --primary-foreground: var(--background);
-  --muted: oklch(0.307 0.038 254);
-  --muted-foreground: oklch(0.764 0.031 248);
-  --border: oklch(0.351 0.040 248);
-  --input: var(--border);
-  --ring: var(--primary);
-  --highlight: var(--primary);
-  --accent: var(--muted);
-  --accent-foreground: var(--foreground);
-  --secondary: var(--muted);
-  --secondary-foreground: var(--foreground);
-  --sidebar: oklch(0.219 0.028 252);
-  --sidebar-foreground: var(--muted-foreground);
-  --sidebar-accent: var(--accent);
-  --sidebar-accent-foreground: var(--foreground);
-  --analyst-selection: oklch(0.265 0.029 225);
-  --analyst-selection-border: oklch(0.560 0.065 198);
-}
-
 .agency-results-layout {
   display: grid;
   gap: 0.75rem;
 }
 
-[data-interface-style="analyst"] .agency-search .shortlist-actions {
+:root:not([data-interface-style="current"]) .agency-search .shortlist-actions {
   min-width: 0;
   align-self: start;
   padding: 1rem;
@@ -503,19 +545,172 @@
 }
 
 @media (min-width: 72rem) {
-  [data-interface-style="analyst"] .agency-search .agency-results-layout:has(> .shortlist-actions) {
+  :root:not([data-interface-style="current"]) .agency-search .agency-results-layout:has(> .shortlist-actions) {
     grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
     align-items: start;
     gap: 1rem;
   }
 
-  [data-interface-style="analyst"] .agency-search .agency-results {
+  [data-interface-style="client-first"] .agency-search .agency-results-layout:has(> .shortlist-actions) {
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.56fr);
+  }
+
+  :root:not([data-interface-style="current"]) .agency-search .agency-results {
     grid-area: 1 / 1;
   }
 
-  [data-interface-style="analyst"] .agency-search .shortlist-actions {
+  :root:not([data-interface-style="current"]) .agency-search .shortlist-actions {
     grid-area: 1 / 2;
+  }
+
+  [data-interface-style="analyst"] .agency-search .shortlist-actions {
     position: sticky;
     top: 1rem;
+  }
+}
+
+:root[data-interface-style="analyst"]:has(.workspace-shell) {
+  --workspace-card-padding: 1rem;
+}
+
+:root[data-interface-style="agency-desk"]:has(.workspace-shell) {
+  --radius: 0.375rem;
+  --workspace-card-padding: 1rem;
+  --shadow-card: 0 1px 0 var(--border);
+}
+
+:root[data-interface-style="client-first"]:has(.workspace-shell) {
+  --radius: 0.5625rem;
+  --workspace-card-padding: 1.5rem;
+}
+
+:root:not([data-interface-style="current"]) .workspace-shell :is(.workspace-mobile-bar, .workspace-appearance-bar) {
+  background-color: var(--workspace-bar);
+  color: var(--workspace-bar-foreground);
+}
+
+:root:not([data-interface-style="current"]) .workspace-sidebar {
+  border-inline-end: 1px solid var(--sidebar-border);
+}
+
+:root:not([data-interface-style="current"]) .workspace-shell nav a[aria-current="page"] {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+:root:not([data-interface-style="current"]) .workspace-main .workspace-page-heading h1 {
+  color: var(--foreground);
+  font-size: clamp(1.8125rem, 4vw, 2.75rem);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+:root:not([data-interface-style="current"]) .workspace-main :is(.workspace-card-header, .workspace-card-content) {
+  padding-inline: var(--workspace-card-padding);
+}
+
+[data-interface-style="analyst"] .workspace-main :is(dd, .agency-price) {
+  font-variant-numeric: tabular-nums;
+}
+
+[data-interface-style="agency-desk"] .workspace-main .workspace-card {
+  box-shadow: var(--shadow-card);
+}
+
+[data-interface-style="agency-desk"] .workspace-main th {
+  background: var(--muted);
+}
+
+[data-interface-style="agency-desk"] .workspace-main .workspace-bookings .workspace-card-content {
+  padding-block: 0.875rem;
+}
+
+[data-interface-style="client-first"] .workspace-main :is(.workspace-page-heading h1, .workspace-page-heading h2, .workspace-card-title) {
+  font-family: var(--client-serif);
+  font-weight: 500;
+}
+
+[data-interface-style="client-first"] .workspace-main .workspace-page-heading {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1rem;
+}
+
+[data-interface-style="client-first"] .workspace-main :is(.workspace-report-panel, .workspace-bookings) {
+  max-width: 46.25rem;
+  margin-inline: auto;
+}
+
+[data-interface-style="client-first"] .workspace-main .workspace-analysis-table {
+  display: none;
+}
+
+[data-interface-style="client-first"] .workspace-main .workspace-analysis-list {
+  display: block;
+}
+
+@media (min-width: 72rem) {
+  :root:not([data-interface-style="current"]) .workspace-dashboard-results {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.56fr);
+    gap: 1rem;
+    align-items: start;
+  }
+
+  :root:not([data-interface-style="current"]) .workspace-dashboard-results > * {
+    margin: 0;
+  }
+
+  :root:not([data-interface-style="current"]) .workspace-dashboard-results > :is(.workspace-page-heading, .workspace-dashboard-metrics, p) {
+    grid-column: 1 / -1;
+  }
+
+  :root:not([data-interface-style="current"]) .workspace-dashboard-metrics {
+    grid-row: 2;
+  }
+
+  :is([data-interface-style="analyst"], [data-interface-style="agency-desk"]) .workspace-booking-details {
+    display: contents;
+  }
+
+  :is([data-interface-style="analyst"], [data-interface-style="agency-desk"]) .workspace-booking-row {
+    display: grid;
+    grid-template-columns: minmax(6rem, 1fr) minmax(19rem, 3fr) auto;
+  }
+
+  :is([data-interface-style="analyst"], [data-interface-style="agency-desk"]) .workspace-booking-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  :is([data-interface-style="analyst"], [data-interface-style="agency-desk"]) .workspace-booking-separator {
+    display: none;
+  }
+
+  :root:not([data-interface-style="current"]) .workspace-main .workspace-settings-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 1rem;
+  }
+
+  :root:not([data-interface-style="current"]) .workspace-main .workspace-settings-layout > * {
+    margin: 0;
+  }
+
+  :root:not([data-interface-style="current"]) .workspace-main .workspace-flight-check:has(.workspace-check-result) {
+    display: grid;
+    max-width: none;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.65fr);
+    gap: 1rem;
+    align-items: start;
+  }
+
+  :root:not([data-interface-style="current"]) .workspace-main .workspace-flight-check:has(.workspace-check-result) > * {
+    margin-block: 0;
+  }
+
+  :root:not([data-interface-style="current"]) .workspace-main .workspace-flight-check > :not(.workspace-check-form, .workspace-check-result) {
+    grid-column: 1 / -1;
   }
 }

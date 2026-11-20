@@ -105,6 +105,7 @@ describe("workspace appearance settings", () => {
   it.each([
     ["Client First", "client-first"],
     ["Analyst", "analyst"],
+    ["Agency Desk", "agency-desk"],
   ])("restores %s independently of the existing mode", (label, style) => {
     window.localStorage.setItem(APPEARANCE_KEY, "dark");
     const first = openSettings();
