@@ -35,11 +35,13 @@ import {
   readSearchInputs,
   readSearchSnapshot,
   saveRecentSearch,
-  saveShortlist,
-  type SavedShortlist,
   saveSearchSnapshot,
+  saveShortlist,
   searchInputsKey,
   searchParamsKey,
+  updateShortlistHotel,
+  type SavedShortlist,
+  type ShortlistHotel,
 } from "@/lib/flights/search-session";
 import { searchFlightsServer } from "@/lib/flights/search.functions";
 import { KZ_AIRPORTS } from "@/lib/flights/airports";
@@ -162,6 +164,12 @@ function SearchForm({
   const [pending, setPending] = useState(false);
   const [shortlist, setShortlist] = useState<{ search: FlightSearchSnapshot; ids: string[] }>();
 
+  const [draftHotel, setDraftHotel] = useState<{
+    search: FlightSearchSnapshot;
+    hotel: ShortlistHotel;
+  }>();
+  const hotel = draftHotel && draftHotel.search === search ? draftHotel.hotel : undefined;
+
   const offers = search?.offers ?? [];
   const shortlistedIds = shortlist?.search === search ? shortlist.ids : [];
   const shortlistedOffers = offers.filter((offer) => shortlistedIds.includes(offer.id));
@@ -195,14 +203,33 @@ function SearchForm({
 
   function saveSelectedFlights() {
     if (!agencyId || !search || shortlistedOffers.length === 0 || !workspace.isCurrentScope()) {
-      return;
+      return false;
     }
     const entries = saveShortlist(workspace.userId, agencyId, {
       ...search,
       offers: shortlistedOffers,
+      hotel,
     });
     if (entries) setSavedShortlists(entries);
     setShortlistMessage(entries ? "Shortlist saved." : "Could not save the shortlist.");
+    return Boolean(entries);
+  }
+
+  function changeDraftHotel(nextHotel: ShortlistHotel | undefined) {
+    if (!search || !agencyId || !workspace.isCurrentScope()) return false;
+    setDraftHotel(nextHotel ? { search, hotel: nextHotel } : undefined);
+    return true;
+  }
+
+  function changeSavedHotel(nextHotel: ShortlistHotel | undefined) {
+    if (!agencyId || !openedShortlist || !workspace.isCurrentScope()) return false;
+    const updated = updateShortlistHotel(workspace.userId, agencyId, openedShortlist.id, nextHotel);
+    if (!updated) return false;
+    setOpenedShortlist(updated);
+    setSavedShortlists((entries) =>
+      entries.map((entry) => (entry.id === updated.id ? updated : entry)),
+    );
+    return true;
   }
 
   function removeSavedShortlist(id: string) {
@@ -517,6 +544,8 @@ function SearchForm({
               key={openedShortlist.id}
               search={openedShortlist}
               offers={openedShortlist.offers}
+              hotel={openedShortlist.hotel}
+              onHotelChange={changeSavedHotel}
               onClose={() => setOpenedShortlist(undefined)}
             />
           )}
@@ -593,6 +622,8 @@ function SearchForm({
               <FlightShortlist
                 search={search}
                 offers={shortlistedOffers}
+                hotel={hotel}
+                onHotelChange={changeDraftHotel}
                 onRemove={toggleShortlistedOffer}
                 onSave={saveSelectedFlights}
               />

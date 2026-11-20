@@ -1110,6 +1110,7 @@ it("restores and prints saved shortlist snapshots without searching and isolates
   expect(screen.getByText("Shortlist saved.")).toBeInTheDocument();
   const key = Object.keys(window.localStorage).find((name) => name.includes(":saved-shortlists:"))!;
   expect(window.localStorage.getItem(key)).not.toContain("temporary-token");
+  expect(JSON.parse(window.localStorage.getItem(key)!)).not.toHaveProperty("hotel");
   first.unmount();
   window.sessionStorage.clear();
 
@@ -1124,6 +1125,7 @@ it("restores and prints saved shortlist snapshots without searching and isolates
   openSavedShortlist();
   const dialog = within(await screen.findByRole("dialog"));
   const preview = dialog.getByRole("region", { name: "PDF preview" });
+  expect(within(preview).queryByRole("heading", { name: "Hotel" })).not.toBeInTheDocument();
   fireEvent.click(dialog.getByRole("button", { name: "Save as PDF" }));
   expect(print).toHaveBeenCalledOnce();
   const printable = document.querySelector(".flight-shortlist-print");
@@ -1166,6 +1168,85 @@ it("restores and prints saved shortlist snapshots without searching and isolates
   fireEvent.click(screen.getByRole("button", { name: /^Delete shortlist for ALA → IST/ }));
   expect(screen.getByText("No saved shortlists yet.")).toBeInTheDocument();
   expect(window.localStorage.getItem(key)).toBeNull();
+  expect(mocks.search).toHaveBeenCalledOnce();
+});
+
+it("saves, restores, prints, edits and removes a shortlist hotel", async () => {
+  const first = render(<Workspace />);
+  await ready();
+  select(A);
+  submitSearch();
+  fireEvent.click(await screen.findByRole("checkbox", { name: /in the shortlist/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Preview flight shortlist" }));
+  let dialog = within(await screen.findByRole("dialog"));
+  fireEvent.click(dialog.getByRole("button", { name: "Add hotel" }));
+
+  function enter(label: string, value: string) {
+    fireEvent.change(dialog.getByLabelText(label), { target: { value } });
+  }
+  enter("Hotel name", "Bosphorus Hotel");
+  enter("Check-in", "2099-12-10");
+  enter("Check-out", "2099-12-09");
+  enter("Total stay price", "650,50");
+  enter("Currency code", "eur");
+  enter("Comment (optional)", "Breakfast included");
+  fireEvent.click(dialog.getByRole("button", { name: "Save hotel" }));
+  expect(dialog.getByRole("alert")).toHaveTextContent("Hotel check-out must be after check-in.");
+  expect(dialog.getByRole("button", { name: "Save shortlist" })).toBeDisabled();
+  enter("Check-out", "2099-12-14");
+  fireEvent.click(dialog.getByRole("button", { name: "Save hotel" }));
+  fireEvent.click(dialog.getByRole("button", { name: "Save shortlist" }));
+  expect(screen.getByText("Shortlist saved.")).toBeInTheDocument();
+  first.unmount();
+  window.sessionStorage.clear();
+
+  const print = vi.spyOn(window, "print").mockImplementation(() => {});
+  const reopened = render(<Workspace />);
+  await ready();
+  select(A);
+
+  async function openSaved() {
+    fireEvent.click(screen.getByRole("button", { name: /^Open shortlist for ALA → IST/ }));
+    dialog = within(await screen.findByRole("dialog"));
+    return dialog.getByRole("region", { name: "PDF preview" });
+  }
+
+  const preview = await openSaved();
+  fireEvent.click(dialog.getByRole("button", { name: "Save as PDF" }));
+  expect(print).toHaveBeenCalledOnce();
+  const printable = document.querySelector<HTMLElement>(".flight-shortlist-print")!;
+  for (const content of [preview, printable]) {
+    const hotelHeading = within(content).getByRole("heading", { name: "Hotel", hidden: true });
+    expect(content.textContent!.indexOf("KC100")).toBeLessThan(
+      content.textContent!.indexOf("Bosphorus Hotel"),
+    );
+    expect(hotelHeading.parentElement).toHaveTextContent("Check-in · 10 Dec 2099");
+    expect(hotelHeading.parentElement).toHaveTextContent("Check-out · 14 Dec 2099");
+    expect(content).toHaveTextContent("Flight price · 100,000 KZT");
+    expect(content).toHaveTextContent("Total stay price · 650.5 EUR");
+    expect(content).toHaveTextContent("Breakfast included");
+  }
+  const key = Object.keys(window.localStorage).find((name) => name.includes(":saved-shortlists:"))!;
+  expect(JSON.parse(window.localStorage.getItem(key)!).hotel).toMatchObject({
+    checkIn: "2099-12-10",
+    checkOut: "2099-12-14",
+  });
+  fireEvent.click(dialog.getByRole("button", { name: "Edit hotel" }));
+  expect(dialog.getByLabelText("Hotel name")).toHaveValue("Bosphorus Hotel");
+  enter("Total stay price", "700");
+  enter("Comment (optional)", "");
+  fireEvent.click(dialog.getByRole("button", { name: "Save hotel" }));
+  fireEvent.click(dialog.getByRole("button", { name: "Close" }));
+  expect(await openSaved()).toHaveTextContent("Total stay price · 700 EUR");
+
+  fireEvent.click(dialog.getByRole("button", { name: "Remove hotel" }));
+  reopened.unmount();
+  render(<Workspace />);
+  await ready();
+  select(A);
+  const flightOnly = await openSaved();
+  expect(within(flightOnly).queryByRole("heading", { name: "Hotel" })).not.toBeInTheDocument();
+  expect(flightOnly).toHaveTextContent("100,000 KZT");
   expect(mocks.search).toHaveBeenCalledOnce();
 });
 
