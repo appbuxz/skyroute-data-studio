@@ -156,6 +156,7 @@ export interface FlightSearchSnapshot {
   params: FlightSearchParams;
   offers: FlightOffer[];
   fetchedAt: string;
+  environment?: "test" | "production";
 }
 
 export interface FlightDataProvider {

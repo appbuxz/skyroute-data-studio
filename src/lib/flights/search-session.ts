@@ -86,6 +86,7 @@ const evidenceScope = z.literal("all_passengers_all_segments").optional();
 const snapshotSchema = z.object({
   params: flightSearchSchema,
   fetchedAt: timestamp,
+  environment: z.enum(["test", "production"]).optional(),
   offers: z.array(
     segmentSchema.extend({
       id: z.string(),
@@ -148,8 +149,8 @@ export function saveSearchSnapshot(
     const key = searchSnapshotKey(userId, organizationId);
     // If the replacement exceeds storage quota, avoid restoring an older result.
     window.sessionStorage.removeItem(key);
-    const { params, offers, fetchedAt } = snapshot;
-    window.sessionStorage.setItem(key, JSON.stringify({ params, offers, fetchedAt }));
+    const { params, offers, fetchedAt, environment } = snapshot;
+    window.sessionStorage.setItem(key, JSON.stringify({ params, offers, fetchedAt, environment }));
   } catch {
     // Storage failures should not affect the live result.
   }

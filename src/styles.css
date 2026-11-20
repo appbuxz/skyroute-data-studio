@@ -4,6 +4,29 @@
 
 @custom-variant dark (&:is(.dark *));
 
+.flight-shortlist-print {
+  display: none;
+}
+
+@media print {
+  html:has(.flight-shortlist-print),
+  body:has(.flight-shortlist-print) {
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  body:has(.flight-shortlist-print) > :not(.flight-shortlist-print) {
+    display: none !important;
+  }
+
+  .flight-shortlist-print {
+    display: block;
+  }
+}
+
 /*
  * Design system definition.
  *

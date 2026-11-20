@@ -23,6 +23,7 @@ import { FlightPriceDialog } from "@/components/flights/flight-price-dialog";
 import { FlightItinerary } from "@/components/flights/flight-itinerary";
 import { FlightDateTime } from "@/components/flights/flight-date-time";
 import { ComparablePrices } from "@/components/flights/comparable-prices";
+import { FLIGHT_SHORTLIST_LIMIT, FlightShortlist } from "@/components/flights/flight-shortlist";
 
 import { flightSearchSchema, type FlightSearchInput } from "@/lib/flights/search-schema";
 import { aviasalesSearchLink } from "@/lib/flights/aviasales-search-link";
@@ -148,8 +149,11 @@ function SearchForm({
   const [errors, setErrors] = useState<Errors>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [shortlist, setShortlist] = useState<{ search: FlightSearchSnapshot; ids: string[] }>();
 
   const offers = search?.offers ?? [];
+  const shortlistedIds = shortlist?.search === search ? shortlist.ids : [];
+  const shortlistedOffers = offers.filter((offer) => shortlistedIds.includes(offer.id));
   const fetchedAt = search?.fetchedAt ?? null;
   const aviasalesLink =
     search && offers.length > 0 ? aviasalesSearchLink(search.params) : undefined;
@@ -167,6 +171,16 @@ function SearchForm({
   }, [selectedOrganizationId, version, invalidateRequest]);
 
   const priceAnalysis = analyzeFlightPrices(offers);
+
+  function toggleShortlistedOffer(id: string) {
+    if (!search || !selectedOrganizationId || !workspace.isCurrentScope()) return;
+    setShortlist((previous) => {
+      const ids = previous?.search === search ? previous.ids : [];
+      if (ids.includes(id)) return { search, ids: ids.filter((selected) => selected !== id) };
+      if (ids.length < FLIGHT_SHORTLIST_LIMIT) return { search, ids: [...ids, id] };
+      return previous;
+    });
+  }
 
   const set = <K extends keyof FormValues>(key: K, value: FormValues[K]) => {
     setValues((previous) => ({
@@ -227,7 +241,12 @@ function SearchForm({
       if (!isCurrent()) return;
 
       if (result.status === "ok") {
-        const snapshot = { params, offers: result.offers, fetchedAt: result.fetchedAt };
+        const snapshot = {
+          params,
+          offers: result.offers,
+          fetchedAt: result.fetchedAt,
+          ...(result.environment && { environment: result.environment }),
+        };
         saveSearchSnapshot(workspace.userId, selectedOrganizationId, snapshot);
         if (selectedOrganizationId) {
           setRecentSearches(saveRecentSearch(workspace.userId, selectedOrganizationId, params));
@@ -477,6 +496,13 @@ function SearchForm({
             <p className="text-sm text-muted-foreground">
               {t("Retrieved: {date}", { date: dateTime(fetchedAt) })}
             </p>
+            {search && selectedOrganizationId && offers.length > 0 && (
+              <FlightShortlist
+                search={search}
+                offers={shortlistedOffers}
+                onRemove={toggleShortlistedOffer}
+              />
+            )}
             {aviasalesLink && (
               <Button asChild variant="outline">
                 <a href={aviasalesLink} target="_blank" rel="noopener noreferrer">
@@ -535,6 +561,24 @@ function SearchForm({
                       {offer.inbound?.segments.length ? (
                         <FlightItinerary itinerary={offer.inbound} label="Return itinerary" />
                       ) : null}
+                      {selectedOrganizationId && (
+                        <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={shortlistedIds.includes(offer.id)}
+                            disabled={
+                              shortlistedIds.length >= FLIGHT_SHORTLIST_LIMIT &&
+                              !shortlistedIds.includes(offer.id)
+                            }
+                            onChange={() => toggleShortlistedOffer(offer.id)}
+                            aria-label={t("Include {flight} in the shortlist", {
+                              flight: `${offer.carrier} ${offer.flightNumber}`,
+                            })}
+                            className="size-4 accent-primary"
+                          />
+                          {t("Include in shortlist")}
+                        </label>
+                      )}
                       {search &&
                         !search.params.returnDate &&
                         offer.stops === 0 &&

@@ -9,6 +9,52 @@ export const messages: Record<string, readonly [string, string]> = {
   "Collapse navigation": ["Свернуть меню", "Мәзірді жию"],
   "Expand navigation": ["Развернуть меню", "Мәзірді ашу"],
   "Search details": ["Параметры поиска", "Іздеу параметрлері"],
+  "Include in shortlist": ["В подборку", "Тізімге қосу"],
+  "Include {flight} in the shortlist": [
+    "Добавить {flight} в подборку",
+    "{flight} рейсін тізімге қосу",
+  ],
+  "Preview flight shortlist": ["Предпросмотр подборки", "Рейстер тізімін алдын ала қарау"],
+  "{count} of {limit} flights selected": [
+    "Выбрано рейсов: {count} из {limit}",
+    "Таңдалған рейстер: {count}/{limit}",
+  ],
+  "Flight shortlist": ["Подборка рейсов", "Рейстер тізімі"],
+  "Review the options before saving the PDF.": [
+    "Проверьте варианты перед сохранением PDF.",
+    "PDF файлын сақтамас бұрын нұсқаларды тексеріңіз.",
+  ],
+  "Remove {flight} from the shortlist": [
+    "Убрать {flight} из подборки",
+    "{flight} рейсін тізімнен алып тастау",
+  ],
+  Remove: ["Убрать", "Алып тастау"],
+  "Select at least one flight to export.": [
+    "Выберите хотя бы один рейс для экспорта.",
+    "Экспорттау үшін кемінде бір рейсті таңдаңыз.",
+  ],
+  "Cover photo (optional)": ["Фото для обложки (необязательно)", "Мұқаба суреті (міндетті емес)"],
+  "Cover photo": ["Фото для обложки", "Мұқаба суреті"],
+  "Choose a JPEG, PNG or WebP photo up to 5 MiB.": [
+    "Выберите фото JPEG, PNG или WebP до 5 МиБ.",
+    "5 МиБ-қа дейінгі JPEG, PNG немесе WebP суретін таңдаңыз.",
+  ],
+  "This photo could not be opened.": ["Не удалось открыть фото.", "Суретті ашу мүмкін болмады."],
+  "Remove photo": ["Убрать фото", "Суретті алып тастау"],
+  "Save as PDF": ["Сохранить как PDF", "PDF ретінде сақтау"],
+  "Choose Save as PDF in the print dialog.": [
+    "В окне печати выберите «Сохранить как PDF».",
+    "Басып шығару терезесінде «PDF ретінде сақтау» тармағын таңдаңыз.",
+  ],
+  "PDF preview": ["Предпросмотр PDF", "PDF файлын алдын ала қарау"],
+  "Test data · Travelport Preproduction": [
+    "Тестовые данные · Travelport Preproduction",
+    "Сынақ деректері · Travelport Preproduction",
+  ],
+  "Search prices and availability may change.": [
+    "Цены и наличие мест могут измениться.",
+    "Бағалар мен орындардың қолжетімділігі өзгеруі мүмкін.",
+  ],
   "Recent searches on this browser": [
     "Недавние поиски в этом браузере",
     "Осы браузердегі соңғы іздеулер",
