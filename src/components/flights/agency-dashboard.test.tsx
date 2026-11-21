@@ -58,8 +58,13 @@ describe("agency dashboard", () => {
   it("shows a search with route counts, dates and original currency minima", async () => {
     const state = workspace();
     state.search!.offers[1]!.price = { amount: 500, currency: "USD" };
+    state.search!.offers[2]!.stops = 0;
+    delete state.search!.offers[2]!.outbound;
     render(page(state));
     await screen.findByRole("link", { name: "Open analytics" });
+    expect(screen.getByText("Agency A")).toBeInTheDocument();
+    expect(screen.getByText("Direct flight offers").parentElement).toHaveTextContent("1");
+    expect(screen.getByText("Offers with connections").parentElement).toHaveTextContent("2");
     expect(
       within(screen.getByRole("region", { name: "Offers" })).getByText("3"),
     ).toBeInTheDocument();

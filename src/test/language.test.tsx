@@ -178,7 +178,13 @@ describe.each(cases)("$language workspace", (labels) => {
     expect(screen.getByLabelText(labels.origin)).toHaveValue("ALA");
     expect(screen.getByLabelText(labels.destination)).toHaveValue("IST");
     fireEvent.click(screen.getByRole("button", { name: labels.disclosure }));
-    const date = document.querySelector('time[datetime="2099-12-10T08:00:00+05:00"]');
+    const compactTime = document.querySelector(
+      '.flight-offer-schedule time[datetime="2099-12-10T08:00:00+05:00"]',
+    );
+    expect(compactTime).toHaveTextContent("08:00");
+    const date = document.querySelector(
+      '.flight-offer-details time[datetime="2099-12-10T08:00:00+05:00"]',
+    );
     expect(date?.textContent).toContain("08:00 (UTC+05:00)");
     expect(date?.textContent).toContain(
       new Intl.DateTimeFormat(formatter.locale, {

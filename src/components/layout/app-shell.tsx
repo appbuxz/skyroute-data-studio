@@ -6,6 +6,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
   Building2,
+  BriefcaseBusiness,
   CalendarCheck,
   ChevronLeft,
   ChevronRight,
@@ -18,7 +19,6 @@ import {
   Settings,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { Brand } from "./brand";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -56,7 +56,7 @@ const NAV = [
       { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/analysis", label: "Analytics", icon: BarChart3 },
       { to: "/reports", label: "Reports", icon: FileText },
-      { to: "/agency-test-bookings", label: "Agency bookings", icon: CalendarCheck },
+      { to: "/agency-test-bookings", label: "Agency bookings", icon: BriefcaseBusiness },
     ],
   },
 ] as const;
@@ -151,10 +151,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <SheetDescription className="sr-only">
             {t("Choose a section or switch organization.")}
           </SheetDescription>
-          <nav aria-label={t("Workspace navigation")} className="space-y-3">
+          <nav aria-label={t("Workspace navigation")} className="workspace-nav space-y-3">
             {NAV.map((group) => (
               <section key={group.label} aria-label={t(group.label)}>
-                <h2 className="px-3 py-2 text-xs font-medium uppercase tracking-wide opacity-70">
+                <h2 className="px-3 py-2 text-xs font-semibold opacity-70">
                   {t(group.label)}
                 </h2>
                 {group.items.map(({ to, label, icon: Icon }) => (
@@ -163,7 +163,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                       to={to}
                       aria-current={path === to ? "page" : undefined}
                       className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm",
+                        "flex min-h-10 items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px]",
                         path === to
                           ? "bg-sidebar-accent text-sidebar-accent-foreground"
                           : "hover:bg-sidebar-accent",
@@ -181,7 +181,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 to="/settings"
                 aria-current={path === "/settings" ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm",
+                  "flex min-h-10 items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px]",
                   path === "/settings"
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "hover:bg-sidebar-accent",
@@ -219,24 +219,25 @@ export function AppShell({ children }: { children: ReactNode }) {
           data-collapsed={collapsed}
           className={cn(
             "workspace-sidebar hidden shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex md:sticky md:top-0 md:h-dvh md:overflow-y-auto",
-            collapsed ? "md:w-16" : "md:w-60",
+            collapsed ? "md:w-16" : "md:w-[220px]",
           )}
         >
           <div
             className={cn(
-              "flex h-14 items-center justify-between",
+              "flex min-h-[68px] items-center justify-between",
               collapsed && "md:h-auto md:flex-col md:gap-2 md:py-3",
             )}
           >
             <Link
-              to="/"
+              to="/search"
               aria-label="Flight Analytics"
               className={cn(
-                "flex min-w-0 items-center px-5 text-sidebar-accent-foreground",
+                "flex min-w-0 items-center gap-2 px-3 font-semibold tracking-tight text-sidebar-foreground",
                 collapsed && "md:px-0",
               )}
             >
-              <Brand compact={collapsed} />
+              <span aria-hidden="true" className="grid size-[30px] shrink-0 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground">FA</span>
+              <span className={collapsed ? "md:sr-only" : undefined}>Flight Analytics</span>
             </Link>
             <Button
               type="button"
@@ -258,13 +259,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <nav
             aria-label={t("Workspace navigation")}
-            className="flex gap-4 overflow-x-auto px-3 pb-3 md:flex-col md:overflow-visible md:pb-0"
+            className="workspace-nav grid gap-3 px-2.5 pb-3"
           >
             {NAV.map((group) => (
               <section key={group.label} aria-label={t(group.label)} className="shrink-0">
                 <h2
                   className={cn(
-                    "px-3 py-2 text-xs font-medium uppercase tracking-wide text-sidebar-foreground/70",
+                    "px-3 py-2 text-xs font-semibold text-sidebar-foreground/70",
                     collapsed && "md:sr-only",
                   )}
                 >
@@ -280,7 +281,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                           aria-label={t(label)}
                           aria-current={active ? "page" : undefined}
                           className={cn(
-                            "flex shrink-0 items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                            "flex shrink-0 min-h-10 items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] transition-colors",
                             collapsed && "md:justify-center md:px-2",
                             active
                               ? "bg-sidebar-accent text-sidebar-accent-foreground"
@@ -305,7 +306,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 aria-label={t("Settings")}
                 aria-current={path === "/settings" ? "page" : undefined}
                 className={cn(
-                  "flex shrink-0 items-center gap-3 self-start rounded-md px-3 py-2 text-sm transition-colors md:self-auto",
+                  "flex shrink-0 min-h-10 items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] transition-colors",
                   collapsed && "md:justify-center md:px-2",
                   path === "/settings"
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
@@ -386,14 +387,15 @@ export function AppShell({ children }: { children: ReactNode }) {
       </TooltipProvider>
       <div className="workspace-content flex min-w-0 flex-1 flex-col bg-background text-foreground">
         {path !== "/settings" && (
-          <header className="workspace-appearance-bar hidden border-b bg-card px-6 py-2 md:block">
-            <div className="mx-auto flex max-w-6xl justify-end">
+          <header className="workspace-appearance-bar hidden border-b bg-card px-7 md:block">
+            <div className="mx-auto flex min-h-[67px] max-w-[1224px] items-center justify-between gap-4 py-2">
+              <p className="min-w-0 text-sm font-semibold">{t(currentLabel)}</p>
               <AppearanceOptions />
             </div>
           </header>
         )}
-        <main className="workspace-main min-w-0 flex-1 bg-background px-4 py-8 text-foreground md:px-10">
-          <div className="mx-auto max-w-6xl">{children}</div>
+        <main className="workspace-main min-w-0 flex-1 bg-background px-4 pb-12 pt-5 text-foreground md:px-7 md:pt-8">
+          <div className="mx-auto max-w-[1224px]">{children}</div>
         </main>
       </div>
     </div>
