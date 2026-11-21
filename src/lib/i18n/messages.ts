@@ -345,6 +345,8 @@ export const messages: Record<string, readonly [string, string]> = {
     "Жұмыс кеңістігінің жеке баптаулары.",
   ],
   Appearance: ["Внешний вид", "Сыртқы көрініс"],
+  "Color palette": ["Цветовая палитра", "Түс палитрасы"],
+  "Original colors": ["Исходные цвета", "Бастапқы түстер"],
   "Choose how Flight Analytics looks. Your choice applies immediately and is saved in this browser.":
     [
       "Выберите оформление Flight Analytics. Изменения применяются сразу и сохраняются в этом браузере.",
