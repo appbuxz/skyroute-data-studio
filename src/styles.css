@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "./color-palettes.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -853,4 +854,81 @@
   .dashboard-columns {
     grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.5fr);
   }
+}
+
+/* Palette tokens override color choices made by workspace styles. */
+:root[data-color-palette]:not([data-color-palette="original"]):is(.dark, :not(.dark)) {
+  --background: var(--palette-canvas);
+  --foreground: var(--palette-ink);
+  --card: var(--palette-surface);
+  --card-foreground: var(--palette-ink);
+  --popover: var(--palette-surface);
+  --popover-foreground: var(--palette-ink);
+  --primary: var(--palette-action);
+  --primary-foreground: var(--palette-action-ink);
+  --secondary: var(--palette-field);
+  --secondary-foreground: var(--palette-ink);
+  --muted: var(--palette-field);
+  --muted-foreground: var(--palette-muted-ink);
+  --accent: var(--palette-selected);
+  --accent-foreground: var(--palette-ink);
+  --highlight: var(--palette-action);
+  --border: var(--palette-line);
+  --input: var(--palette-line);
+  --ring: var(--palette-action);
+  --chart-1: var(--palette-action);
+  --chart-2: var(--palette-chart);
+  --chart-3: var(--palette-chart-alt);
+  --chart-4: var(--palette-muted-ink);
+  --chart-5: var(--palette-brand);
+  --sidebar: var(--palette-surface);
+  --sidebar-foreground: var(--palette-muted-ink);
+  --sidebar-primary: var(--palette-action);
+  --sidebar-primary-foreground: var(--palette-action-ink);
+  --sidebar-accent: var(--palette-selected);
+  --sidebar-accent-foreground: var(--palette-ink);
+  --sidebar-border: var(--palette-line);
+  --sidebar-ring: var(--palette-action);
+  --workspace-bar: var(--palette-surface);
+  --workspace-bar-foreground: var(--palette-ink);
+  --analyst-selection: var(--palette-selected);
+  --analyst-selection-border: var(--palette-action);
+  --client-selected-border: var(--palette-action);
+  --client-paper-shadow: var(--palette-canvas);
+  --gradient-hero: linear-gradient(155deg, var(--palette-brand), color-mix(in oklch, var(--palette-brand) 76%, var(--palette-action)));
+  --shadow-card: 0 1px 2px color-mix(in oklch, var(--palette-brand) 10%, transparent),
+    0 4px 16px -8px color-mix(in oklch, var(--palette-brand) 15%, transparent);
+}
+.landing-hero {
+  --hero-surface: var(--palette-brand, oklch(0.24 0.07 260));
+  --hero-foreground: oklch(0.984 0.003 247.858);
+  --hero-muted: color-mix(in oklch, var(--hero-foreground) 85%, var(--hero-surface));
+  background-color: var(--hero-surface);
+  color: var(--hero-foreground);
+}
+
+.landing-hero .landing-eyebrow {
+  color: var(--hero-muted);
+}
+
+.landing-hero .landing-quiet-link {
+  color: var(--hero-foreground);
+}
+
+.landing-hero .landing-quiet-link:hover {
+  background-color: color-mix(in oklch, var(--hero-foreground) 12%, transparent);
+}
+
+.landing-hero .landing-filled-link {
+  background-color: var(--hero-foreground);
+  color: var(--hero-surface);
+}
+
+.landing-hero .landing-filled-link:hover {
+  background-color: var(--hero-muted);
+}
+
+.landing-hero :is(.landing-filled-link, .landing-quiet-link):focus-visible {
+  outline: 2px solid var(--hero-foreground);
+  outline-offset: 3px;
 }

@@ -26,55 +26,50 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-const heroQuietLink =
-  "text-slate-50 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-sky-200";
-const heroFilledLink =
-  "bg-slate-50 text-slate-950 hover:bg-sky-100 focus-visible:ring-2 focus-visible:ring-sky-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900";
-
 function Landing() {
   return (
     <div className="min-h-screen bg-background">
-      <section className="bg-hero bg-slate-900 text-slate-50">
+      <section className="landing-hero bg-hero">
         <header className="mx-auto flex max-w-6xl flex-col items-start gap-2 px-4 py-3 sm:min-h-16 sm:flex-row sm:items-center sm:justify-between md:px-8">
           <Brand />
           <nav aria-label="Main navigation" className="flex min-w-0 flex-wrap items-center gap-2">
             <Button
               asChild
               variant="ghost"
-              className={heroQuietLink}
+              className="landing-quiet-link"
             >
               <a href="#features">Explore</a>
             </Button>
-            <Button asChild variant="secondary" className={heroFilledLink}>
+            <Button asChild variant="secondary" className="landing-filled-link">
               <Link to="/dashboard">Open workspace</Link>
             </Button>
           </nav>
         </header>
         <div className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:pb-24 sm:pt-16 md:px-8 md:pt-24">
-          <p className="text-sm font-medium uppercase tracking-widest text-sky-200">
+          <p className="text-sm font-medium uppercase tracking-widest landing-eyebrow">
             For travelers and travel agencies
           </p>
           <h1 className="mt-4 max-w-3xl text-3xl font-semibold leading-tight sm:text-4xl md:text-6xl">
             Find flights. Make informed travel decisions.
           </h1>
-          <p className="mt-6 max-w-xl text-base text-slate-200 md:text-lg">
+          <p className="mt-6 max-w-xl text-base landing-eyebrow md:text-lg">
             Search and compare flights for your next trip, or explore advanced fare and route
             analytics for your agency.
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
-            <Button asChild size="lg" variant="secondary" className={heroFilledLink}>
+            <Button asChild size="lg" variant="secondary" className="landing-filled-link">
               <Link to="/search">Search flights</Link>
             </Button>
             <Button
               asChild
               size="lg"
               variant="ghost"
-              className={heroQuietLink}
+              className="landing-quiet-link"
             >
               <Link to="/analysis">Explore agency analytics</Link>
             </Button>
           </div>
-          <p className="mt-6 text-xs text-slate-300">
+          <p className="mt-6 text-xs landing-eyebrow">
             Flight Search is free with an account. Check My Flight also requires organization
             access.
           </p>

@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppearanceProvider } from "./appearance-provider";
-import { APPEARANCE_INIT_SCRIPT, APPEARANCE_KEY, INTERFACE_STYLE_KEY } from "./theme";
+import { APPEARANCE_INIT_SCRIPT, APPEARANCE_KEY, COLOR_PALETTE_KEY, INTERFACE_STYLE_KEY } from "./theme";
 import { Route as SettingsRoute } from "@/routes/_authenticated/_workspace.settings";
 
 let systemDark = false;
@@ -31,6 +31,7 @@ beforeEach(() => {
   window.localStorage.clear();
   document.documentElement.classList.remove("dark");
   document.documentElement.style.colorScheme = "";
+  delete document.documentElement.dataset.colorPalette;
   delete document.documentElement.dataset.interfaceStyle;
   systemDark = false;
   listeners = new Set();
@@ -60,6 +61,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   document.documentElement.classList.remove("dark");
   document.documentElement.style.colorScheme = "";
+  delete document.documentElement.dataset.colorPalette;
   delete document.documentElement.dataset.interfaceStyle;
 });
 
@@ -130,6 +132,37 @@ describe("workspace appearance settings", () => {
     expect(screen.getByRole("radio", { name: label, checked: true })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Light", checked: true })).toBeInTheDocument();
     expectDark(false);
+  });
+
+  it("applies, persists, and restores a palette independently of mode", () => {
+    const view = openSettings();
+    expect(screen.getByRole("radio", { name: "Cobalt", checked: true })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: "Candy Rose" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Dark" }));
+    expect(document.documentElement.dataset.colorPalette).toBe("candy-rose");
+    expect(window.localStorage.getItem(COLOR_PALETTE_KEY)).toBe("candy-rose");
+
+    view.unmount();
+    delete document.documentElement.dataset.colorPalette;
+    new Function("localStorage", "matchMedia", "document", APPEARANCE_INIT_SCRIPT)(
+      window.localStorage,
+      window.matchMedia,
+      document,
+    );
+    expect(document.documentElement.dataset.colorPalette).toBe("candy-rose");
+    openSettings();
+    expect(screen.getByRole("radio", { name: "Candy Rose", checked: true })).toBeInTheDocument();
+    expectDark(true);
+  });
+
+  it("syncs the palette across tabs and recovers from an obsolete value", () => {
+    openSettings();
+    for (const [newValue, expected] of [["jade", "jade"], ["unknown", "cobalt"]]) {
+      const event = new StorageEvent("storage", { key: COLOR_PALETTE_KEY, newValue });
+      Object.defineProperty(event, "storageArea", { value: window.localStorage });
+      act(() => window.dispatchEvent(event));
+      expect(document.documentElement.dataset.colorPalette).toBe(expected);
+    }
   });
 
   it("works when localStorage cannot be read or written", () => {

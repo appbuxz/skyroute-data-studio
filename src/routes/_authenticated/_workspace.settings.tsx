@@ -3,6 +3,8 @@ import { useLanguage } from "@/lib/i18n/language-context";
 import { LANGUAGES, parseLanguage } from "@/lib/i18n/language";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppearanceOptions } from "@/components/common/appearance-options";
+import { useAppearance } from "@/lib/appearance/appearance-context";
+import { COLOR_PALETTES, parseColorPalette, type ColorPalette } from "@/lib/appearance/theme";
 import { PageHeader } from "@/components/common/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -13,8 +15,18 @@ export const Route = createFileRoute("/_authenticated/_workspace/settings")({
   component: Settings,
 });
 
+const PALETTE_LABELS = {
+  cobalt: "Cobalt",
+  jade: "Jade",
+  violet: "Violet",
+  graphite: "Graphite",
+  "candy-rose": "Candy Rose",
+  original: "Original colors",
+} as const satisfies Record<ColorPalette, string>;
+
 function Settings() {
   const { t, language, setLanguage } = useLanguage();
+  const { colorPalette, setColorPalette } = useAppearance();
   useEffect(() => {
     document.title = `${t("Settings")} — Flight Analytics`;
   }, [t]);
@@ -34,7 +46,31 @@ function Settings() {
               )}
             </p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-5">
+            <div className="space-y-2">
+              <p id="color-palette-label" className="text-sm font-medium">{t("Color palette")}</p>
+              <RadioGroup
+                aria-labelledby="color-palette-label"
+                value={colorPalette}
+                onValueChange={(value) => setColorPalette(parseColorPalette(value))}
+                className="grid-cols-2 sm:grid-cols-3"
+              >
+                {COLOR_PALETTES.map((palette) => (
+                  <RadioGroupItem
+                    key={palette}
+                    value={palette}
+                    className="flex aspect-auto min-h-11 h-auto w-full items-center gap-2 rounded-md border bg-card px-2.5 py-2 text-left text-sm data-[state=checked]:border-ring data-[state=checked]:bg-accent sm:px-3"
+                  >
+                    <span
+                      aria-hidden="true"
+                      data-palette-swatch={palette}
+                      className="size-3 shrink-0 rounded-full"
+                    />
+                    <span>{t(PALETTE_LABELS[palette])}</span>
+                  </RadioGroupItem>
+                ))}
+              </RadioGroup>
+            </div>
             <AppearanceOptions />
           </CardContent>
         </Card>
