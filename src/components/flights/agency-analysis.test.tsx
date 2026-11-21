@@ -49,7 +49,7 @@ function page(value: OrganizationWorkspace) {
 }
 beforeEach(() => {
   vi.resetAllMocks();
-  mocks.memberships.mockResolvedValue([{ organizationId: ANALYTICS_ORG }]);
+  mocks.memberships.mockResolvedValue(workspace().memberships);
 });
 afterEach(cleanup);
 
@@ -89,8 +89,9 @@ describe("analytics access states", () => {
     render(page(workspace()));
     expect(screen.getByText("Checking analytics access…")).toBeInTheDocument();
     expect(screen.queryByText("Carrier comparison")).not.toBeInTheDocument();
-    await act(async () => resolve([{ organizationId: ANALYTICS_ORG }]));
+    await act(async () => resolve(workspace().memberships));
     expect(screen.getByText("Carrier comparison")).toBeInTheDocument();
+    expect(screen.getByText("Agency A")).toBeInTheDocument();
   });
   it("hides a snapshot when the server only confirms membership in a different agency", async () => {
     mocks.memberships.mockResolvedValue([{ organizationId: "different-agency" }]);
@@ -115,12 +116,20 @@ describe("analytics access states", () => {
 
 describe("analytics presentation", () => {
   it("shows summary then metrics and one desktop row/mobile item per complete itinerary", () => {
-    render(<AnalyticsResults search={analyticsSnapshot()} />);
+    const search = analyticsSnapshot();
+    const offer = search.offers[0]!;
+    offer.outbound!.durationMinutes = 480;
+    offer.baggage = { checked: { weightKg: 20 }, cabin: { weightKg: 8 } };
+    offer.comparisonEvidence = { baggageScopes: { checked: "all_passengers_all_segments" } };
+    render(<AnalyticsResults search={search} />);
     expect(screen.getByText("3 offers", { selector: "dd" })).toBeInTheDocument();
-    expect(screen.getByText("2099-12-10")).toBeInTheDocument();
+    expect(screen.getByText("10 Dec 2099")).toHaveAttribute("datetime", "2099-12-10");
     const table = screen.getByRole("table", { name: "Flight schedules" });
     expect(within(table).getAllByRole("row")).toHaveLength(3);
     expect(within(table).getByText("2")).toBeInTheDocument();
+    expect(within(table).getByText("Outbound · 1 stop · 8h")).toBeInTheDocument();
+    expect(within(table).getByText("Checked baggage · 20 kg")).toBeInTheDocument();
+    expect(within(table).queryByText("Cabin baggage · 8 kg")).not.toBeInTheDocument();
     expect(within(table).getByText(/ALA → NQZ/)).toBeInTheDocument();
     expect(within(table).getByText(/NQZ → IST/)).toBeInTheDocument();
     expect(within(table).getByText(/ALA → DXB/)).toBeInTheDocument();
@@ -136,7 +145,7 @@ describe("analytics presentation", () => {
   it("puts schedules before compact histograms and keeps all 51 offers represented", () => {
     render(<AnalyticsResults search={analyticsSnapshot51()} />);
     expect(screen.getByText("51 offers", { selector: "dd" })).toBeInTheDocument();
-    const schedules = screen.getByText("Flight schedules");
+    const schedules = screen.getByText("Offer comparison");
     const histogram = screen.getByText("Price distribution");
     expect(
       schedules.compareDocumentPosition(histogram) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -162,7 +171,9 @@ describe("analytics presentation", () => {
     expect(screen.getByText("From 500 USD")).toBeInTheDocument();
     expect(screen.getByText(`From ${(180000).toLocaleString()} KZT`)).toBeInTheDocument();
     const table = screen.getByRole("table", { name: "Flight schedules" });
-    expect(within(table).getByText("500 USD")).toBeInTheDocument();
-    expect(within(table).getByText(`${(180000).toLocaleString()} KZT`)).toBeInTheDocument();
+    expect(within(table).getByText("500 USD", { selector: "li" })).toBeInTheDocument();
+    expect(
+      within(table).getByText(`${(180000).toLocaleString()} KZT`, { selector: "li" }),
+    ).toBeInTheDocument();
   });
 });

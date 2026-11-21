@@ -2,10 +2,11 @@ import { WorkspaceSection } from "@/components/common/workspace-section";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, BarChart3, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Building2, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/common/page-header";
+import { useLanguage } from "@/lib/i18n/language-context";
 import {
   Table,
   TableBody,
@@ -18,69 +19,84 @@ import {
   useOrganizationWorkspace,
   type WorkspaceSearch,
 } from "@/lib/organizations/workspace-context";
-import { getOrganizationMemberships } from "@/lib/organizations/session.functions";
+import {
+  getOrganizationMemberships,
+  type OrganizationMembership,
+} from "@/lib/organizations/session.functions";
 import { analyzeFlightPrices } from "@/lib/flights/analytics";
 import { groupFlightSchedules } from "@/lib/flights/schedule-groups";
-import type { FlightOffer, OrganizationId } from "@/lib/flights/types";
+import { CABIN_LABELS, type FlightOffer, type OrganizationId } from "@/lib/flights/types";
 import { ComparablePrices } from "./comparable-prices";
 import { PriceHistogram } from "./price-histogram";
 import { FlightDateTime } from "./flight-date-time";
+import { formatFlightDuration } from "./flight-itinerary";
+import { formatOfferBaggage } from "./flight-shortlist";
 
-export function AnalyticsFrame({ children }: { children: ReactNode }) {
+function AnalyticsFrame({
+  children,
+  organization,
+}: {
+  children: ReactNode;
+  organization?: string;
+}) {
+  const { t } = useLanguage();
   return (
-    <section aria-label="Agency analytics" className="min-w-0 space-y-4 text-foreground">
+    <section
+      aria-label={t("Agency analytics")}
+      className="workspace-analysis min-w-0 space-y-4 text-foreground"
+    >
+      <div>
+        <PageHeader
+          title={t("Agency analytics")}
+          description={t("Compare the fares and schedules from your agency’s latest search.")}
+        />
+        {organization && (
+          <p className="flex min-w-0 items-start gap-2 text-lg font-semibold">
+            <Building2 className="mt-1 size-4 shrink-0 text-primary" aria-hidden="true" />
+            <span className="min-w-0 break-words">{organization}</span>
+          </p>
+        )}
+      </div>
       {children}
     </section>
   );
 }
 
-export function AnalyticsState({
+function AnalyticsState({
   title,
   description,
   retry,
+  organization,
 }: {
   title: string;
   description: string;
   retry?: () => void;
+  organization?: string;
 }) {
+  const { t } = useLanguage();
   return (
-    <AnalyticsFrame>
-      <AnalyticsHeading />
+    <AnalyticsFrame organization={organization}>
       <Card className="shadow-none">
         <CardContent className="space-y-4 py-8">
           <ShieldCheck className="h-7 w-7 text-primary" aria-hidden="true" />
-          <h2 className="text-xl font-semibold">{title}</h2>
-          <p className="max-w-xl text-sm text-muted-foreground">{description}</p>
+          <h2 className="text-xl font-semibold">{t(title)}</h2>
+          <p className="max-w-xl text-sm text-muted-foreground">{t(description)}</p>
           <div className="flex flex-wrap gap-3">
             <Button asChild>
               <Link to="/search">
                 <ArrowLeft className="h-4 w-4" />
-                Back to flight search
+                {t("Back to flight search")}
               </Link>
             </Button>
             {retry && (
               <Button variant="outline" onClick={retry}>
-                Retry membership check
+                {t("Retry membership check")}
               </Button>
             )}
           </div>
         </CardContent>
       </Card>
     </AnalyticsFrame>
-  );
-}
-
-function AnalyticsHeading() {
-  return (
-    <header className="workspace-page-heading flex flex-wrap items-center justify-between gap-2">
-      <h1 className="flex items-center gap-2 text-xl font-semibold">
-        <BarChart3 className="h-5 w-5 text-primary" />
-        Agency analytics
-      </h1>
-      <Badge variant="outline" className="text-muted-foreground">
-        Subscription planned
-      </Badge>
-    </header>
   );
 }
 
@@ -91,7 +107,7 @@ export function AgencyAnalysisPage() {
   const [access, setAccess] = useState<{
     version: number;
     organizationId: OrganizationId | null;
-    ids: OrganizationId[];
+    memberships: OrganizationMembership[];
     error: boolean;
   } | null>(null);
 
@@ -104,13 +120,18 @@ export function AgencyAnalysisPage() {
           setAccess({
             version,
             organizationId: selectedOrganizationId,
-            ids: memberships.map((m) => m.organizationId),
+            memberships,
             error: false,
           });
       },
       () => {
         if (current)
-          setAccess({ version, organizationId: selectedOrganizationId, ids: [], error: true });
+          setAccess({
+            version,
+            organizationId: selectedOrganizationId,
+            memberships: [],
+            error: true,
+          });
       },
     );
     return () => {
@@ -145,10 +166,10 @@ export function AgencyAnalysisPage() {
       />
     );
   }
-  if (
-    access.ids.length === 0 ||
-    (selectedOrganizationId && !access.ids.includes(selectedOrganizationId))
-  ) {
+  const membership = access.memberships.find(
+    (item) => item.organizationId === selectedOrganizationId,
+  );
+  if (access.memberships.length === 0 || (selectedOrganizationId && !membership)) {
     return (
       <AnalyticsState
         title="Analytics isn’t available for your account"
@@ -160,6 +181,7 @@ export function AgencyAnalysisPage() {
   if (!selectedOrganizationId || !search || search.organizationId !== selectedOrganizationId) {
     return (
       <AnalyticsState
+        organization={membership?.organizationName}
         title={selectedOrganizationId ? "No flight results yet" : "Select an organization"}
         description={
           selectedOrganizationId
@@ -169,14 +191,18 @@ export function AgencyAnalysisPage() {
       />
     );
   }
-  return <AnalyticsResults search={search} />;
+  return <AnalyticsResults search={search} organization={membership?.organizationName} />;
 }
 
-function money(amount: number, currency: string) {
-  return `${amount.toLocaleString()} ${currency}`;
-}
-
-export function AnalyticsResults({ search }: { search: WorkspaceSearch }) {
+export function AnalyticsResults({
+  search,
+  organization,
+}: {
+  search: WorkspaceSearch;
+  organization?: string;
+}) {
+  const { t, number, date } = useLanguage();
+  const money = (amount: number, currency: string) => `${number(amount)} ${currency}`;
   const analysis = analyzeFlightPrices(search.offers);
   const schedules = groupFlightSchedules(search.offers);
   // Compare carrier minima only within the original currency; never mix currencies.
@@ -206,12 +232,11 @@ export function AnalyticsResults({ search }: { search: WorkspaceSearch }) {
   }
 
   return (
-    <AnalyticsFrame>
-      <AnalyticsHeading />
+    <AnalyticsFrame organization={organization}>
       <Card className="shadow-none">
         <CardContent className="flex flex-wrap items-start justify-between gap-3 py-4">
           <div>
-            <p className="text-xs text-muted-foreground">Search route</p>
+            <p className="text-xs text-muted-foreground">{t("Search route")}</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-tight">
               {search.params.origin} <span className="text-primary">→</span>{" "}
               {search.params.destination}
@@ -219,60 +244,95 @@ export function AnalyticsResults({ search }: { search: WorkspaceSearch }) {
           </div>
           <dl className="flex flex-wrap gap-x-6 gap-y-3 text-sm">
             <div>
-              <dt className="text-xs text-muted-foreground">Departure date</dt>
+              <dt className="text-xs text-muted-foreground">{t("Departure date")}</dt>
               <dd className="mt-1">
-                <time dateTime={search.params.departureDate}>{search.params.departureDate}</time>
+                <time dateTime={search.params.departureDate}>
+                  {date(new Date(search.params.departureDate), "UTC")}
+                </time>
               </dd>
             </div>
+            {search.params.returnDate && (
+              <div>
+                <dt className="text-xs text-muted-foreground">{t("Return date")}</dt>
+                <dd className="mt-1">
+                  <time dateTime={search.params.returnDate}>
+                    {date(new Date(search.params.returnDate), "UTC")}
+                  </time>
+                </dd>
+              </div>
+            )}
             <div>
-              <dt className="text-xs text-muted-foreground">Retrieved</dt>
+              <dt className="text-xs text-muted-foreground">{t("Passengers")}</dt>
+              <dd className="mt-1">{number(search.params.passengers)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">{t("Cabin class")}</dt>
+              <dd className="mt-1">{t(CABIN_LABELS[search.params.cabinClass])}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">{t("Retrieved")}</dt>
               <dd className="mt-1">
                 <FlightDateTime value={search.fetchedAt} />
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">Offers</dt>
-              <dd className="mt-1 font-semibold">{search.offers.length} offers</dd>
+              <dt className="text-xs text-muted-foreground">{t("Offers")}</dt>
+              <dd className="mt-1 font-semibold">
+                {t("{count} offers", { count: number(search.offers.length) })}
+              </dd>
             </div>
           </dl>
         </CardContent>
       </Card>
       {analysis ? (
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Metric
-            title="Lowest price"
+            title={t("Lowest price")}
             value={money(analysis.cheapest.price.amount, analysis.currency)}
           />
           <Metric
-            title="Average price"
+            title={t("Highest price")}
+            value={money(analysis.mostExpensive.price.amount, analysis.currency)}
+          />
+          <Metric
+            title={t("Average price")}
             value={money(Math.round(analysis.averagePrice), analysis.currency)}
           />
           <Metric
-            title="Price spread"
+            title={t("Price spread")}
             value={money(analysis.priceSpread, analysis.currency)}
-            description={`${analysis.priceSpreadPercent.toFixed(1)}% between highest and lowest fares`}
+            description={t("{percent}% between highest and lowest fares", {
+              percent: number(analysis.priceSpreadPercent, {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1,
+              }),
+            })}
           />
         </div>
       ) : (
         <Card>
           <CardContent className="py-4 text-sm text-muted-foreground">
-            Price analysis is unavailable. Offers may be empty, invalid, or use different
-            currencies. Original offer currencies are retained below.
+            {t(
+              "Price analysis is unavailable. Offers may be empty, invalid, or use different currencies. Original offer currencies are retained below.",
+            )}
           </CardContent>
         </Card>
       )}
-      <WorkspaceSection title="Flight schedules">
+      <WorkspaceSection title="Offer comparison" label="Flight schedules">
         <p className="text-xs text-muted-foreground">
-          {schedules.length} itineraries · One entry per complete route, across fare offers.
+          {t(
+            "Itineraries: {count}. Fares are grouped by schedule, with prices shown in their original currencies.",
+            { count: number(schedules.length) },
+          )}
         </p>
 
-        <div className="workspace-analysis-table hidden md:block">
-          <Table aria-label="Flight schedules">
+        <div className="workspace-analysis-table hidden lg:block">
+          <Table aria-label={t("Flight schedules")}>
             <TableHeader>
               <TableRow>
-                <TableHead>Full itinerary</TableHead>
-                <TableHead>Offers</TableHead>
-                <TableHead>Original prices</TableHead>
+                <TableHead>{t("Full itinerary")}</TableHead>
+                <TableHead>{t("Offers")}</TableHead>
+                <TableHead>{t("Original prices")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -281,7 +341,9 @@ export function AnalyticsResults({ search }: { search: WorkspaceSearch }) {
                   <TableCell className="align-top">
                     <ScheduleItinerary offer={group.offer} />
                   </TableCell>
-                  <TableCell className="align-top tabular-nums">{group.offers.length}</TableCell>
+                  <TableCell className="align-top tabular-nums">
+                    {number(group.offers.length)}
+                  </TableCell>
                   <TableCell className="align-top">
                     <SchedulePrices offers={group.offers} />
                   </TableCell>
@@ -290,18 +352,24 @@ export function AnalyticsResults({ search }: { search: WorkspaceSearch }) {
             </TableBody>
           </Table>
         </div>
-        <ul aria-label="Flight schedules mobile" className="workspace-analysis-list space-y-3 md:hidden">
+        <ul
+          aria-label={t("Flight schedules mobile")}
+          className="workspace-analysis-list space-y-3 lg:hidden"
+        >
           {schedules.map((group) => (
             <li key={group.key} className="space-y-3 rounded-lg border p-3">
               <ScheduleItinerary offer={group.offer} />
-              <div className="flex flex-wrap justify-between gap-2 text-sm">
-                <span className="text-muted-foreground">{group.offers.length} offers</span>
+              <div className="space-y-2 border-t pt-2 text-sm">
+                <span className="text-muted-foreground">
+                  {t("{count} offers", { count: number(group.offers.length) })}
+                </span>
                 <SchedulePrices offers={group.offers} />
               </div>
             </li>
           ))}
         </ul>
       </WorkspaceSection>
+      <ComparablePrices search={search} collapsible defaultOpen />
       <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <WorkspaceSection title="Price distribution" contentClassName="space-y-4">
           <PriceHistogram offers={search.offers} />
@@ -314,38 +382,51 @@ export function AnalyticsResults({ search }: { search: WorkspaceSearch }) {
             >
               <div>
                 {data.carrier}
-                <span className="ml-2 text-xs text-muted-foreground">{data.count} offers</span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  {t("{count} offers", { count: number(data.count) })}
+                </span>
               </div>
-              <span className="font-semibold">From {money(data.minimum, data.currency)}</span>
+              <span className="font-semibold">
+                {t("From {price}", { price: money(data.minimum, data.currency) })}
+              </span>
             </div>
           ))}
         </WorkspaceSection>
       </div>
-      <ComparablePrices search={search} collapsible defaultOpen />
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Price spread is not guaranteed savings. Fare conditions, baggage, transfers and availability
-        may differ. Prices reflect the search snapshot, not a live booking quote.
+        {t(
+          "Price spread is not guaranteed savings. Fare conditions, baggage, transfers and availability may differ. Prices reflect the search snapshot, not a live booking quote.",
+        )}
       </p>
     </AnalyticsFrame>
   );
 }
 
 function ScheduleItinerary({ offer }: { offer: FlightOffer }) {
+  const language = useLanguage();
+  const { t, number } = language;
   const legs = [
-    { label: "Outbound", itinerary: offer.outbound },
-    ...(offer.inbound ? [{ label: "Return", itinerary: offer.inbound }] : []),
+    { label: "Outbound", itinerary: offer.outbound, stops: offer.stops },
+    ...(offer.inbound
+      ? [
+          {
+            label: "Return",
+            itinerary: offer.inbound,
+            stops: offer.inbound.segments.length ? offer.inbound.segments.length - 1 : undefined,
+          },
+        ]
+      : []),
   ];
   return (
     <div className="space-y-3 text-xs">
-      {legs.map(({ label, itinerary }) => (
+      {legs.map(({ label, itinerary, stops }) => (
         <div key={label} className="space-y-2">
           <p className="font-semibold text-primary">
-            {label} ·{" "}
-            {itinerary?.segments.length
-              ? `${itinerary.segments.length} segments`
-              : offer.stops === 0
-                ? "Direct"
-                : `${offer.stops} stop(s)`}
+            {t(label)}
+            {stops !== undefined &&
+              ` · ${stops === 0 ? t("Direct flight") : stops === 1 ? t("1 stop") : t("{count} stops", { count: number(stops) })}`}
+            {itinerary?.durationMinutes !== undefined &&
+              ` · ${formatFlightDuration(itinerary.durationMinutes, language)}`}
           </p>
           {itinerary?.segments.length ? (
             <ol className="space-y-2">
@@ -355,10 +436,10 @@ function ScheduleItinerary({ offer }: { offer: FlightOffer }) {
                     {s.origin} → {s.destination} · {s.carrier} {s.flightNumber}
                   </p>
                   <p className="text-muted-foreground">
-                    Departure: <FlightDateTime value={s.departureAt} />
+                    {t("Departure:")} <FlightDateTime value={s.departureAt} />
                   </p>
                   <p className="text-muted-foreground">
-                    Arrival: <FlightDateTime value={s.arrivalAt} />
+                    {t("Arrival:")} <FlightDateTime value={s.arrivalAt} />
                   </p>
                 </li>
               ))}
@@ -369,12 +450,12 @@ function ScheduleItinerary({ offer }: { offer: FlightOffer }) {
                 {offer.origin} → {offer.destination} · {offer.carrier} {offer.flightNumber}
               </p>
               <p className="text-muted-foreground">
-                Departure: <FlightDateTime value={offer.departureAt} />
+                {t("Departure:")} <FlightDateTime value={offer.departureAt} />
               </p>
               <p className="text-muted-foreground">
-                Arrival: <FlightDateTime value={offer.arrivalAt} />
+                {t("Arrival:")} <FlightDateTime value={offer.arrivalAt} />
               </p>
-              <p className="text-muted-foreground">Segment details unavailable</p>
+              <p className="text-muted-foreground">{t("Segment details unavailable")}</p>
             </div>
           )}
         </div>
@@ -384,6 +465,8 @@ function ScheduleItinerary({ offer }: { offer: FlightOffer }) {
 }
 
 function SchedulePrices({ offers }: { offers: FlightOffer[] }) {
+  const language = useLanguage();
+  const { t, number } = language;
   const currencies = new Map<string, number[]>();
   for (const offer of offers) {
     const prices = currencies.get(offer.price.currency) ?? [];
@@ -391,19 +474,41 @@ function SchedulePrices({ offers }: { offers: FlightOffer[] }) {
     currencies.set(offer.price.currency, prices);
   }
   return (
-    <ul className="space-y-1 text-xs tabular-nums">
-      {[...currencies].map(([currency, prices]) => {
-        const minimum = Math.min(...prices);
-        const maximum = Math.max(...prices);
-        return (
-          <li key={currency}>
-            {minimum === maximum
-              ? money(minimum, currency)
-              : `${minimum.toLocaleString()}–${maximum.toLocaleString()} ${currency}`}
-          </li>
-        );
-      })}
-    </ul>
+    <div className="min-w-0 space-y-2">
+      <ul className="space-y-1 text-sm font-semibold tabular-nums">
+        {[...currencies].map(([currency, prices]) => {
+          const minimum = Math.min(...prices);
+          const maximum = Math.max(...prices);
+          return (
+            <li key={currency}>
+              {minimum === maximum
+                ? `${number(minimum)} ${currency}`
+                : `${number(minimum)}–${number(maximum)} ${currency}`}
+            </li>
+          );
+        })}
+      </ul>
+      <details className="flight-offer-details text-xs">
+        <summary className="cursor-pointer rounded-sm font-medium text-primary">
+          {t("Prices and baggage by offer")}
+        </summary>
+        <ul className="mt-2 grid gap-2">
+          {offers.map((offer) => (
+            <li key={offer.id} className="min-w-0 rounded-md border bg-background p-2">
+              <p className="font-semibold tabular-nums">
+                {number(offer.price.amount)} {offer.price.currency}
+              </p>
+              {(["checked", "cabin"] as const).map((kind) => (
+                <p key={kind} className="text-muted-foreground">
+                  {t(kind === "checked" ? "Checked baggage" : "Cabin baggage")} ·{" "}
+                  {formatOfferBaggage(offer, kind, language)}
+                </p>
+              ))}
+            </li>
+          ))}
+        </ul>
+      </details>
+    </div>
   );
 }
 
