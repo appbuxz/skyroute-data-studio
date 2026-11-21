@@ -19,10 +19,12 @@ export function TestBookingStatusDialog({
   flight,
   organizationId,
   bookingId,
+  onStatusRetrieved,
 }: {
   flight: TestBookingFlight;
   organizationId: OrganizationId | null;
   bookingId?: string;
+  onStatusRetrieved?: (result: Extract<TestBookingStatus, { status: "retrieved" }>) => void;
 }) {
   const { t, dateTime } = useLanguage();
   const getStatus = useServerFn(getTestBookingStatusServer);
@@ -40,7 +42,10 @@ export function TestBookingStatusDialog({
           ...(organizationId ? { organizationId } : {}),
         },
       });
-      if (current === request.current) setResult(response);
+      if (current === request.current) {
+        setResult(response);
+        if (response.status === "retrieved") onStatusRetrieved?.(response);
+      }
     } catch {
       if (current === request.current) setResult({ status: "error" });
     }
