@@ -16,12 +16,14 @@ export function LocalizedDateInput({
   value,
   onChange,
   invalid,
+  describedBy,
 }: {
   id: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
   invalid: boolean;
+  describedBy?: string;
 }) {
   const { language, t } = useLanguage();
   const [open, setOpen] = useState(false);
@@ -41,6 +43,7 @@ export function LocalizedDateInput({
         value={formatInputDate(value, language)}
         onChange={(event) => onChange(parseInputDate(event.target.value))}
         aria-invalid={invalid}
+        aria-describedby={describedBy}
         className="min-w-0"
       />
       <Popover open={open} onOpenChange={setOpen}>

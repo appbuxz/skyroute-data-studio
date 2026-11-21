@@ -2,16 +2,18 @@ import { useLanguage } from "@/lib/i18n/language-context";
 import type { FlightItinerary as Itinerary } from "@/lib/flights/types";
 import { FlightDateTime } from "./flight-date-time";
 
+export function formatFlightDuration(minutes: number, { t, number }: ReturnType<typeof useLanguage>) {
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return hours
+    ? `${t("{hours}h", { hours: number(hours) })}${remainder ? ` ${t("{minutes}m", { minutes: number(remainder) })}` : ""}`
+    : t("{minutes}m", { minutes: number(remainder) });
+}
+
 export function FlightItinerary({ itinerary, label }: { itinerary: Itinerary; label: string }) {
-  const { t, number } = useLanguage();
+  const language = useLanguage();
+  const { t, number } = language;
   const localizedLabel = t(label);
-  function duration(minutes: number) {
-    const hours = Math.floor(minutes / 60);
-    const remainder = minutes % 60;
-    return hours
-      ? `${t("{hours}h", { hours: number(hours) })}${remainder ? ` ${t("{minutes}m", { minutes: number(remainder) })}` : ""}`
-      : t("{minutes}m", { minutes: number(remainder) });
-  }
   return (
     <section aria-label={localizedLabel} className="space-y-2 border-t pt-3">
       <h3 className="text-sm font-semibold">{localizedLabel}</h3>
@@ -19,7 +21,7 @@ export function FlightItinerary({ itinerary, label }: { itinerary: Itinerary; la
         {itinerary.durationMinutes === undefined
           ? t("Total journey duration unavailable")
           : t("Total journey duration: {duration}", {
-              duration: duration(itinerary.durationMinutes),
+              duration: formatFlightDuration(itinerary.durationMinutes, language),
             })}
       </p>
       <ol aria-label={t("{label} segments", { label: localizedLabel })} className="space-y-3">
@@ -42,7 +44,7 @@ export function FlightItinerary({ itinerary, label }: { itinerary: Itinerary; la
               {segment.durationMinutes !== undefined && (
                 <p className="text-muted-foreground">
                   {t("Flight duration: {duration}", {
-                    duration: duration(segment.durationMinutes),
+                    duration: formatFlightDuration(segment.durationMinutes, language),
                   })}
                 </p>
               )}

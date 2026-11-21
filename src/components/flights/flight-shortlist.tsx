@@ -99,7 +99,7 @@ export function FlightShortlist({
     >
       {!onClose && (
         <div className="shortlist-actions flex flex-wrap items-center gap-3">
-          {themedPanel && <h2 className="w-full font-semibold">{t("Flight shortlist")}</h2>}
+          <h2 className="w-full font-semibold">{t("Flight shortlist")}</h2>
           <DialogTrigger asChild>
             <Button type="button" disabled={offers.length === 0}>
               {t("Preview flight shortlist")}
@@ -413,26 +413,28 @@ function ShortlistDocument({
   );
 }
 
+export function formatOfferBaggage(offer: FlightOffer, kind: "checked" | "cabin", { t, number }: ReturnType<typeof useLanguage>) {
+  const details = offer.baggage?.[kind];
+  if (
+    !details ||
+    !(offer.comparisonEvidence?.baggageScopes?.[kind] || offer.comparisonEvidence?.baggageScope)
+  ) {
+    return t("No data");
+  }
+  const parts = [];
+  if (details.pieces !== undefined)
+    parts.push(t("{count} pc", { count: number(details.pieces) }));
+  if (details.weightKg !== undefined)
+    parts.push(t("{weight} kg", { weight: number(details.weightKg) }));
+  return parts.join(" · ") || t("No data");
+}
+
 function ShortlistOffer({ offer, showPriceLabel }: { offer: FlightOffer; showPriceLabel: boolean }) {
-  const { t, number } = useLanguage();
+  const language = useLanguage();
+  const { t, number } = language;
   const outbound = offer.outbound?.segments ?? [];
   const inbound = offer.inbound?.segments ?? [];
 
-  function allowance(kind: "checked" | "cabin") {
-    const details = offer.baggage?.[kind];
-    if (
-      !details ||
-      !(offer.comparisonEvidence?.baggageScopes?.[kind] || offer.comparisonEvidence?.baggageScope)
-    ) {
-      return t("No data");
-    }
-    const parts = [];
-    if (details.pieces !== undefined)
-      parts.push(t("{count} pc", { count: number(details.pieces) }));
-    if (details.weightKg !== undefined)
-      parts.push(t("{weight} kg", { weight: number(details.weightKg) }));
-    return parts.join(" · ") || t("No data");
-  }
 
   return (
     <li className="space-y-2 border-t border-slate-300 pt-3">
@@ -469,10 +471,10 @@ function ShortlistOffer({ offer, showPriceLabel }: { offer: FlightOffer; showPri
       ))}
       <div className="space-y-1 text-xs">
         <p>
-          {t("Checked baggage")} · {allowance("checked")}
+          {t("Checked baggage")} · {formatOfferBaggage(offer, "checked", language)}
         </p>
         <p>
-          {t("Cabin baggage")} · {allowance("cabin")}
+          {t("Cabin baggage")} · {formatOfferBaggage(offer, "cabin", language)}
         </p>
       </div>
     </li>

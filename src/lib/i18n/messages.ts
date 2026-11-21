@@ -301,6 +301,9 @@ export const messages: Record<string, readonly [string, string]> = {
       "Выберите язык меню, настроек и поиска рейсов. Выбор сохраняется в этом браузере.",
       "Мәзір, баптаулар және рейстерді іздеу тілін таңдаңыз. Таңдау осы браузерде сақталады.",
     ],
+  "Search results": ["Результаты поиска", "Іздеу нәтижелері"],
+  "Compare fares and schedules by route. Enter three-letter airport codes, such as ALA or NQZ.":
+    ["Сравните цены и расписание рейсов. Введите трёхбуквенные коды аэропортов, например ALA или NQZ.", "Бағыт бойынша бағалар мен кестені салыстырыңыз. ALA немесе NQZ сияқты үш әріптік әуежай кодтарын енгізіңіз."],
   "Search and compare flights, fares and schedules for free. Sign in to search; no organization is required. Enter IATA airport codes, e.g. ALA or NQZ.":
     [
       "Бесплатно ищите и сравнивайте рейсы, цены и расписание. Для поиска нужен аккаунт, организация не требуется. Введите IATA-коды аэропортов, например ALA или NQZ.",
