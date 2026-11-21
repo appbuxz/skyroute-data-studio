@@ -509,11 +509,11 @@
   outline-offset: 2px;
 }
 
-.flight-search .workspace-page-heading {
+:is(.flight-search, .workspace-flight-check) .workspace-page-heading {
   margin-bottom: 1.375rem;
 }
 
-.flight-search .agency-search-heading h1 {
+:is(.flight-search .agency-search-heading, .workspace-flight-check .workspace-page-heading) h1 {
   font-size: clamp(1.8125rem, 4vw, 2.75rem);
   line-height: 1.08;
 }
@@ -549,7 +549,7 @@
   min-width: 0;
 }
 
-.flight-search .agency-offer-body {
+:is(.flight-search, .workspace-flight-check) .agency-offer-body {
   display: grid;
   gap: 0.625rem;
   padding: var(--workspace-card-padding, 1.25rem);
@@ -575,7 +575,7 @@
     --search-panel-padding: 0.875rem;
   }
 
-  .flight-search .agency-offer-body {
+  :is(.flight-search, .workspace-flight-check) .agency-offer-body {
     padding: 0.875rem;
   }
 }
@@ -607,7 +607,7 @@
   }
 }
 
-.flight-search .agency-offer {
+:is(.flight-search, .workspace-flight-check) .agency-offer {
   container-type: inline-size;
 }
 
@@ -775,19 +775,51 @@
     margin: 0;
   }
 
-  :root:not([data-interface-style="current"]) .workspace-main .workspace-flight-check:has(.workspace-check-result) {
-    display: grid;
-    max-width: none;
-    grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.65fr);
-    gap: 1rem;
-    align-items: start;
+}
+
+.workspace-flight-check {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+
+.workspace-flight-check .workspace-page-heading {
+  margin-bottom: 0;
+}
+
+.workspace-check-environment {
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.check-result-summary {
+  padding: var(--workspace-card-padding, 1.25rem);
+}
+
+@media (min-width: 64rem) {
+  .workspace-flight-check {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
   }
 
-  :root:not([data-interface-style="current"]) .workspace-main .workspace-flight-check:has(.workspace-check-result) > * {
-    margin-block: 0;
-  }
-
-  :root:not([data-interface-style="current"]) .workspace-main .workspace-flight-check > :not(.workspace-check-form, .workspace-check-result) {
+  .workspace-flight-check > :not(.workspace-check-form, .workspace-check-result) {
     grid-column: 1 / -1;
+  }
+
+  .workspace-check-form {
+    grid-column: 1;
+  }
+
+  .workspace-flight-check:has(.workspace-check-result) .workspace-check-form {
+    grid-row: 3;
+  }
+
+  .workspace-check-result {
+    grid-area: 3 / 2;
+  }
+
+  .workspace-flight-check > [role="alert"] {
+    grid-column: 1;
   }
 }

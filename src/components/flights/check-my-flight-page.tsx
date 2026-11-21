@@ -1,13 +1,19 @@
+import { PageHeader } from "@/components/common/page-header";
+import { useLanguage } from "@/lib/i18n/language-context";
 import { WorkspaceSection } from "@/components/common/workspace-section";
 import type { ZodIssue } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { ArrowRight, Loader2, Plane } from "lucide-react";
+import { Info, LoaderCircle, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { KZ_AIRPORTS } from "@/lib/flights/airports";
-import { flightCheckSchema, type FlightCheckResult } from "@/lib/flights/flight-check";
+import {
+  flightCheckSchema,
+  type FlightCheckInput,
+  type FlightCheckResult,
+} from "@/lib/flights/flight-check";
 import { checkFlightServer } from "@/lib/flights/flight-check.functions";
 import { CABIN_CLASSES, CABIN_LABELS, type CabinClass } from "@/lib/flights/types";
 import {
@@ -17,7 +23,7 @@ import {
 import { FlightCheckResults } from "./flight-check-results";
 
 const selectStyle =
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
+  "flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
 type BaggageValues = { status: "" | "not_required" | "required"; pieces: string; weightKg: string };
 const emptyBaggage: BaggageValues = { status: "", pieces: "", weightKg: "" };
 const initial = {
@@ -33,6 +39,7 @@ const initial = {
 };
 
 export function CheckMyFlightPage() {
+  const { t, message } = useLanguage();
   const checkFlight = useServerFn(checkFlightServer);
   const workspace = useOrganizationWorkspace();
   const { selectedOrganizationId, version, canSearch } = workspace;
@@ -42,6 +49,7 @@ export function CheckMyFlightPage() {
   const [pending, setPending] = useState(false);
   const [completed, setCompleted] = useState<{
     result: FlightCheckResult;
+    input: FlightCheckInput;
     organizationId: string;
     version: number;
   } | null>(null);
@@ -119,7 +127,13 @@ export function CheckMyFlightPage() {
       const result = await checkFlight({
         data: { ...parsed.data, organizationId: selectedOrganizationId },
       });
-      if (isCurrent()) setCompleted({ result, organizationId: selectedOrganizationId, version });
+      if (isCurrent())
+        setCompleted({
+          result,
+          input: parsed.data,
+          organizationId: selectedOrganizationId,
+          version,
+        });
     } catch (error) {
       if (!isCurrent()) return;
       const failure = organizationFailure(error);
@@ -143,45 +157,58 @@ export function CheckMyFlightPage() {
       ? completed.result
       : null;
   return (
-    <div className="workspace-flight-check mx-auto max-w-4xl space-y-6">
-      <header className="workspace-page-heading space-y-3">
-        <p className="flex items-center gap-2 text-sm font-medium text-accent-foreground">
-          <Plane className="h-4 w-4" aria-hidden="true" /> Check My Flight · One-way
-        </p>
-        <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
-          Check if you can fly cheaper
-        </h1>
-        <p className="max-w-2xl text-muted-foreground">
-          Enter the flight you found and your travel requirements. Discover cheaper alternatives and
-          see which conditions are verified.
-        </p>
-      </header>
-      <p className="rounded-lg border border-highlight/40 bg-accent p-3 text-sm text-accent-foreground">
-        Travelport Preproduction · Test environment. Results are not verified as live bookable
-        fares.
+    <div className="workspace-flight-check">
+      <PageHeader
+        title={t("Check My Flight")}
+        description={t(
+          "Compare a one-way fare you found with alternatives that meet your travel requirements.",
+        )}
+      />
+      <p className="workspace-check-environment flex items-start gap-2 text-sm text-muted-foreground">
+        <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        {t(
+          "Travelport Preproduction · Test environment. Results are not verified as live bookable fares.",
+        )}
       </p>
       {!canSearch && (
         <p id="check-organization-status" role="status" className="text-sm text-muted-foreground">
           {workspace.status === "loading"
-            ? "Loading organizations…"
-            : (workspace.error ??
-              workspace.authorizationError ??
-              (workspace.memberships.length
-                ? "Select an organization to check your flight."
-                : "No organization assigned. Ask your administrator to arrange access."))}
+            ? t("Loading organizations…")
+            : message(
+                workspace.error ??
+                  workspace.authorizationError ??
+                  (workspace.memberships.length
+                    ? "Select an organization to check your flight."
+                    : "No organization assigned. Ask your administrator to arrange access."),
+              )}
         </p>
       )}
-      <WorkspaceSection title="Flight details and requirements" className="workspace-check-form shadow-card" keepMounted>
-        <form aria-label="Check My Flight" onSubmit={submit} noValidate aria-busy={pending}>
-          <fieldset disabled={pending} className="min-w-0 space-y-6">
-            <legend className="mb-4 text-lg font-semibold">The flight you found</legend>
-            <div className="grid gap-5 sm:grid-cols-2">
+      <WorkspaceSection
+        title="Flight details and requirements"
+        className="workspace-check-form flight-search-panel"
+        keepMounted
+      >
+        <form
+          aria-label={t("Check My Flight")}
+          aria-describedby="check-form-help"
+          onSubmit={submit}
+          noValidate
+          aria-busy={pending}
+        >
+          <p id="check-form-help" className="mb-4 text-sm text-muted-foreground">
+            {t(
+              "All fields are required unless marked optional. Use three-letter airport and currency codes.",
+            )}
+          </p>
+          <fieldset disabled={pending} className="min-w-0 space-y-4">
+            <legend className="mb-2 text-sm font-semibold">{t("The flight you found")}</legend>
+            <div className="grid gap-3 sm:grid-cols-2">
               <Field id="check-origin" label="Origin airport" error={errors["origin"]}>
                 <Input
                   id="check-origin"
                   required
                   list="check-airports"
-                  placeholder="JFK"
+                  placeholder="ALA"
                   maxLength={3}
                   value={values.origin}
                   onChange={(e) => set("origin", e.target.value.toUpperCase())}
@@ -198,7 +225,7 @@ export function CheckMyFlightPage() {
                   id="check-destination"
                   required
                   list="check-airports"
-                  placeholder="LAX"
+                  placeholder="IST"
                   maxLength={3}
                   value={values.destination}
                   onChange={(e) => set("destination", e.target.value.toUpperCase())}
@@ -209,7 +236,7 @@ export function CheckMyFlightPage() {
               <datalist id="check-airports">
                 {KZ_AIRPORTS.map((airport) => (
                   <option key={airport.iata} value={airport.iata}>
-                    {airport.city} — {airport.name}
+                    {t(airport.city)} — {t(airport.name)}
                   </option>
                 ))}
               </datalist>
@@ -241,6 +268,8 @@ export function CheckMyFlightPage() {
               <Field id="check-cabin" label="Cabin class" error={errors["cabinClass"]}>
                 <select
                   id="check-cabin"
+                  aria-invalid={!!errors.cabinClass}
+                  aria-describedby={errors.cabinClass ? "check-cabin-error" : undefined}
                   required
                   className={selectStyle}
                   value={values.cabinClass}
@@ -248,12 +277,12 @@ export function CheckMyFlightPage() {
                 >
                   {CABIN_CLASSES.map((cabin) => (
                     <option key={cabin} value={cabin}>
-                      {CABIN_LABELS[cabin]}
+                      {t(CABIN_LABELS[cabin])}
                     </option>
                   ))}
                 </select>
               </Field>
-              <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-3">
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(5rem,0.55fr)] gap-3">
                 <Field
                   id="check-price"
                   label="Original total price"
@@ -265,7 +294,7 @@ export function CheckMyFlightPage() {
                     min="0"
                     step="any"
                     required
-                    placeholder="Total for all passengers"
+
                     value={values.originalPrice}
                     onChange={(e) => set("originalPrice", e.target.value)}
                     aria-invalid={!!errors["originalPrice"]}
@@ -282,7 +311,7 @@ export function CheckMyFlightPage() {
                     required
                     maxLength={3}
                     list="check-currencies"
-                    placeholder="GBP"
+                    placeholder="KZT"
                     value={values.originalCurrency}
                     onChange={(e) => set("originalCurrency", e.target.value.toUpperCase())}
                     aria-invalid={!!errors["originalCurrency"]}
@@ -299,17 +328,18 @@ export function CheckMyFlightPage() {
               </div>
             </div>
             <p id="check-price-help" className="text-sm text-muted-foreground">
-              Enter the total for all passengers in the currency you found. This is your unverified,
-              user-provided price. We compare matching currencies only; no conversion is applied.
+              {t(
+                "Enter the total for all passengers. Only prices in the same currency are compared.",
+              )}
             </p>
-            <div className="space-y-4 border-t pt-5">
-              <h2 className="text-lg font-semibold">What do you need to take?</h2>
+            <div className="space-y-3 border-t pt-4">
+              <h3 className="text-sm font-semibold">{t("Baggage requirements")}</h3>
               <p id="check-baggage-help" className="text-sm text-muted-foreground">
-                Choose each allowance explicitly. “Not required” means you don’t need that
-                allowance; it does not mean baggage is included. Optional weight is the minimum
-                allowance in kilograms, not multiplied by the number of pieces.
+                {t(
+                  "Choose both requirements. “Not required” means you don’t need that allowance; it does not mean baggage is included. Optional weight is the minimum allowance in kilograms, not multiplied by the number of pieces.",
+                )}
               </p>
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid items-start gap-3 sm:grid-cols-2">
                 {(["checked", "cabin"] as const).map((kind) => (
                   <BaggageFields
                     key={kind}
@@ -324,7 +354,7 @@ export function CheckMyFlightPage() {
           </fieldset>
           {Object.keys(errors).length > 0 && (
             <p role="alert" className="mt-4 text-sm text-destructive">
-              Check the highlighted fields and select both baggage requirements.
+              {t("Check the highlighted fields and select both baggage requirements.")}
             </p>
           )}
           <Button
@@ -334,31 +364,30 @@ export function CheckMyFlightPage() {
             aria-describedby={!canSearch ? "check-organization-status" : undefined}
           >
             {pending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> Checking your
-                flight…
-              </>
+              <LoaderCircle
+                className="animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
             ) : (
-              <>
-                Check my flight <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-              </>
+              <Search aria-hidden="true" />
             )}
+            {t(pending ? "Checking your flight…" : "Check my flight")}
           </Button>
-          {pending && (
-            <p role="status" className="mt-3 text-sm text-muted-foreground">
-              Checking alternatives against your requirements. This may take a moment.
-            </p>
-          )}
         </form>
       </WorkspaceSection>
+      <p role="status" className="sr-only">
+        {pending
+          ? t("Checking alternatives against your requirements. This may take a moment.")
+          : ""}
+      </p>
       {notice && (
-        <p role="alert" className="rounded-lg border border-destructive/30 p-4 text-sm">
-          {notice}
+        <p role="alert" className="rounded-lg border border-destructive/35 bg-card p-4 text-sm">
+          {message(notice)}
         </p>
       )}
-      {result && (
-        <div className="workspace-check-result min-w-0">
-          <FlightCheckResults result={result} />
+      {result && completed && (
+        <div className="workspace-check-result min-w-0 scroll-mt-16">
+          <FlightCheckResults result={result} input={completed.input} />
         </div>
       )}
     </div>
@@ -376,13 +405,16 @@ function Field({
   error?: string | undefined;
   children: ReactNode;
 }) {
+  const { t, message } = useLanguage();
   return (
-    <div className="grid content-start gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
+    <div className="min-w-0 grid content-start gap-1.5">
+      <Label htmlFor={id} className="text-[13px] text-muted-foreground">
+        {t(label)}
+      </Label>
       {children}
       {error && (
         <p id={`${id}-error`} className="text-xs text-destructive">
-          {error}
+          {message(error)}
         </p>
       )}
     </div>
@@ -400,6 +432,7 @@ function BaggageFields({
   onChange: (value: BaggageValues) => void;
   errors: Record<string, string>;
 }) {
+  const { t } = useLanguage();
   const label = kind === "checked" ? "Checked baggage" : "Cabin baggage";
   const prefix = `baggageRequirements.${kind}`;
   const error =
@@ -408,10 +441,10 @@ function BaggageFields({
     errors["baggageRequirements"];
   return (
     <fieldset
-      className="min-w-0 space-y-3 rounded-lg border p-4"
+      className="min-w-0 space-y-3 rounded-md border bg-background/50 p-3"
       aria-describedby="check-baggage-help"
     >
-      <legend className="px-1 text-sm font-semibold">{label}</legend>
+      <legend className="px-1 text-sm font-semibold">{t(label)}</legend>
       <Field id={`check-${kind}-status`} label={`${label} requirement`} error={error}>
         <select
           id={`check-${kind}-status`}
@@ -424,9 +457,9 @@ function BaggageFields({
           aria-invalid={!!error}
           aria-describedby={error ? `check-${kind}-status-error` : undefined}
         >
-          <option value="">Choose a requirement</option>
-          <option value="not_required">Not required</option>
-          <option value="required">Required</option>
+          <option value="">{t("Choose a requirement")}</option>
+          <option value="not_required">{t("Not required")}</option>
+          <option value="required">{t("Required")}</option>
         </select>
       </Field>
       {value.status === "required" && (

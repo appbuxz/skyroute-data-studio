@@ -338,6 +338,12 @@ describe("Check My Flight result presentation (synthetic mocked callable)", () =
     const results = await screen.findByRole("region", { name: "Flight check results" });
     expect(within(results).getByText("Your original total · user-provided")).toBeInTheDocument();
     expect(within(results).getByText("GBP 600.00")).toBeInTheDocument();
+    expect(
+      within(results).getByRole("heading", { name: "Comparison criteria" }),
+    ).toBeInTheDocument();
+    expect(
+      within(results).getByRole("heading", { name: "Best matching alternative" }),
+    ).toBeInTheDocument();
     expect(within(results).getByText("GBP 400.00")).toBeInTheDocument();
     expect(screen.getByText("Potential savings: GBP 400.00")).toBeInTheDocument();
     expect(screen.getByText("Airline: ZZ · Flight 101")).toBeInTheDocument();
@@ -409,6 +415,7 @@ describe("Check My Flight result presentation (synthetic mocked callable)", () =
     expect(
       screen.getByText(/Total price: Total price, passenger scope or mandatory charges unverified/),
     ).toBeInTheDocument();
+    expect(screen.getByText("Provider price · total unverified")).toBeInTheDocument();
     expect(screen.queryByText(/Informational price difference \(original/)).not.toBeInTheDocument();
     expect(screen.queryByText("Best potential savings")).not.toBeInTheDocument();
   });
