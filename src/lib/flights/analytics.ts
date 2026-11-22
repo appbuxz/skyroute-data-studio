@@ -11,16 +11,15 @@ export interface PriceAnalysis {
   priceSpreadPercent: number;
 }
 
+export function hasAnalyticPrice({ price }: FlightOffer): boolean {
+  return Number.isFinite(price.amount) && price.amount >= 0 && /^[A-Z]{3}$/.test(price.currency);
+}
+
 export function analyzeFlightPrices(
   offers: FlightOffer[],
 ): PriceAnalysis | null {
   // Exclude offers with invalid prices or currency codes.
-  const valid = offers.filter(
-    (offer) =>
-      Number.isFinite(offer.price.amount) &&
-      offer.price.amount >= 0 &&
-      /^[A-Z]{3}$/.test(offer.price.currency),
-  );
+  const valid = offers.filter(hasAnalyticPrice);
 
   const firstOffer = valid[0];
 

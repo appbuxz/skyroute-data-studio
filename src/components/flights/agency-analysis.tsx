@@ -23,9 +23,9 @@ import {
   getOrganizationMemberships,
   type OrganizationMembership,
 } from "@/lib/organizations/session.functions";
-import { analyzeFlightPrices } from "@/lib/flights/analytics";
+import { analyzeFlightPrices, hasAnalyticPrice } from "@/lib/flights/analytics";
 import { groupFlightSchedules } from "@/lib/flights/schedule-groups";
-import { CABIN_LABELS, type FlightOffer, type OrganizationId } from "@/lib/flights/types";
+import { CABIN_LABELS, type FlightItinerary, type FlightOffer, type OrganizationId } from "@/lib/flights/types";
 import { ComparablePrices } from "./comparable-prices";
 import { PriceHistogram } from "./price-histogram";
 import { FlightDateTime } from "./flight-date-time";
@@ -211,12 +211,7 @@ export function AnalyticsResults({
     { carrier: string; currency: string; minimum: number; count: number }
   >();
   for (const offer of search.offers) {
-    if (
-      !Number.isFinite(offer.price.amount) ||
-      offer.price.amount < 0 ||
-      !/^[A-Z]{3}$/.test(offer.price.currency)
-    )
-      continue;
+    if (!hasAnalyticPrice(offer)) continue;
     const key = JSON.stringify([offer.carrier, offer.price.currency]);
     const current = carriers.get(key);
     if (current) {
@@ -284,6 +279,7 @@ export function AnalyticsResults({
           </dl>
         </CardContent>
       </Card>
+      <KeyOffers search={search} cheapest={analysis?.cheapest} />
       {analysis ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Metric
@@ -399,6 +395,108 @@ export function AnalyticsResults({
         )}
       </p>
     </AnalyticsFrame>
+  );
+}
+
+function itineraryMinutes(itinerary?: FlightItinerary, summary?: FlightOffer) {
+  const minutes = itinerary?.durationMinutes;
+  if (minutes !== undefined && Number.isFinite(minutes) && minutes > 0) {
+    return Math.round(minutes);
+  }
+  const departure = itinerary?.segments[0]?.departureAt ?? summary?.departureAt;
+  const arrival = itinerary?.segments.at(-1)?.arrivalAt ?? summary?.arrivalAt;
+  const timezone = /(?:Z|[+-]\d{2}:?\d{2})$/i;
+  if (!departure || !arrival || !timezone.test(departure) || !timezone.test(arrival)) return;
+  const elapsed = Math.round((Date.parse(arrival) - Date.parse(departure)) / 60_000);
+  if (elapsed > 0) return elapsed;
+}
+
+function KeyOffers({ search, cheapest }: { search: WorkspaceSearch; cheapest?: FlightOffer }) {
+  const language = useLanguage();
+  const { t, number } = language;
+  const money = (amount: number, currency: string) => `${number(amount)} ${currency}`;
+  const duration = (offer: FlightOffer) => {
+    const outbound = itineraryMinutes(offer.outbound, offer);
+    if (outbound === undefined) return;
+    if (!search.params.returnDate && !offer.inbound) return outbound;
+    const inbound = itineraryMinutes(offer.inbound);
+    if (inbound !== undefined) return outbound + inbound;
+  };
+  const cheapestMinutes = cheapest && duration(cheapest);
+  let fastest = cheapestMinutes === undefined ? undefined : cheapest;
+  let fastestMinutes = cheapestMinutes;
+  for (const offer of search.offers) {
+    const minutes = duration(offer);
+    if (minutes !== undefined && (fastestMinutes === undefined || minutes < fastestMinutes)) {
+      fastest = offer;
+      fastestMinutes = minutes;
+    }
+  }
+  const sameOffer = cheapest !== undefined && cheapest === fastest;
+  const picks = [
+    { offer: cheapest, minutes: cheapestMinutes, title: sameOffer ? "Cheapest and fastest" : "Cheapest" },
+    { offer: sameOffer ? undefined : fastest, minutes: fastestMinutes, title: "Fastest" },
+  ];
+  if (!cheapest && !fastest) return null;
+
+  const timeDifference = cheapestMinutes !== undefined && fastestMinutes !== undefined
+    ? formatFlightDuration(cheapestMinutes - fastestMinutes, language)
+    : undefined;
+  const priceDifference = cheapest && fastest && hasAnalyticPrice(fastest) &&
+    cheapest.price.currency === fastest.price.currency
+    ? fastest.price.amount - cheapest.price.amount
+    : undefined;
+
+  return (
+    <div className="space-y-2">
+      <div className="grid gap-3 lg:grid-cols-2">
+        {picks.map(({ offer, minutes, title }) => offer && (
+          <Card key={title} className="min-w-0 shadow-none">
+            <CardContent className="space-y-1 break-words py-3 text-sm">
+              <h3 className="font-semibold text-primary">{t(title)}</h3>
+              <p className="font-medium">{offer.carrier} · {offer.flightNumber}</p>
+              <p className="text-xs text-muted-foreground">
+                {t("Departure:")} <FlightDateTime value={offer.departureAt} />
+              </p>
+              <p className="flex flex-wrap gap-x-3 gap-y-1">
+                {hasAnalyticPrice(offer) && (
+                  <span className="font-semibold">{money(offer.price.amount, offer.price.currency)}</span>
+                )}
+                {minutes !== undefined && <span>{formatFlightDuration(minutes, language)}</span>}
+              </p>
+              {[
+                { label: "Outbound", stops: offer.stops },
+                { label: "Return", stops: offer.inbound?.segments.length ? offer.inbound.segments.length - 1 : undefined },
+              ].map(({ label, stops }) => stops !== undefined && Number.isInteger(stops) && stops >= 0 && (
+                <p key={label} className="text-xs text-muted-foreground">
+                  {(search.params.returnDate || offer.inbound) && `${t(label)} · `}
+                  {stops === 0 ? t("Direct flight") : stops === 1 ? t("1 stop") : t("{count} stops", { count: number(stops) })}
+                </p>
+              ))}
+              {(["checked", "cabin"] as const).map((kind) => {
+                const allowance = formatOfferBaggage(offer, kind, language);
+                return allowance !== t("No data") && (
+                  <p key={kind} className="text-xs text-muted-foreground">
+                    {t(kind === "checked" ? "Checked baggage" : "Cabin baggage")} · {allowance}
+                  </p>
+                );
+              })}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      {cheapest && fastest && !sameOffer && (timeDifference || priceDifference !== undefined) && (
+        <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          {timeDifference && <span>{t("Fastest option saves {duration}", { duration: timeDifference })}</span>}
+          {priceDifference === 0 && <span>{t("Same price")}</span>}
+          {priceDifference !== undefined && priceDifference > 0 && (
+            <span>{t("Fastest option costs {price} more", {
+              price: money(priceDifference, cheapest.price.currency),
+            })}</span>
+          )}
+        </p>
+      )}
+    </div>
   );
 }
 
