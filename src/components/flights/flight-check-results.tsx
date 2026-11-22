@@ -103,8 +103,10 @@ export function FlightCheckResults({
               </strong>
             </p>
           )}
-          <div className="space-y-1 border-t pt-3 text-sm">
-            <h3 className="font-semibold">{t("Comparison criteria")}</h3>
+          <details className="space-y-1 border-t pt-3 text-sm">
+            <summary className="cursor-pointer font-medium text-muted-foreground">
+              {t("Comparison criteria")}
+            </summary>
             <p className="text-muted-foreground">
               {t("One-way")} · {t(CABIN_LABELS[input.cabinClass])} · {t("Passengers (adults)")}:{" "}
               {number(input.passengers)} · {result.originalPrice.currency}
@@ -135,7 +137,7 @@ export function FlightCheckResults({
                 })}
               </dl>
             )}
-          </div>
+          </details>
           {result.status === "search_failed" ? (
             <p className="text-sm">
               {t(

@@ -8,6 +8,8 @@ export const messages: Record<string, readonly [string, string]> = {
   "Workspace navigation": ["Навигация рабочего пространства", "Жұмыс кеңістігінің мәзірі"],
   "Collapse navigation": ["Свернуть меню", "Мәзірді жию"],
   "Expand navigation": ["Развернуть меню", "Мәзірді ашу"],
+  "Edit search": ["Изменить поиск", "Іздеуді өзгерту"],
+  "Passengers: {count}": ["Пассажиры: {count}", "Жолаушылар: {count}"],
   "Search details": ["Параметры поиска", "Іздеу параметрлері"],
   "Include in shortlist": ["В подборку", "Тізімге қосу"],
   "Include {flight} in the shortlist": [

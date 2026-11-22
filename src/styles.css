@@ -533,6 +533,15 @@
   font-size: 1.125rem;
 }
 
+.flight-search-panel-compact > h2 {
+  padding-block: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.flight-search-panel-compact > h2 button > span > span:first-child {
+  order: 1;
+}
+
 .flight-search-panel > [data-state] {
   padding-bottom: var(--search-panel-padding);
 }

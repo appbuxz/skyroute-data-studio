@@ -59,6 +59,7 @@ const cases = [
     autonym: "English",
     settings: "Settings",
     search: "Search flights",
+    edit: "Edit search",
     origin: "Origin",
     destination: "Destination",
     date: "Departure date",
@@ -75,6 +76,7 @@ const cases = [
     autonym: "Русский",
     settings: "Настройки",
     search: "Найти рейсы",
+    edit: "Изменить поиск",
     origin: "Откуда",
     destination: "Куда",
     date: "Дата вылета",
@@ -91,6 +93,7 @@ const cases = [
     autonym: "Қазақша",
     settings: "Баптаулар",
     search: "Рейстерді іздеу",
+    edit: "Іздеуді өзгерту",
     origin: "Қайдан",
     destination: "Қайда",
     date: "Ұшу күні",
@@ -171,6 +174,14 @@ describe.each(cases)("$language workspace", (labels) => {
       screen.getAllByText(`${formatter.number(180000).replace(/\s/g, " ")} KZT`).length,
     ).toBeGreaterThan(0);
     expect(screen.getByText(`${formatter.number(500)} USD`)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: new RegExp(labels.edit) }))
+      .toHaveAttribute("aria-expanded", "false");
+    for (const itinerary of screen.getAllByRole("region", { name: labels.outbound })) {
+      expect(itinerary).not.toBeVisible();
+    }
+    for (const details of document.querySelectorAll(".flight-offer-details")) {
+      details.setAttribute("open", "");
+    }
     expect(screen.getAllByRole("region", { name: labels.outbound })).toHaveLength(3);
     expect(screen.getByLabelText(labels.date)).toHaveValue(
       labels.language === "en" ? "10/12/2099" : "10.12.2099",
@@ -178,10 +189,7 @@ describe.each(cases)("$language workspace", (labels) => {
     expect(screen.getByLabelText(labels.origin)).toHaveValue("ALA");
     expect(screen.getByLabelText(labels.destination)).toHaveValue("IST");
     fireEvent.click(screen.getByRole("button", { name: labels.disclosure }));
-    const compactTime = document.querySelector(
-      '.flight-offer-schedule time[datetime="2099-12-10T08:00:00+05:00"]',
-    );
-    expect(compactTime).toHaveTextContent("08:00");
+    expect(document.querySelector(".flight-offer-schedule time")).toBeNull();
     const date = document.querySelector(
       '.flight-offer-details time[datetime="2099-12-10T08:00:00+05:00"]',
     );

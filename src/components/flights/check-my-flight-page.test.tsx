@@ -338,9 +338,9 @@ describe("Check My Flight result presentation (synthetic mocked callable)", () =
     const results = await screen.findByRole("region", { name: "Flight check results" });
     expect(within(results).getByText("Your original total · user-provided")).toBeInTheDocument();
     expect(within(results).getByText("GBP 600.00")).toBeInTheDocument();
-    expect(
-      within(results).getByRole("heading", { name: "Comparison criteria" }),
-    ).toBeInTheDocument();
+    const criteria = within(results).getByText("Comparison criteria");
+    expect(criteria.closest("details")).not.toHaveAttribute("open");
+    expect(criteria).toBeVisible();
     expect(
       within(results).getByRole("heading", { name: "Best matching alternative" }),
     ).toBeInTheDocument();
