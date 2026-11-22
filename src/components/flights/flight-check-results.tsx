@@ -7,7 +7,7 @@ import type {
   OfferRequirementEvaluation,
 } from "@/lib/flights/flight-check";
 import { CABIN_LABELS, type FlightOffer } from "@/lib/flights/types";
-import { FlightItinerary, formatFlightDuration } from "./flight-itinerary";
+import { FlightItinerary, OfferConnections, formatFlightDuration } from "./flight-itinerary";
 import { FlightDateTime } from "./flight-date-time";
 import { formatOfferBaggage } from "./flight-shortlist";
 
@@ -334,6 +334,7 @@ function OfferCard({
             </p>
           </div>
         </div>
+        <OfferConnections offer={offer} className="space-y-1 text-xs text-muted-foreground" />
         {category === "qualifying" && (
           <p className="text-sm font-medium text-accent-foreground">
             {cheaper
@@ -403,7 +404,10 @@ function Itinerary({ offer, label }: { offer: FlightOffer; label: string }) {
         {t("Times are local to each airport; UTC offsets are shown.")}
       </p>
       {offer.outbound?.segments.length ? (
-        <FlightItinerary itinerary={offer.outbound} label={label} />
+        <FlightItinerary
+          itinerary={offer.outbound}
+          label={offer.inbound ? `${label} · ${t("Outbound")}` : label}
+        />
       ) : (
         <div className="text-sm">
           <p>
@@ -416,7 +420,7 @@ function Itinerary({ offer, label }: { offer: FlightOffer; label: string }) {
         </div>
       )}
       {offer.inbound?.segments.length ? (
-        <FlightItinerary itinerary={offer.inbound} label={`${label} return`} />
+        <FlightItinerary itinerary={offer.inbound} label="Return itinerary" />
       ) : null}
     </div>
   );

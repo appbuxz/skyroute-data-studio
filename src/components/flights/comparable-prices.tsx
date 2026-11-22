@@ -4,6 +4,7 @@ import { WorkspaceSection } from "@/components/common/workspace-section";
 import type { FlightSearchSnapshot } from "@/lib/flights/types";
 import { analyzeComparablePrices } from "@/lib/flights/comparable-prices";
 import { FlightDateTime } from "./flight-date-time";
+import { OfferConnections } from "./flight-itinerary";
 
 export function ComparablePrices({
   search,
@@ -46,6 +47,7 @@ export function ComparablePrices({
                   {t(CABIN_LABELS[offer.cabinClass])} ·{" "}
                   {t("{count} offers", { count: number(group.offers.length) })}
                 </p>
+                <OfferConnections offer={offer} className="space-y-1 text-xs text-muted-foreground" />
                 <p>
                   {t("Minimum:")} {number(group.minimumPrice)} {group.currency} · {t("Maximum:")}{" "}
                   {number(group.maximumPrice)} {group.currency}

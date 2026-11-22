@@ -1,5 +1,6 @@
 import { useLanguage } from "@/lib/i18n/language-context";
-import type { FlightItinerary as Itinerary } from "@/lib/flights/types";
+import type { FlightItinerary as Itinerary, FlightOffer, FlightSegment } from "@/lib/flights/types";
+import { connectionDuration } from "@/lib/flights/connection-duration";
 import { FlightDateTime } from "./flight-date-time";
 
 export function formatFlightDuration(minutes: number, { t, number }: ReturnType<typeof useLanguage>) {
@@ -8,6 +9,60 @@ export function formatFlightDuration(minutes: number, { t, number }: ReturnType<
   return hours
     ? `${t("{hours}h", { hours: number(hours) })}${remainder ? ` ${t("{minutes}m", { minutes: number(remainder) })}` : ""}`
     : t("{minutes}m", { minutes: number(remainder) });
+}
+
+export function FlightConnection({
+  segment,
+  next,
+}: {
+  segment: FlightSegment;
+  next: FlightSegment;
+}) {
+  const language = useLanguage();
+  const { t } = language;
+  const from = segment.destination;
+  const to = next.origin;
+  const transfer = from && to && from !== to;
+  const label = transfer
+    ? t("Airport transfer: {from} → {to}", { from, to })
+    : from || to
+      ? t("Connection at {airport}", { airport: from || to })
+      : t("Connection");
+  const minutes = connectionDuration(segment.arrivalAt, next.departureAt);
+  if (minutes === undefined) return label;
+  const duration = formatFlightDuration(minutes, language);
+  return `${label} · ${transfer ? t("{duration} between flights", { duration }) : duration}`;
+}
+
+export function OfferConnections({
+  offer,
+  className,
+}: {
+  offer: FlightOffer;
+  className?: string;
+}) {
+  const { t } = useLanguage();
+  const directions = [
+    { label: "Outbound", segments: offer.outbound?.segments },
+    { label: "Return", segments: offer.inbound?.segments },
+  ];
+  if (!directions.some(({ segments }) => segments && segments.length > 1)) return null;
+  return (
+    <div className={className}>
+      {directions.map(({ label, segments }) => segments && segments.length > 1 && (
+        <div key={label} className="break-inside-avoid">
+          {offer.inbound && <p className="font-medium">{t(label)}</p>}
+          <ul className="space-y-0.5">
+            {segments.slice(1).map((next, index) => (
+              <li key={index}>
+                <FlightConnection segment={segments[index]!} next={next} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function FlightItinerary({ itinerary, label }: { itinerary: Itinerary; label: string }) {
@@ -50,12 +105,7 @@ export function FlightItinerary({ itinerary, label }: { itinerary: Itinerary; la
               )}
               {next && (
                 <p className="rounded bg-muted px-2 py-1">
-                  {segment.destination === next.origin
-                    ? t("Connection at {airport}", { airport: segment.destination })
-                    : t("Airport transfer: {from} → {to}", {
-                        from: segment.destination,
-                        to: next.origin,
-                      })}
+                  <FlightConnection segment={segment} next={next} />
                 </p>
               )}
             </li>

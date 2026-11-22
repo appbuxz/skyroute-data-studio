@@ -29,7 +29,7 @@ import { CABIN_LABELS, type FlightItinerary, type FlightOffer, type Organization
 import { ComparablePrices } from "./comparable-prices";
 import { PriceHistogram } from "./price-histogram";
 import { FlightDateTime } from "./flight-date-time";
-import { formatFlightDuration } from "./flight-itinerary";
+import { FlightConnection, OfferConnections, formatFlightDuration } from "./flight-itinerary";
 import { formatOfferBaggage } from "./flight-shortlist";
 
 function AnalyticsFrame({
@@ -473,6 +473,7 @@ function KeyOffers({ search, cheapest }: { search: WorkspaceSearch; cheapest?: F
                   {stops === 0 ? t("Direct flight") : stops === 1 ? t("1 stop") : t("{count} stops", { count: number(stops) })}
                 </p>
               ))}
+              <OfferConnections offer={offer} className="space-y-1 text-xs text-muted-foreground" />
               {(["checked", "cabin"] as const).map((kind) => {
                 const allowance = formatOfferBaggage(offer, kind, language);
                 return allowance !== t("No data") && (
@@ -528,7 +529,7 @@ function ScheduleItinerary({ offer }: { offer: FlightOffer }) {
           </p>
           {itinerary?.segments.length ? (
             <ol className="space-y-2">
-              {itinerary.segments.map((s, i) => (
+              {itinerary.segments.map((s, i, segments) => (
                 <li key={i} className="space-y-1">
                   <p className="font-medium">
                     {s.origin} → {s.destination} · {s.carrier} {s.flightNumber}
@@ -539,6 +540,11 @@ function ScheduleItinerary({ offer }: { offer: FlightOffer }) {
                   <p className="text-muted-foreground">
                     {t("Arrival:")} <FlightDateTime value={s.arrivalAt} />
                   </p>
+                  {segments[i + 1] && (
+                    <p className="font-medium">
+                      <FlightConnection segment={s} next={segments[i + 1]!} />
+                    </p>
+                  )}
                 </li>
               ))}
             </ol>

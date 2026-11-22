@@ -754,6 +754,8 @@ export const messages: Record<string, readonly [string, string]> = {
   "{hours}h": ["{hours} ч", "{hours} сағ"],
   "{minutes}m": ["{minutes} мин", "{minutes} мин"],
   "Connection at {airport}": ["Пересадка в {airport}", "{airport} әуежайында ауысу"],
+  Connection: ["Пересадка", "Ауысып отыру"],
+  "{duration} between flights": ["{duration} между рейсами", "Рейстер арасы: {duration}"],
   "Airport transfer: {from} → {to}": [
     "Смена аэропорта: {from} → {to}",
     "Әуежай ауыстыру: {from} → {to}",

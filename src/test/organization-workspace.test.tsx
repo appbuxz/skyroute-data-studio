@@ -243,6 +243,7 @@ describe("organization workspace", () => {
       expect(first).toHaveTextContent("KC · 641");
       expect(first).toHaveTextContent("10 Dec 2099 · 20:40 (UTC+05:00)");
       expect(first).toHaveTextContent("10 Dec 2099 · 22:15 (UTC+05:00)");
+      expect(first).toHaveTextContent("Connection at NQZ · 1h 35m");
       expect(second).toHaveTextContent("NQZ → IST");
       expect(second).toHaveTextContent("KC · 917");
       expect(second).toHaveTextContent("10 Dec 2099 · 23:50 (UTC+05:00)");
@@ -266,6 +267,25 @@ describe("organization workspace", () => {
     checkSegments();
     expect(mocks.search).toHaveBeenCalledOnce();
     expect(mocks.confirmPrice).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the stop count in the price check when the provider has no segment details", async () => {
+    const response = result();
+    if (response.status !== "ok") throw new Error("Expected test offers");
+    response.offers[0]!.stops = 2;
+    response.offers[0]!.checkoutToken = "summary-only-token";
+    mocks.search.mockResolvedValue(response);
+    mocks.memberships.mockResolvedValue([agencies[0]]);
+    mocks.confirmPrice.mockResolvedValue({ status: "confirmed", price: response.offers[0]!.price });
+
+    render(<Workspace />);
+    await ready();
+    submitSearch();
+    fireEvent.click(await screen.findByRole("button", { name: "Select flight" }));
+
+    const dialog = within(screen.getByRole("dialog"));
+    expect(dialog.getByText("2 stops · Segment details unavailable")).toBeVisible();
+    await waitFor(() => expect(mocks.confirmPrice).toHaveBeenCalledOnce());
   });
 
   it("reviews and edits passenger details without booking and submits only once on final confirmation", async () => {
@@ -496,20 +516,31 @@ describe("organization workspace", () => {
     };
     mocks.memberships.mockResolvedValue([agencies[0]]);
     mocks.search.mockResolvedValue(response);
+    window.localStorage.setItem("flight-analytics:interface-style", "analyst");
     render(<Workspace />);
     await ready();
     submitSearch();
+    const summary = await screen.findByText("Flight details");
+    expect(summary.parentElement).not.toHaveAttribute("open");
+    const connections = screen.getAllByText("Connection at NQZ · 30m");
+    expect(connections.filter((connection) => !connection.closest("details"))).toHaveLength(1);
+    expect(connections.find((connection) => !connection.closest("details"))).toBeVisible();
+    summary.parentElement!.setAttribute("open", "");
     await screen.findByRole("region", { name: "Outbound itinerary" });
     expect(screen.getByText("1. ALA → NQZ")).toBeInTheDocument();
     expect(screen.getByText("2. NQZ → IST")).toBeInTheDocument();
     expect(screen.getByText("KC · 100")).toBeInTheDocument();
     expect(screen.getByText("TK · 200")).toBeInTheDocument();
-    expect(screen.getByText("Connection at NQZ")).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Outbound itinerary" }))
+      .getByText("Connection at NQZ · 30m")).toBeInTheDocument();
     expect(screen.getByText("Total journey duration: 6h")).toBeInTheDocument();
     expect(
       screen.getAllByText(`${offer.price.amount.toLocaleString()} KZT`).length,
     ).toBeGreaterThan(0);
     expect(mocks.search).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("checkbox", { name: /in the shortlist/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Preview flight shortlist" }));
+    expect(within(screen.getByRole("dialog")).getByText("Connection at NQZ · 30m")).toBeVisible();
   });
 
   it("disables search during membership loading", async () => {

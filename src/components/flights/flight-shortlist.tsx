@@ -17,6 +17,7 @@ import { useLanguage } from "@/lib/i18n/language-context";
 import { FLIGHT_SHORTLIST_LIMIT, type ShortlistHotel } from "@/lib/flights/search-session";
 import { CABIN_LABELS, type FlightOffer, type FlightSearchSnapshot } from "@/lib/flights/types";
 import { FlightDateTime } from "./flight-date-time";
+import { OfferConnections } from "./flight-itinerary";
 import { ShortlistHotelForm } from "./shortlist-hotel-form";
 
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -469,6 +470,7 @@ function ShortlistOffer({ offer, showPriceLabel }: { offer: FlightOffer; showPri
           <FlightDateTime value={segment.arrivalAt} />
         </p>
       ))}
+      <OfferConnections offer={offer} className="space-y-1 text-xs" />
       <div className="space-y-1 text-xs">
         <p>
           {t("Checked baggage")} · {formatOfferBaggage(offer, "checked", language)}

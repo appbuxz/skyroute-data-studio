@@ -128,6 +128,7 @@ describe("analytics presentation", () => {
     expect(fastestCard.getByText(`${(215000).toLocaleString()} KZT`)).toBeInTheDocument();
     expect(fastestCard.getByText("6h")).toBeInTheDocument();
     expect(fastestCard.getByText("1 stop")).toBeInTheDocument();
+    expect(fastestCard.getByText("Connection at NQZ · 1h 30m")).toBeInTheDocument();
     expect(fastestCard.getByText("Checked baggage · 20 kg")).toBeInTheDocument();
     expect(fastestCard.queryByText(/Cabin baggage/)).not.toBeInTheDocument();
     expect(screen.getByText("Fastest option saves 2h")).toBeInTheDocument();
@@ -157,7 +158,8 @@ describe("analytics presentation", () => {
     render(<AnalyticsResults search={search} />);
     const cheapestCard = within(screen.getByRole("heading", { name: "Cheapest" }).parentElement!);
     const fastestCard = within(screen.getByRole("heading", { name: "Fastest" }).parentElement!);
-    expect(cheapestCard.queryByText(/\dh/)).not.toBeInTheDocument();
+    expect(cheapestCard.queryByText(/^\d+h(?: \d+m)?$/)).not.toBeInTheDocument();
+    expect(cheapestCard.getByText("Connection at NQZ · 1h 30m")).toBeInTheDocument();
     expect(fastestCard.getByText("13h")).toBeInTheDocument();
     expect(fastestCard.queryByText(/KZT|baggage/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Fastest option (costs|saves)/)).not.toBeInTheDocument();
@@ -176,6 +178,7 @@ describe("analytics presentation", () => {
     expect(within(table).getAllByRole("row")).toHaveLength(3);
     expect(within(table).getByText("2")).toBeInTheDocument();
     expect(within(table).getByText("Outbound · 1 stop · 8h")).toBeInTheDocument();
+    expect(within(table).getByText("Connection at NQZ · 1h 30m")).toBeInTheDocument();
     expect(within(table).getByText("Checked baggage · 20 kg")).toBeInTheDocument();
     expect(within(table).queryByText("Cabin baggage · 8 kg")).not.toBeInTheDocument();
     expect(within(table).getByText(/ALA → NQZ/)).toBeInTheDocument();
