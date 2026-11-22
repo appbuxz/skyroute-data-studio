@@ -21,7 +21,7 @@ import { useAppearance } from "@/lib/appearance/appearance-context";
 import { PageHeader } from "@/components/common/page-header";
 import { TestBookingStatusDialog } from "@/components/flights/test-booking-status-dialog";
 import { FlightPriceDialog } from "@/components/flights/flight-price-dialog";
-import { FlightItinerary, formatFlightDuration } from "@/components/flights/flight-itinerary";
+import { FlightItinerary, OfferConnections, formatFlightDuration } from "@/components/flights/flight-itinerary";
 import { FlightDateTime } from "@/components/flights/flight-date-time";
 import { ComparablePrices } from "@/components/flights/comparable-prices";
 import { FlightShortlist, formatOfferBaggage } from "@/components/flights/flight-shortlist";
@@ -590,6 +590,7 @@ function SearchForm({
                           </p>
                         </div>
 
+                        <OfferConnections offer={offer} className="space-y-1 text-xs text-muted-foreground" />
                         <details className="flight-offer-details" open={!compactOffers}>
                           <summary className="cursor-pointer rounded-sm text-sm font-medium text-primary">
                             {t("Flight details")}

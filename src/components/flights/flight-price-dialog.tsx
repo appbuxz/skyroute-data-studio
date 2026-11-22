@@ -126,7 +126,12 @@ export function FlightPriceDialog({
             <p>
               {t("Arrival:")} <FlightDateTime value={offer.arrivalAt} />
             </p>
-            {offer.stops > 0 && <p>{t("Segment details unavailable")}</p>}
+            {offer.stops > 0 && (
+              <p>
+                {offer.stops === 1 ? t("1 stop") : t("{count} stops", { count: number(offer.stops) })}
+                {" · "}{t("Segment details unavailable")}
+              </p>
+            )}
           </div>
         )}
         {offer.inbound?.segments.length ? (

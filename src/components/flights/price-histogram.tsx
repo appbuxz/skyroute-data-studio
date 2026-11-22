@@ -1,14 +1,16 @@
 import { useId } from "react";
+import { useLanguage } from "@/lib/i18n/language-context";
 import type { FlightOffer } from "@/lib/flights/types";
 import { buildPriceHistograms } from "@/lib/flights/price-histogram";
 
-const compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
-
 export function PriceHistogram({ offers }: { offers: FlightOffer[] }) {
+  const { t, number } = useLanguage();
   const id = useId();
+  const compact = (value: number) =>
+    number(value, { notation: "compact", maximumFractionDigits: 1 });
   const distributions = buildPriceHistograms(offers);
   if (!distributions.length)
-    return <p className="text-sm text-muted-foreground">No valid prices available.</p>;
+    return <p className="text-sm text-muted-foreground">{t("No valid prices available.")}</p>;
   return distributions.map(({ currency, bins, count }) => {
     const maximum = Math.max(...bins.map((bin) => bin.count));
     const step = 420 / bins.length;
@@ -17,7 +19,9 @@ export function PriceHistogram({ offers }: { offers: FlightOffer[] }) {
       <figure key={currency} className="min-w-0">
         <figcaption className="mb-1 flex justify-between text-xs">
           <span className="font-medium">{currency}</span>
-          <span className="text-muted-foreground">{count} offers</span>
+          <span className="text-muted-foreground">
+            {t("{count} offers", { count: number(count) })}
+          </span>
         </figcaption>
         <svg
           viewBox="0 0 480 190"
@@ -26,11 +30,13 @@ export function PriceHistogram({ offers }: { offers: FlightOffer[] }) {
           className="w-full text-muted-foreground [&_text]:text-[16px] sm:[&_text]:text-[10px]"
         >
           <title id={`${id}-${currency}`}>
-            Price distribution in {currency}: {count} offers. Horizontal axis: price ranges.
-            Vertical axis: offer count.
+            {t(
+              "Price distribution in {currency}: {count} offers. Horizontal axis: price ranges. Vertical axis: offer count.",
+              { currency, count: number(count) },
+            )}
           </title>
           <text x="4" y="12" fill="currentColor" fontSize="10">
-            Offers
+            {t("Offers")}
           </text>
           {ticks.map((tick) => {
             const y = 130 - (tick / maximum) * 104;
@@ -38,7 +44,7 @@ export function PriceHistogram({ offers }: { offers: FlightOffer[] }) {
               <g key={tick}>
                 <line x1="38" x2="466" y1={y} y2={y} stroke="var(--border)" />
                 <text x="29" y={y + 3} textAnchor="end" fill="currentColor" fontSize="10">
-                  {tick}
+                  {number(tick)}
                 </text>
               </g>
             );
@@ -48,13 +54,21 @@ export function PriceHistogram({ offers }: { offers: FlightOffer[] }) {
             const x = 42 + i * step;
             const range =
               bin.lower === bin.upper
-                ? bin.lower.toLocaleString()
-                : `${bin.lower.toLocaleString()}–${bin.upper.toLocaleString()}`;
+                ? number(bin.lower)
+                : `${number(bin.lower)}–${number(bin.upper)}`;
             return (
               <g key={i}>
                 <title>
-                  {range} {currency}: {bin.count} offers
-                  {i === bins.length - 1 ? " (upper bound included)" : " (upper bound excluded)"}
+                  {t(
+                    i === bins.length - 1
+                      ? "{range} {currency}: {count} offers (upper bound included)"
+                      : "{range} {currency}: {count} offers (upper bound excluded)",
+                    {
+                      range,
+                      currency,
+                      count: number(bin.count),
+                    },
+                  )}
                 </title>
                 <rect
                   x={x}
@@ -72,7 +86,7 @@ export function PriceHistogram({ offers }: { offers: FlightOffer[] }) {
                     fill="var(--foreground)"
                     fontSize="10"
                   >
-                    {bin.count}
+                    {number(bin.count)}
                   </text>
                 )}
                 <text
@@ -82,10 +96,10 @@ export function PriceHistogram({ offers }: { offers: FlightOffer[] }) {
                   fill="currentColor"
                   fontSize="10"
                 >
-                  {compact.format(bin.lower)}
+                  {compact(bin.lower)}
                   {bin.lower !== bin.upper && (
                     <tspan x={x + (step - 8) / 2} dy="16">
-                      –{compact.format(bin.upper)}
+                      –{compact(bin.upper)}
                     </tspan>
                   )}
                 </text>
@@ -93,7 +107,7 @@ export function PriceHistogram({ offers }: { offers: FlightOffer[] }) {
             );
           })}
           <text x="252" y="183" textAnchor="middle" fill="currentColor" fontSize="10">
-            Price range · {currency}
+            {t("Price range · {currency}", { currency })}
           </text>
         </svg>
       </figure>

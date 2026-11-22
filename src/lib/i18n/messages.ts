@@ -103,6 +103,118 @@ export const messages: Record<string, readonly [string, string]> = {
     "Недавние поиски в этом браузере",
     "Осы браузердегі соңғы іздеулер",
   ],
+  "Agency analytics": [
+    "Аналитика агентства",
+    "Агенттік талдауы",
+  ],
+  "Compare the fares and schedules from your agency’s latest search.": [
+    "Сравните тарифы и расписание из последнего поиска вашего агентства.",
+    "Агенттігіңіздің соңғы іздеуіндегі тарифтер мен кестені салыстырыңыз.",
+  ],
+  "Back to flight search": [
+    "Вернуться к поиску рейсов",
+    "Рейс іздеуіне оралу",
+  ],
+  "Checking analytics access…": [
+    "Проверяем доступ к аналитике…",
+    "Талдауға рұқсат тексеріліп жатыр…",
+  ],
+  "Verifying your organization membership before showing agency data.": [
+    "Проверяем членство перед показом данных агентства.",
+    "Агенттік деректерін көрсету алдында мүшелігіңізді тексереміз.",
+  ],
+  "Unable to verify analytics access": [
+    "Не удалось проверить доступ к аналитике",
+    "Талдауға рұқсатты тексеру мүмкін болмады",
+  ],
+  "The membership check could not be completed. Try again; no agency data is displayed.": [
+    "Не удалось проверить членство. Повторите попытку. Данные агентства скрыты.",
+    "Мүшелікті тексеру мүмкін болмады. Қайталап көріңіз. Агенттік деректері жасырылған.",
+  ],
+  "Analytics isn’t available for your account": [
+    "Аналитика недоступна для вашего аккаунта",
+    "Талдау тіркелгіңіз үшін қолжетімсіз",
+  ],
+  "Agency analytics requires current membership in a travel agency organization. You can still search and compare flights with your account.": [
+    "Для аналитики нужно действующее членство в туристическом агентстве. Поиск и сравнение рейсов доступны с вашим аккаунтом.",
+    "Талдау үшін туристік агенттікке мүше болу қажет. Тіркелгіңізбен рейстерді іздеп, салыстыра аласыз.",
+  ],
+  "No flight results yet": [
+    "Результатов поиска пока нет",
+    "Іздеу нәтижелері әлі жоқ",
+  ],
+  "Run a flight search for your organization to explore fares, carriers and schedules here.": [
+    "Выполните поиск от имени агентства, чтобы увидеть здесь тарифы, перевозчиков и расписание.",
+    "Тарифтерді, тасымалдаушыларды және кестені көру үшін агенттік атынан рейстер іздеңіз.",
+  ],
+  "Select an organization before viewing flight analysis.": [
+    "Выберите организацию, чтобы открыть аналитику рейсов.",
+    "Рейс талдауын көру үшін ұйымды таңдаңыз.",
+  ],
+  "Highest price": [
+    "Максимальная цена",
+    "Ең жоғары баға",
+  ],
+  "Price analysis is unavailable. Offers may be empty, invalid, or use different currencies. Original offer currencies are retained below.": [
+    "Общий анализ цен недоступен. Предложений может не быть, цены могут быть некорректными или указаны в разных валютах. Ниже цены представлены в исходных валютах.",
+    "Жалпы баға талдауы қолжетімсіз. Ұсыныстар болмауы мүмкін немесе бағалар жарамсыз не әртүрлі валютада берілген. Төменде бағалар бастапқы валютада көрсетілген.",
+  ],
+  "Offer comparison": [
+    "Сравнение предложений",
+    "Ұсыныстарды салыстыру",
+  ],
+  "Itineraries: {count}. Fares are grouped by schedule, with prices shown in their original currencies.": [
+    "Маршрутов: {count}. Тарифы сгруппированы по расписанию, цены указаны в исходных валютах.",
+    "Бағыттар: {count}. Тарифтер кесте бойынша топталған, бағалар бастапқы валютада көрсетілген.",
+  ],
+  "Full itinerary": [
+    "Полный маршрут",
+    "Толық бағыт",
+  ],
+  "Original prices": [
+    "Цены в исходной валюте",
+    "Бастапқы валютадағы бағалар",
+  ],
+  "Flight schedules mobile": [
+    "Список расписаний рейсов",
+    "Рейс кестелерінің тізімі",
+  ],
+  "From {price}": [
+    "От {price}",
+    "{price} бастап",
+  ],
+  "Price spread is not guaranteed savings. Fare conditions, baggage, transfers and availability may differ. Prices reflect the search snapshot, not a live booking quote.": [
+    "Разброс цен не гарантирует экономию. Условия тарифа, багаж, пересадки и наличие мест могут отличаться. Показаны цены на момент поиска.",
+    "Баға айырмасы үнемге кепілдік бермейді. Тариф шарттары, жүк, ауысулар және орындар әртүрлі болуы мүмкін. Іздеу кезіндегі бағалар көрсетілген.",
+  ],
+  "Outbound": [
+    "Туда",
+    "Бару",
+  ],
+  "Return": [
+    "Обратно",
+    "Қайту",
+  ],
+  "Prices and baggage by offer": [
+    "Цены и багаж по каждому предложению",
+    "Әр ұсыныстың бағасы мен жүк нормасы",
+  ],
+  "Price distribution in {currency}: {count} offers. Horizontal axis: price ranges. Vertical axis: offer count.": [
+    "Распределение цен в {currency}. Предложений: {count}. По горизонтали — диапазоны цен, по вертикали — число предложений.",
+    "Бағалардың {currency} валютасында үлестірімі. Ұсыныстар: {count}. Көлденең ось — баға ауқымы, тік ось — ұсыныстар саны.",
+  ],
+  "Price range · {currency}": [
+    "Диапазон цен · {currency}",
+    "Баға ауқымы · {currency}",
+  ],
+  "{range} {currency}: {count} offers (upper bound included)": [
+    "{range} {currency}. Предложений: {count}, верхняя граница включена.",
+    "{range} {currency}. Ұсыныстар: {count}, жоғарғы шегі кіреді.",
+  ],
+  "{range} {currency}: {count} offers (upper bound excluded)": [
+    "{range} {currency}. Предложений: {count}, верхняя граница не включена.",
+    "{range} {currency}. Ұсыныстар: {count}, жоғарғы шегі кірмейді.",
+  ],
   "Flight schedules": ["Расписание рейсов", "Рейс кестесі"],
   "Price distribution": ["Распределение цен", "Бағалардың үлестірімі"],
   "Carrier comparison": ["Сравнение авиакомпаний", "Әуекомпанияларын салыстыру"],
@@ -618,6 +730,12 @@ export const messages: Record<string, readonly [string, string]> = {
   ],
   "Direct flight": ["Прямой рейс", "Тікелей рейс"],
   "1 stop": ["1 пересадка", "1 аялдау"],
+  Cheapest: ["Самый дешёвый", "Ең арзан"],
+  Fastest: ["Самый быстрый", "Ең жылдам"],
+  "Cheapest and fastest": ["Самый дешёвый и быстрый", "Ең арзан әрі ең жылдам"],
+  "Fastest option saves {duration}": ["Самый быстрый вариант экономит {duration}", "Ең жылдам нұсқа {duration} үнемдейді"],
+  "Fastest option costs {price} more": ["Самый быстрый вариант дороже на {price}", "Ең жылдам нұсқа {price} қымбат"],
+  "Same price": ["Цена одинаковая", "Бағасы бірдей"],
   "{count} stops": ["Пересадки: {count}", "Аялдау саны: {count}"],
   "Outbound itinerary": ["Маршрут туда", "Бару бағыты"],
   "Return itinerary": ["Обратный маршрут", "Қайту бағыты"],
@@ -638,6 +756,8 @@ export const messages: Record<string, readonly [string, string]> = {
   "{hours}h": ["{hours} ч", "{hours} сағ"],
   "{minutes}m": ["{minutes} мин", "{minutes} мин"],
   "Connection at {airport}": ["Пересадка в {airport}", "{airport} әуежайында ауысу"],
+  Connection: ["Пересадка", "Ауысып отыру"],
+  "{duration} between flights": ["{duration} между рейсами", "Рейстер арасы: {duration}"],
   "Airport transfer: {from} → {to}": [
     "Смена аэропорта: {from} → {to}",
     "Әуежай ауыстыру: {from} → {to}",

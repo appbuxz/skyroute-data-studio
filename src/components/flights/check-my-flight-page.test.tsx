@@ -351,7 +351,7 @@ describe("Check My Flight result presentation (synthetic mocked callable)", () =
     expect(screen.getByText("Checked baggage: Explicitly not required")).toBeInTheDocument();
     expect(screen.getByText("1. JFK → DFW")).toBeInTheDocument();
     expect(screen.getByText("2. DFW → LAX")).toBeInTheDocument();
-    expect(screen.getByText("Connection at DFW")).toBeInTheDocument();
+    expect(screen.getAllByText("Connection at DFW · 2h")).toHaveLength(2);
     expect(screen.getByText("Total journey duration: 8h")).toBeInTheDocument();
     expect(screen.getByText("1 stop")).toBeInTheDocument();
     expect(screen.getByText("10 Dec 2099 · 08:00 (UTC-05:00)")).toBeInTheDocument();
