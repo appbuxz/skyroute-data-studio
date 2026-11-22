@@ -14,6 +14,8 @@ export function WorkspaceSection({
   className,
   contentClassName,
   keepMounted = false,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   title: string;
   summary?: ReactNode;
@@ -23,11 +25,14 @@ export function WorkspaceSection({
   className?: string;
   contentClassName?: string;
   keepMounted?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const { t } = useLanguage();
-  const [open, setOpen] = useState(defaultOpen);
+  const [uncontrolledOpen, setOpen] = useState(defaultOpen);
+  const open = controlledOpen ?? uncontrolledOpen;
   return (
-    <Collapsible open={open} onOpenChange={setOpen} asChild>
+    <Collapsible open={open} onOpenChange={onOpenChange ?? setOpen} asChild>
       <section
         aria-label={t(label ?? title)}
         className={cn("workspace-card min-w-0 rounded-lg border bg-card text-card-foreground", className)}

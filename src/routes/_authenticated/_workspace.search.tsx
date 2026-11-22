@@ -17,11 +17,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAppearance } from "@/lib/appearance/appearance-context";
 import { PageHeader } from "@/components/common/page-header";
 import { TestBookingStatusDialog } from "@/components/flights/test-booking-status-dialog";
 import { FlightPriceDialog } from "@/components/flights/flight-price-dialog";
-import { FlightItinerary, OfferConnections, formatFlightDuration } from "@/components/flights/flight-itinerary";
+import { FlightItinerary, formatFlightDuration } from "@/components/flights/flight-itinerary";
 import { FlightDateTime } from "@/components/flights/flight-date-time";
 import { ComparablePrices } from "@/components/flights/comparable-prices";
 import { FlightShortlist, formatOfferBaggage } from "@/components/flights/flight-shortlist";
@@ -49,10 +48,11 @@ import { KZ_AIRPORTS } from "@/lib/flights/airports";
 import {
   CABIN_CLASSES,
   CABIN_LABELS,
+  type FlightOffer,
   type FlightSearchParams,
   type FlightSearchSnapshot,
 } from "@/lib/flights/types";
-import { analyzeFlightPrices } from "@/lib/flights/analytics";
+import { connectionDuration } from "@/lib/flights/connection-duration";
 import {
   organizationFailure,
   useOrganizationWorkspace,
@@ -94,6 +94,66 @@ const initial: FormValues = {
   passengers: 1,
   cabinClass: "economy",
 };
+
+function totalJourneyMinutes(offer: FlightOffer, roundTrip: boolean): number | undefined {
+  const outbound = offer.outbound?.durationMinutes ??
+    connectionDuration(
+      offer.outbound?.segments[0]?.departureAt ?? offer.departureAt,
+      offer.outbound?.segments.at(-1)?.arrivalAt ?? offer.arrivalAt,
+    );
+  if (!roundTrip) return outbound;
+  const inbound = offer.inbound;
+  const inboundStart = inbound?.segments[0];
+  const inboundEnd = inbound?.segments.at(-1);
+  const inboundMinutes = inbound?.durationMinutes ??
+    (inboundStart && inboundEnd ? connectionDuration(inboundStart.departureAt, inboundEnd.arrivalAt) : undefined);
+  if (outbound !== undefined && inboundMinutes !== undefined) return outbound + inboundMinutes;
+}
+
+function FlightOfferOverview({ offer, roundTrip }: { offer: FlightOffer; roundTrip: boolean }) {
+  const language = useLanguage();
+  const { t, number } = language;
+  const minutes = totalJourneyMinutes(offer, roundTrip);
+  const returnStops = offer.inbound?.segments.length ? offer.inbound.segments.length - 1 : undefined;
+  const stopLabel = (stops: number) =>
+    stops === 0
+      ? t("Direct flight")
+      : stops === 1
+        ? t("1 stop")
+        : t("{count} stops", { count: number(stops) });
+
+  return (
+    <div className="flight-offer-overview">
+      <div className="flight-offer-route min-w-0">
+        <h3 className="font-semibold">
+          {offer.origin} {roundTrip ? "↔" : "→"} {offer.destination}
+        </h3>
+      </div>
+
+      <div className="flight-offer-schedule min-w-0 text-sm">
+        <p className="text-muted-foreground">
+          {roundTrip && `${t("Outbound")}: `}
+          {stopLabel(offer.stops)}
+          {roundTrip && ` · ${t("Return")}: ${returnStops === undefined ? t("No data") : stopLabel(returnStops)}`}
+          {" · "}
+          {minutes === undefined
+            ? t("Total journey duration unavailable")
+            : formatFlightDuration(minutes, language)}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t("Checked baggage")} · {formatOfferBaggage(offer, "checked", language)}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {t("Cabin baggage")} · {formatOfferBaggage(offer, "cabin", language)}
+        </p>
+      </div>
+
+      <p className="agency-price whitespace-nowrap text-lg font-bold tabular-nums">
+        {number(offer.price.amount)} {offer.price.currency}
+      </p>
+    </div>
+  );
+}
 
 function SearchPage() {
   const { t } = useLanguage();
@@ -156,8 +216,7 @@ function SearchForm({
       : [],
   );
   const agencyId = canSearch ? selectedOrganizationId : null;
-  const { interfaceStyle } = useAppearance();
-  const compactOffers = Boolean(agencyId) && interfaceStyle === "analyst";
+  const [searchFormOpen, setSearchFormOpen] = useState<boolean>();
   const [savedShortlists, setSavedShortlists] = useState(() =>
     agencyId ? readSavedShortlists(workspace.userId, agencyId) : [],
   );
@@ -178,6 +237,8 @@ function SearchForm({
   const shortlistedIds = shortlist?.search === search ? shortlist.ids : [];
   const shortlistedOffers = offers.filter((offer) => shortlistedIds.includes(offer.id));
   const fetchedAt = search?.fetchedAt ?? null;
+  const formOpen = searchFormOpen ?? !search?.offers.length;
+  const summary = formOpen ? undefined : search?.params;
   const aviasalesLink =
     search && offers.length > 0 ? aviasalesSearchLink(search.params) : undefined;
   const invalidateRequest = useCallback(() => {
@@ -193,7 +254,6 @@ function SearchForm({
     return invalidateRequest;
   }, [selectedOrganizationId, version, invalidateRequest]);
 
-  const priceAnalysis = analyzeFlightPrices(offers);
 
   function toggleShortlistedOffer(id: string) {
     if (!search || !selectedOrganizationId || !workspace.isCurrentScope()) return;
@@ -285,6 +345,7 @@ function SearchForm({
       returnDate: parsed.data.returnDate || undefined,
     };
     setErrors({});
+    setSearchFormOpen(true);
     setPending(true);
     if (selectedOrganizationId) workspace.clearSearch();
     setPersonalSearch(null);
@@ -309,6 +370,7 @@ function SearchForm({
           ...(result.environment && { environment: result.environment }),
         };
         saveSearchSnapshot(workspace.userId, selectedOrganizationId, snapshot);
+        setSearchFormOpen(result.offers.length === 0);
         if (selectedOrganizationId) {
           setRecentSearches(saveRecentSearch(workspace.userId, selectedOrganizationId, params));
           workspace.publishSearch({ ...snapshot, organizationId: selectedOrganizationId });
@@ -336,13 +398,8 @@ function SearchForm({
 
   return (
     <div className={agencyId ? "flight-search agency-search" : "flight-search"}>
-      <div className="agency-search-heading">
-        <PageHeader
-          title={t("Flight search")}
-          description={t(
-            "Compare fares and schedules by route. Enter three-letter airport codes, such as ALA or NQZ.",
-          )}
-        />
+      <div className={summary ? "sr-only" : "agency-search-heading"}>
+        <PageHeader title={t("Flight search")} />
       </div>
 
       {!canSearch && (
@@ -361,7 +418,23 @@ function SearchForm({
         </p>
       )}
 
-      <WorkspaceSection title="Search details" className="flight-search-panel" keepMounted>
+      <WorkspaceSection
+        title={summary ? "Edit search" : "Search details"}
+        label="Search details"
+        className={summary ? "flight-search-panel flight-search-panel-compact" : "flight-search-panel"}
+        open={formOpen}
+        onOpenChange={setSearchFormOpen}
+        summary={summary && (
+          <>
+            <strong className="text-foreground">{summary.origin} → {summary.destination}</strong>
+            {" · "}{date(new Date(summary.departureDate), "UTC")}
+            {summary.returnDate && ` – ${date(new Date(summary.returnDate), "UTC")}`}
+            {" · "}{t("Passengers: {count}", { count: number(summary.passengers) })}
+            {" · "}{t(CABIN_LABELS[summary.cabinClass])}
+          </>
+        )}
+        keepMounted
+      >
         <form
           onSubmit={onSubmit}
           noValidate
@@ -553,49 +626,17 @@ function SearchForm({
                   {offers.map((offer, index) => (
                     <Card key={offer.id} className="agency-offer">
                       <CardContent className="agency-offer-body">
-                        <div className="flight-offer-overview">
-                          <div className="flight-offer-route min-w-0">
-                            <h3 className="font-semibold">
-                              {offer.carrier} · {offer.flightNumber}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {offer.origin} → {offer.destination}
-                            </p>
-                          </div>
+                        <FlightOfferOverview
+                          offer={offer}
+                          roundTrip={Boolean(search?.params.returnDate || offer.inbound)}
+                        />
 
-                          <div className="flight-offer-schedule min-w-0 text-sm">
-                            <p className="font-medium tabular-nums">
-                              <FlightDateTime value={offer.departureAt} compact /> –{" "}
-                              <FlightDateTime value={offer.arrivalAt} compact />
-                            </p>
-                            <p className="text-muted-foreground">
-                              {offer.stops === 0
-                                ? t("Direct flight")
-                                : offer.stops === 1
-                                  ? t("1 stop")
-                                  : t("{count} stops", { count: number(offer.stops) })}
-                              {offer.outbound?.durationMinutes !== undefined &&
-                                ` · ${formatFlightDuration(offer.outbound.durationMinutes, language)}`}
-                            </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {t("Checked baggage")} · {formatOfferBaggage(offer, "checked", language)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {t("Cabin baggage")} · {formatOfferBaggage(offer, "cabin", language)}
-                            </p>
-                          </div>
-
-                          <p className="agency-price whitespace-nowrap text-lg font-bold tabular-nums">
-                            {number(offer.price.amount)} {offer.price.currency}
-                          </p>
-                        </div>
-
-                        <OfferConnections offer={offer} className="space-y-1 text-xs text-muted-foreground" />
-                        <details className="flight-offer-details" open={!compactOffers}>
+                        <details className="flight-offer-details">
                           <summary className="cursor-pointer rounded-sm text-sm font-medium text-primary">
                             {t("Flight details")}
                           </summary>
                           <div className="mt-2 space-y-2">
+                            <p className="text-sm font-medium">{offer.carrier} · {offer.flightNumber}</p>
                             {offer.outbound?.segments.length ? (
                               <FlightItinerary itinerary={offer.outbound} label="Outbound itinerary" />
                             ) : (
@@ -689,49 +730,6 @@ function SearchForm({
               />
             )}
           </div>
-          {priceAnalysis && (
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card>
-                <CardContent className="pt-5">
-                  <p className="text-sm text-muted-foreground">{t("Lowest price")}</p>
-
-                  <p className="agency-price mt-2 text-2xl font-bold">
-                    {number(priceAnalysis.cheapest.price.amount)} {priceAnalysis.currency}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-5">
-                  <p className="text-sm text-muted-foreground">{t("Average price")}</p>
-
-                  <p className="agency-price mt-2 text-2xl font-bold">
-                    {number(Math.round(priceAnalysis.averagePrice))} {priceAnalysis.currency}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-5">
-                  <p className="text-sm text-muted-foreground">{t("Price spread")}</p>
-
-                  <p className="agency-price mt-2 text-2xl font-bold">
-                    {number(priceAnalysis.priceSpread)} {priceAnalysis.currency}
-                  </p>
-
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {t("{percent}% between highest and lowest fares", {
-                      percent: number(priceAnalysis.priceSpreadPercent, {
-                        minimumFractionDigits: 1,
-                        maximumFractionDigits: 1,
-                      }),
-                    })}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
           {search && <ComparablePrices search={search} collapsible />}
         </section>
       )}

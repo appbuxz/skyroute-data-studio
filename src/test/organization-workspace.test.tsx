@@ -132,6 +132,8 @@ function select(id: string) {
 }
 
 function submitSearch() {
+  const edit = screen.queryByRole("button", { name: /Edit search/ });
+  if (edit) fireEvent.click(edit);
   fireEvent.change(screen.getByLabelText("Origin"), { target: { value: "ALA" } });
   fireEvent.change(screen.getByLabelText("Destination"), { target: { value: "IST" } });
   fireEvent.change(screen.getByLabelText("Departure date"), { target: { value: "2099-12-10" } });
@@ -493,6 +495,8 @@ describe("organization workspace", () => {
     if (response.status !== "ok") throw new Error("Expected test offers");
     const offer = response.offers[0]!;
     offer.stops = 1;
+    offer.baggage = { cabin: { pieces: 1, weightKg: 7 }, checked: { pieces: 1, weightKg: 23 } };
+    offer.comparisonEvidence = { baggageScope: "all_passengers_all_segments" };
     offer.outbound = {
       durationMinutes: 360,
       segments: [
@@ -522,9 +526,16 @@ describe("organization workspace", () => {
     submitSearch();
     const summary = await screen.findByText("Flight details");
     expect(summary.parentElement).not.toHaveAttribute("open");
-    const connections = screen.getAllByText("Connection at NQZ · 30m");
-    expect(connections.filter((connection) => !connection.closest("details"))).toHaveLength(1);
-    expect(connections.find((connection) => !connection.closest("details"))).toBeVisible();
+    expect(screen.getByText("1 stop · 6h")).toBeVisible();
+    expect(screen.getByText("Cabin baggage · 1 pc · 7 kg")).toBeVisible();
+    expect(screen.getByText("Checked baggage · 1 pc · 23 kg")).toBeVisible();
+    const searchSummary = screen.getByRole("button", { name: /Edit search.*ALA → IST/ });
+    expect(searchSummary).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: "Search flights" })).not.toBeInTheDocument();
+    fireEvent.click(searchSummary);
+    expect(screen.getByLabelText("Origin")).toHaveValue("ALA");
+    expect(screen.getByRole("button", { name: "Search flights" })).toBeVisible();
+    expect(screen.getByText("Connection at NQZ · 30m")).not.toBeVisible();
     summary.parentElement!.setAttribute("open", "");
     await screen.findByRole("region", { name: "Outbound itinerary" });
     expect(screen.getByText("1. ALA → NQZ")).toBeInTheDocument();
@@ -735,7 +746,7 @@ describe("organization workspace", () => {
     await act(async () => old.reject(new Error("Old request failed")));
     expect(screen.getByRole("button", { name: "Checking…" })).toBeDisabled();
     await act(async () => current.resolve(result("B Airways")));
-    expect(screen.getByRole("button", { name: "Search flights" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Edit search/ })).toBeEnabled();
     expect(screen.getByText(/B Airways · KC100/)).toBeInTheDocument();
   });
 
@@ -904,6 +915,7 @@ describe("organization workspace", () => {
 
     const failureMessage = "Flight search is temporarily unavailable.";
     mocks.search.mockResolvedValueOnce({ status: "error", message: failureMessage });
+    fireEvent.click(screen.getByRole("button", { name: /Edit search/ }));
     fireEvent.change(screen.getByLabelText("Destination"), { target: { value: "NQZ" } });
     fireEvent.click(screen.getByRole("button", { name: "Search flights" }));
     await screen.findByText(failureMessage);
@@ -981,6 +993,7 @@ describe("organization workspace", () => {
 
     const oneWay = "https://www.aviasales.kz/search/ALA1212IST2";
     expect(await screen.findByRole("link", { name: label })).toHaveAttribute("href", oneWay);
+    fireEvent.click(screen.getByRole("button", { name: /Edit search/ }));
     fireEvent.change(screen.getByLabelText("Return date (optional)"), {
       target: { value: "2026-12-19" },
     });
@@ -1323,12 +1336,13 @@ it("reuses recent search parameters after reopening the browser and scopes them 
   await ready();
   select(A);
   submitSearch();
-  await screen.findByRole("button", { name: /^ALA → IST/ });
+  fireEvent.click(await screen.findByRole("button", { name: /Edit search.*ALA → IST/ }));
+  expect(screen.getByRole("button", { name: /^ALA → IST/ })).toBeVisible();
 
   fireEvent.change(screen.getByLabelText("Destination"), { target: { value: "NQZ" } });
   fireEvent.change(screen.getByLabelText("Passengers"), { target: { value: "2" } });
   fireEvent.click(screen.getByRole("button", { name: "Search flights" }));
-  await screen.findByRole("button", { name: /^ALA → NQZ/ });
+  await screen.findByRole("button", { name: /Edit search.*ALA → NQZ/ });
   first.unmount();
   window.sessionStorage.clear();
 
@@ -1349,6 +1363,7 @@ it("reuses recent search parameters after reopening the browser and scopes them 
 
   fireEvent.click(screen.getByRole("button", { name: "Search flights" }));
   await screen.findByText(/A Airways · KC100/);
+  fireEvent.click(screen.getByRole("button", { name: /Edit search.*ALA → NQZ/ }));
   expect(screen.getAllByRole("button", { name: /^ALA → NQZ/ })).toHaveLength(1);
   expect(mocks.search).toHaveBeenLastCalledWith({
     data: expect.objectContaining({ organizationId: A, destination: "NQZ", passengers: 2 }),
