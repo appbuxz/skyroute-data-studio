@@ -1,3 +1,4 @@
+import { useOrganizationWorkspace } from "@/lib/organizations/workspace-context";
 import { AppearanceOptions } from "@/components/common/appearance-options";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useQueryClient } from "@tanstack/react-query";
@@ -5,6 +6,7 @@ import { terminateSession } from "@/lib/auth/session";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
+  BookOpen,
   Building2,
   BriefcaseBusiness,
   CalendarCheck,
@@ -56,6 +58,7 @@ const NAV = [
       { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/analysis", label: "Analytics", icon: BarChart3 },
       { to: "/reports", label: "Reports", icon: FileText },
+      { to: "/flight-journal", label: "Flight journal", icon: BookOpen },
       { to: "/agency-test-bookings", label: "Agency bookings", icon: BriefcaseBusiness },
     ],
   },
@@ -63,6 +66,11 @@ const NAV = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useLanguage();
+  const { canSearch } = useOrganizationWorkspace();
+  const navigation = NAV.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => canSearch || item.to !== "/flight-journal"),
+  }));
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -73,7 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const currentLabel =
     path === "/settings"
       ? "Settings"
-      : (NAV.map((group) => group.items.find((item) => item.to === path)).find(
+      : (navigation.map((group) => group.items.find((item) => item.to === path)).find(
           (item) => item !== undefined,
         )?.label ?? "Workspace navigation");
   useEffect(() => {
@@ -152,7 +160,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             {t("Choose a section or switch organization.")}
           </SheetDescription>
           <nav aria-label={t("Workspace navigation")} className="workspace-nav space-y-3">
-            {NAV.map((group) => (
+            {navigation.map((group) => (
               <section key={group.label} aria-label={t(group.label)}>
                 <h2 className="px-3 py-2 text-xs font-semibold opacity-70">
                   {t(group.label)}
@@ -261,7 +269,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             aria-label={t("Workspace navigation")}
             className="workspace-nav grid gap-3 px-2.5 pb-3"
           >
-            {NAV.map((group) => (
+            {navigation.map((group) => (
               <section key={group.label} aria-label={t(group.label)} className="shrink-0">
                 <h2
                   className={cn(

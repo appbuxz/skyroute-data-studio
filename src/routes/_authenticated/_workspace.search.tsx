@@ -1,3 +1,4 @@
+import { AgencyJournalSaveForm } from "@/components/flights/agency-journal-save-form";
 import { WorkspaceSection } from "@/components/common/workspace-section";
 import { LocalizedDateInput } from "@/components/flights/localized-date-input";
 import { useLanguage } from "@/lib/i18n/language-context";
@@ -727,6 +728,14 @@ function SearchForm({
                 onHotelChange={changeDraftHotel}
                 onRemove={toggleShortlistedOffer}
                 onSave={saveSelectedFlights}
+                journalAction={agencyId && (
+                  <AgencyJournalSaveForm
+                    key={version}
+                    organizationId={agencyId}
+                    isCurrentScope={workspace.isCurrentScope}
+                    snapshot={{ ...search, offers: shortlistedOffers, hotel }}
+                  />
+                )}
               />
             )}
           </div>
@@ -793,6 +802,14 @@ function SearchForm({
               offers={openedShortlist.offers}
               hotel={openedShortlist.hotel}
               onHotelChange={changeSavedHotel}
+              journalAction={
+                <AgencyJournalSaveForm
+                  key={version}
+                  organizationId={agencyId}
+                  isCurrentScope={workspace.isCurrentScope}
+                  snapshot={openedShortlist}
+                />
+              }
               onClose={() => setOpenedShortlist(undefined)}
             />
           )}

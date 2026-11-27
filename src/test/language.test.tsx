@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   memberships: vi.fn(),
   onAuthStateChange: vi.fn(),
 }));
+vi.mock("@/lib/flights/agency-journal.functions", () => ({ saveAgencyJournalEntry: vi.fn() }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@/lib/flights/test-booking-status.functions", () => ({
   getTestBookingStatusServer: vi.fn(),

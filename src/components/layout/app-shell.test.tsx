@@ -150,6 +150,7 @@ it.each([
       "/dashboard",
       "/analysis",
       "/reports",
+      "/flight-journal",
       "/agency-test-bookings",
       "/settings",
     ]);

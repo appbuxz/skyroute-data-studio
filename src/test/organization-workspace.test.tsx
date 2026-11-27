@@ -1,4 +1,5 @@
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppearanceProvider } from "@/lib/appearance/appearance-provider";
 import { StrictMode, useState, type ReactNode } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -14,6 +15,8 @@ import type { OrganizationMembership } from "@/lib/organizations/session.functio
 const mocks = vi.hoisted(() => ({
   memberships: vi.fn(),
   search: vi.fn(),
+  saveJournal: vi.fn(),
+  listJournal: vi.fn(),
   confirmPrice: vi.fn(),
   acceptPrice: vi.fn(),
   createBooking: vi.fn(),
@@ -23,6 +26,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/organizations/session.functions", () => ({
   getOrganizationMemberships: mocks.memberships,
+}));
+vi.mock("@/lib/flights/agency-journal.functions", () => ({
+  saveAgencyJournalEntry: mocks.saveJournal,
+  listAgencyJournalEntries: mocks.listJournal,
 }));
 vi.mock("@/lib/flights/search.functions", () => ({ searchFlightsServer: mocks.search }));
 vi.mock("@/lib/flights/test-booking-status.functions", () => ({
@@ -49,6 +56,7 @@ import { OrganizationWorkspaceProvider } from "@/lib/organizations/workspace-pro
 import { useOrganizationWorkspace } from "@/lib/organizations/workspace-context";
 import { searchInputsKey, searchSnapshotKey } from "@/lib/flights/search-session";
 import { OrganizationSelector } from "@/components/layout/organization-selector";
+import { Route as JournalRoute } from "@/routes/_authenticated/_workspace.flight-journal";
 import { Route as SearchRoute } from "@/routes/_authenticated/_workspace.search";
 import { analyticsSnapshot51 } from "./fixtures/agency-analysis";
 import { Route as DashboardRoute } from "@/routes/_authenticated/_workspace.dashboard";
@@ -61,6 +69,7 @@ const agencies: OrganizationMembership[] = [
   { organizationId: A, organizationName: "Agency A", role: "owner" },
   { organizationId: B, organizationName: "Agency B", role: "member" },
 ];
+const JournalPage = JournalRoute.options.component!;
 const SearchPage = SearchRoute.options.component!;
 const DashboardPage = DashboardRoute.options.component!;
 const AnalysisPage = AnalysisRoute.options.component!;
@@ -96,7 +105,7 @@ function Workspace({
   initialPage = "search",
   userId = USER,
 }: {
-  initialPage?: "search" | "analysis" | "dashboard";
+  initialPage?: "search" | "analysis" | "dashboard" | "journal";
   userId?: string;
 }) {
   const [page, setPage] = useState(initialPage);
@@ -107,7 +116,12 @@ function Workspace({
       <button onClick={() => setPage("search")}>Search tab</button>
       <button onClick={() => setPage("analysis")}>Analysis tab</button>
       <button onClick={() => setPage("dashboard")}>Dashboard tab</button>
-      {page === "search" ? (
+      <button onClick={() => setPage("journal")}>Journal tab</button>
+      {page === "journal" ? (
+        <AppearanceProvider>
+          <JournalPage />
+        </AppearanceProvider>
+      ) : page === "search" ? (
         <AppearanceProvider>
           <SearchPage />
         </AppearanceProvider>
@@ -1444,4 +1458,82 @@ it("restores the same agency snapshot across search, dashboard and analytics aft
   await screen.findByText("The latest search returned no offers");
   expect(screen.queryByText("180,000 KZT")).not.toBeInTheDocument();
   expect(mocks.search).toHaveBeenCalledTimes(3);
+});
+
+it("saves a client shortlist, opens and prints its hotel, and clears it on agency switch", async () => {
+  const save = deferred<void>();
+  mocks.saveJournal.mockReturnValue(save.promise);
+  const list = deferred<{ entries: unknown[]; hasNext: boolean }>();
+  mocks.listJournal.mockReturnValueOnce(list.promise);
+  mocks.listJournal.mockResolvedValue({ entries: [], hasNext: false });
+  const print = vi.spyOn(window, "print").mockImplementation(() => {});
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <Workspace />
+    </QueryClientProvider>,
+  );
+  await ready();
+  select(A);
+  submitSearch();
+  fireEvent.click(await screen.findByRole("checkbox", { name: /in the shortlist/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Preview flight shortlist" }));
+
+  const draft = within(await screen.findByRole("dialog"));
+  fireEvent.click(draft.getByRole("button", { name: "Add hotel" }));
+  for (const [field, value] of Object.entries({
+    "Hotel name": "Bosphorus Hotel",
+    "Check-in": "2099-12-10",
+    "Check-out": "2099-12-14",
+    "Total stay price": "650",
+    "Currency code": "EUR",
+  })) {
+    fireEvent.change(draft.getByLabelText(field), { target: { value } });
+  }
+  fireEvent.click(draft.getByRole("button", { name: "Save hotel" }));
+
+  const saveButton = draft.getByRole("button", { name: "Save to flight journal" });
+  const input = draft.getByLabelText("Client name or reference");
+  fireEvent.change(input, { target: { value: "   " } });
+  expect(saveButton).toBeDisabled();
+  fireEvent.change(input, { target: { value: "  Client 27  " } });
+  fireEvent.click(saveButton);
+  expect(draft.getByRole("button", { name: "Saving to flight journal…" })).toBeDisabled();
+  expect(mocks.saveJournal).toHaveBeenCalledOnce();
+  expect(mocks.saveJournal).toHaveBeenCalledWith({
+    data: {
+      organizationId: A,
+      clientLabel: "Client 27",
+      snapshot: expect.objectContaining({ hotel: expect.objectContaining({ name: "Bosphorus Hotel" }) }),
+    },
+  });
+  await act(async () => save.resolve());
+  expect(await draft.findByText("Saved to the flight journal.")).toBeInTheDocument();
+  fireEvent.click(draft.getByRole("button", { name: "Close" }));
+
+  fireEvent.click(screen.getByRole("button", { name: "Journal tab" }));
+  expect(await screen.findByText("Loading flight journal…")).toBeInTheDocument();
+  const snapshot = mocks.saveJournal.mock.calls[0]?.[0].data.snapshot;
+  await act(async () => list.resolve({
+    hasNext: false,
+    entries: [{ id: "entry-1", clientLabel: "Client 27", createdAt: "2026-11-27T08:00:00Z", snapshot }],
+  }));
+  expect(await screen.findByText("Client 27")).toBeInTheDocument();
+  expect(screen.getByText("ALA → IST · 10 Dec 2099")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Open shortlist" }));
+  const preview = within(await screen.findByRole("dialog"));
+  fireEvent.click(preview.getByRole("button", { name: "Save as PDF" }));
+  expect(print).toHaveBeenCalledOnce();
+  const printable = document.querySelector(".flight-shortlist-print");
+  expect(printable).toHaveTextContent("Client: Client 27");
+  expect(printable).toHaveTextContent("Bosphorus Hotel");
+  fireEvent.click(preview.getByRole("button", { name: "Close" }));
+
+  select(B);
+  expect(await screen.findByText("No flight journal entries yet.")).toBeInTheDocument();
+  expect(mocks.listJournal).toHaveBeenLastCalledWith({
+    data: { organizationId: B, page: 0 },
+    signal: expect.any(AbortSignal),
+  });
+  expect(screen.queryByText("Client 27")).toBeNull();
+  expect(document.querySelector(".flight-shortlist-print")).toBeNull();
 });
