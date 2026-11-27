@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AppearanceOptions } from "@/components/common/appearance-options";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,8 @@ export function FlightShortlist({
   offers,
   hotel,
   onHotelChange,
+  clientLabel,
+  journalAction,
   onRemove,
   onSave,
   onClose,
@@ -35,7 +37,9 @@ export function FlightShortlist({
   search: FlightSearchSnapshot;
   offers: FlightOffer[];
   hotel: ShortlistHotel | undefined;
-  onHotelChange: (hotel: ShortlistHotel | undefined) => boolean;
+  clientLabel?: string;
+  journalAction?: ReactNode;
+  onHotelChange?: (hotel: ShortlistHotel | undefined) => boolean;
   onRemove?: (id: string) => void;
   onSave?: () => boolean;
   onClose?: () => void;
@@ -79,7 +83,7 @@ export function FlightShortlist({
   }
 
   function applyHotel(nextHotel: ShortlistHotel | undefined) {
-    if (!onHotelChange(nextHotel)) return false;
+    if (!onHotelChange?.(nextHotel)) return false;
     setEditingHotel(false);
     setHotelError(false);
     return true;
@@ -182,45 +186,47 @@ export function FlightShortlist({
             {offers.length === 0 && (
               <p className="text-sm">{t("Select at least one flight to export.")}</p>
             )}
-            <section className="space-y-2 border-t pt-3">
-              <h3 className="text-sm font-semibold">{t("Hotel")}</h3>
-              {editingHotel ? (
-                <ShortlistHotelForm
-                  hotel={hotel}
-                  onApply={applyHotel}
-                  onCancel={() => setEditingHotel(false)}
-                />
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setHotelError(false);
-                      setEditingHotel(true);
-                    }}
-                  >
-                    {t(hotel ? "Edit hotel" : "Add hotel")}
-                  </Button>
-                  {hotel && (
+            {onHotelChange && (
+              <section className="space-y-2 border-t pt-3">
+                <h3 className="text-sm font-semibold">{t("Hotel")}</h3>
+                {editingHotel ? (
+                  <ShortlistHotelForm
+                    hotel={hotel}
+                    onApply={applyHotel}
+                    onCancel={() => setEditingHotel(false)}
+                  />
+                ) : (
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      onClick={() => setHotelError(!applyHotel(undefined))}
+                      onClick={() => {
+                        setHotelError(false);
+                        setEditingHotel(true);
+                      }}
                     >
-                      {t("Remove hotel")}
+                      {t(hotel ? "Edit hotel" : "Add hotel")}
                     </Button>
-                  )}
-                </div>
-              )}
-              {hotelError && (
-                <p role="alert" className="text-sm text-destructive">
-                  {t("Could not update the hotel.")}
-                </p>
-              )}
-            </section>
+                    {hotel && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setHotelError(!applyHotel(undefined))}
+                      >
+                        {t("Remove hotel")}
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {hotelError && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {t("Could not update the hotel.")}
+                  </p>
+                )}
+              </section>
+            )}
             <div className="space-y-2">
               <Label htmlFor={photoInputId}>{t("Cover photo (optional)")}</Label>
               <Input
@@ -276,6 +282,7 @@ export function FlightShortlist({
                 {t("Save as PDF")}
               </Button>
             </div>
+            {!editingHotel && offers.length > 0 && journalAction}
             {saveError && (
               <p role="alert" className="text-sm text-destructive">
                 {t("Could not save the shortlist.")}
@@ -292,6 +299,7 @@ export function FlightShortlist({
             <h3 className="shortlist-panel-title hidden">{t("PDF preview")}</h3>
             <ShortlistDocument
               saved={Boolean(onClose)}
+              clientLabel={clientLabel}
               search={search}
               offers={offers}
               hotel={hotel}
@@ -312,6 +320,7 @@ export function FlightShortlist({
           <div className="flight-shortlist-print" aria-hidden="true">
             <ShortlistDocument
               saved={Boolean(onClose)}
+              clientLabel={clientLabel}
               search={search}
               offers={offers}
               hotel={hotel}
@@ -326,6 +335,7 @@ export function FlightShortlist({
 
 function ShortlistDocument({
   saved,
+  clientLabel,
   search,
   offers,
   hotel,
@@ -336,6 +346,7 @@ function ShortlistDocument({
   search: FlightSearchSnapshot;
   offers: FlightOffer[];
   saved: boolean;
+  clientLabel?: string | undefined;
   hotel: ShortlistHotel | undefined;
   photoUrl: string | null;
   onPhotoLoad?: () => void;
@@ -362,6 +373,9 @@ function ShortlistDocument({
         <p>
           {t("Passengers")} {number(params.passengers)} · {t(CABIN_LABELS[params.cabinClass])}
         </p>
+        {clientLabel && (
+          <p className="break-words">{t("Client: {label}", { label: clientLabel })}</p>
+        )}
         {testEnvironment && (
           <p className="font-semibold">{t("Test data · Travelport Preproduction")}</p>
         )}

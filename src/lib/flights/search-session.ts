@@ -134,14 +134,15 @@ export const shortlistHotelSchema = z
 
 export type ShortlistHotel = z.infer<typeof shortlistHotelSchema>;
 
-const savedShortlistSchema = snapshotSchema.extend({
+export const shortlistSnapshotSchema = snapshotSchema.extend({
   params: searchParamsSchema,
   offers: z.array(offerSchema.omit({ checkoutToken: true })).min(1).max(FLIGHT_SHORTLIST_LIMIT),
-  savedAt: z.number().finite(),
   hotel: shortlistHotelSchema.optional(),
 });
 
-type ShortlistSnapshot = FlightSearchSnapshot & { hotel?: ShortlistHotel | undefined };
+const savedShortlistSchema = shortlistSnapshotSchema.extend({ savedAt: z.number().finite() });
+
+export type ShortlistSnapshot = FlightSearchSnapshot & { hotel?: ShortlistHotel | undefined };
 
 export type SavedShortlist = ShortlistSnapshot & { id: string; savedAt: number };
 
